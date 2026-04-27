@@ -2,9 +2,8 @@ import {
   Appointment as PrismaAppointmentRecord,
   Prisma,
 } from "../../../../generated/prisma/client";
+import { Money } from "../../../../modules/catalog/domain/value-objects/money";
 import { Appointment } from "../../../../modules/scheduling/domain/entities/appointment";
-import { BookedServiceSnapshot } from "../../../../modules/scheduling/domain/value-objects/booked-service-snapshot";
-import { TimeSlot } from "../../../../modules/scheduling/domain/value-objects/time-slot";
 import { UniqueEntityId } from "../../../../shared/entities/unique-entity-id";
 
 export class PrismaAppointmentMapper {
@@ -13,25 +12,33 @@ export class PrismaAppointmentMapper {
       {
         establishmentId: new UniqueEntityId(raw.establishmentId),
         customerId: new UniqueEntityId(raw.customerId),
-        bookedByCustomer: raw.bookedByCustomer,
-        service: BookedServiceSnapshot.create({
+        vehicleId: raw.vehicleId ? new UniqueEntityId(raw.vehicleId) : null,
+        service: {
           serviceId: new UniqueEntityId(raw.bookedServiceId),
           serviceName: raw.bookedServiceName,
           category: raw.bookedServiceCategory ?? undefined,
           durationInMinutes: raw.bookedServiceDurationInMinutes ?? undefined,
           priceInCents: raw.bookedServicePriceInCents,
-        }),
-        slot: TimeSlot.create({
-          startsAt: raw.startsAt,
-          endsAt: raw.endsAt,
-        }),
+        },
+        vehicle: raw.vehicleId
+          ? {
+              plate: raw.vehiclePlate,
+              brand: raw.vehicleBrand,
+              model: raw.vehicleModel,
+              color: raw.vehicleColor,
+              year: raw.vehicleYear,
+            }
+          : null,
+        startsAt: raw.startsAt,
+        endsAt: raw.endsAt,
+        description: raw.description,
+        discountInCents:
+          raw.discountInCents !== null ? Money.create(raw.discountInCents) : null,
         status: raw.status,
         createdAt: raw.createdAt,
         updatedAt: raw.updatedAt,
-        confirmedAt: raw.confirmedAt,
+        doneAt: raw.doneAt,
         cancelledAt: raw.cancelledAt,
-        expiredAt: raw.expiredAt,
-        reservationExpiresAt: raw.reservationExpiresAt,
       },
       new UniqueEntityId(raw.id),
     );
@@ -42,21 +49,26 @@ export class PrismaAppointmentMapper {
       id: raw.id.toString(),
       establishmentId: raw.establishmentId.toString(),
       customerId: raw.customerId.toString(),
-      bookedByCustomer: raw.bookedByCustomer,
+      vehicleId: raw.vehicleId?.toString() ?? null,
       bookedServiceId: raw.service.serviceId.toString(),
       bookedServiceName: raw.service.serviceName,
       bookedServiceCategory: raw.service.category ?? null,
       bookedServiceDurationInMinutes: raw.service.durationInMinutes ?? null,
       bookedServicePriceInCents: raw.service.priceInCents,
-      startsAt: raw.slot.startsAt,
-      endsAt: raw.slot.endsAt,
+      vehiclePlate: raw.vehicle?.plate ?? null,
+      vehicleBrand: raw.vehicle?.brand ?? null,
+      vehicleModel: raw.vehicle?.model ?? null,
+      vehicleColor: raw.vehicle?.color ?? null,
+      vehicleYear: raw.vehicle?.year ?? null,
+      startsAt: raw.startsAt,
+      endsAt: raw.endsAt,
+      description: raw.description,
+      discountInCents: raw.discountInCents?.amountInCents ?? null,
       status: raw.status,
       ...(raw.createdAt ? { createdAt: raw.createdAt } : {}),
       ...(raw.updatedAt ? { updatedAt: raw.updatedAt } : {}),
-      confirmedAt: raw.confirmedAt,
+      doneAt: raw.doneAt,
       cancelledAt: raw.cancelledAt,
-      expiredAt: raw.expiredAt,
-      reservationExpiresAt: raw.reservationExpiresAt,
     };
   }
 
@@ -64,20 +76,25 @@ export class PrismaAppointmentMapper {
     raw: Appointment,
   ): Prisma.AppointmentUncheckedUpdateInput {
     return {
-      bookedByCustomer: raw.bookedByCustomer,
+      vehicleId: raw.vehicleId?.toString() ?? null,
       bookedServiceId: raw.service.serviceId.toString(),
       bookedServiceName: raw.service.serviceName,
       bookedServiceCategory: raw.service.category ?? null,
       bookedServiceDurationInMinutes: raw.service.durationInMinutes ?? null,
       bookedServicePriceInCents: raw.service.priceInCents,
-      startsAt: raw.slot.startsAt,
-      endsAt: raw.slot.endsAt,
+      vehiclePlate: raw.vehicle?.plate ?? null,
+      vehicleBrand: raw.vehicle?.brand ?? null,
+      vehicleModel: raw.vehicle?.model ?? null,
+      vehicleColor: raw.vehicle?.color ?? null,
+      vehicleYear: raw.vehicle?.year ?? null,
+      startsAt: raw.startsAt,
+      endsAt: raw.endsAt,
+      description: raw.description,
+      discountInCents: raw.discountInCents?.amountInCents ?? null,
       status: raw.status,
       ...(raw.updatedAt ? { updatedAt: raw.updatedAt } : {}),
-      confirmedAt: raw.confirmedAt,
+      doneAt: raw.doneAt,
       cancelledAt: raw.cancelledAt,
-      expiredAt: raw.expiredAt,
-      reservationExpiresAt: raw.reservationExpiresAt,
     };
   }
 }

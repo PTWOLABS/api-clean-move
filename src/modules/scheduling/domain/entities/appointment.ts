@@ -1,34 +1,49 @@
+import { ServiceCategory } from "../../../catalog/domain/value-objects/service-category";
+import { Money } from "../../../catalog/domain/value-objects/money";
 import { AggregateRoot } from "../../../../shared/entities/aggregate-root";
 import { UniqueEntityId } from "../../../../shared/entities/unique-entity-id";
 import { Optional } from "../../../../shared/types/optional";
-import { AppointmentCancelledEvent } from "../events/appointment-cancelled-event";
-import { InvalidAppointmentPaymentWindowError } from "../errors/invalid-appointment-payment-window-error";
-import { InvalidAppointmentStatusTransitionError } from "../errors/invalid-appointment-status-transition-error";
-import { BookedServiceSnapshot } from "../value-objects/booked-service-snapshot";
-import { TimeSlot } from "../value-objects/time-slot";
+import { InvalidAppointmentInputError } from "../errors/invalid-appointment-input-error";
 
-export type AppointmentStatus =
-  | "AWAITING_PAYMENT"
-  | "EXPIRED"
-  | "IN_PROGRESS"
-  | "FINISHED"
-  | "CANCELLED"
-  | "SCHEDULED";
+export type AppointmentStatus = "SCHEDULED" | "DONE" | "CANCELLED";
+
+export type AppointmentServiceSnapshot = {
+  serviceId: UniqueEntityId;
+  serviceName: string;
+  category: ServiceCategory | undefined;
+  durationInMinutes: number | undefined;
+  priceInCents: number;
+};
+
+export type AppointmentVehicleSnapshot = {
+  plate: string | null;
+  brand: string | null;
+  model: string | null;
+  color: string | null;
+  year: number | null;
+} | null;
 
 export type AppointmentProps = {
   establishmentId: UniqueEntityId;
   customerId: UniqueEntityId;
-  bookedByCustomer: boolean;
-  service: BookedServiceSnapshot;
-  slot: TimeSlot;
+  vehicleId: UniqueEntityId | null;
+  service: AppointmentServiceSnapshot;
+  vehicle: AppointmentVehicleSnapshot;
+  startsAt: Date;
+  endsAt: Date | null;
+  description: string | null;
+  discountInCents: Money | null;
   status: AppointmentStatus;
-  createdAt: Date | null;
-  updatedAt: Date | null;
-  confirmedAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+  doneAt: Date | null;
   cancelledAt: Date | null;
-  expiredAt: Date | null;
-  reservationExpiresAt: Date | null;
 };
+
+type AppointmentCreateProps = Optional<
+  AppointmentProps,
+  "status" | "createdAt" | "updatedAt" | "doneAt" | "cancelledAt"
+>;
 
 export class Appointment extends AggregateRoot<AppointmentProps> {
   get establishmentId() {
@@ -39,16 +54,32 @@ export class Appointment extends AggregateRoot<AppointmentProps> {
     return this.props.customerId;
   }
 
-  get bookedByCustomer() {
-    return this.props.bookedByCustomer;
+  get vehicleId() {
+    return this.props.vehicleId;
   }
 
   get service() {
     return this.props.service;
   }
 
-  get slot() {
-    return this.props.slot;
+  get vehicle() {
+    return this.props.vehicle;
+  }
+
+  get startsAt() {
+    return this.props.startsAt;
+  }
+
+  get endsAt() {
+    return this.props.endsAt;
+  }
+
+  get description() {
+    return this.props.description;
+  }
+
+  get discountInCents() {
+    return this.props.discountInCents;
   }
 
   get status() {
@@ -63,47 +94,25 @@ export class Appointment extends AggregateRoot<AppointmentProps> {
     return this.props.updatedAt;
   }
 
-  get confirmedAt() {
-    return this.props.confirmedAt;
+  get doneAt() {
+    return this.props.doneAt;
   }
 
   get cancelledAt() {
     return this.props.cancelledAt;
   }
 
-  get expiredAt() {
-    return this.props.expiredAt;
-  }
-
-  get reservationExpiresAt() {
-    return this.props.reservationExpiresAt;
-  }
-
-  static create(
-    props: Optional<
-      AppointmentProps,
-      | "bookedByCustomer"
-      | "createdAt"
-      | "updatedAt"
-      | "status"
-      | "confirmedAt"
-      | "cancelledAt"
-      | "expiredAt"
-      | "reservationExpiresAt"
-    >,
-    id?: UniqueEntityId,
-  ) {
+  static create(props: AppointmentCreateProps, id?: UniqueEntityId) {
     const appointment = new Appointment(
       {
         ...props,
-        bookedByCustomer: props.bookedByCustomer ?? false,
-        confirmedAt: props.confirmedAt ?? null,
-        cancelledAt: props.cancelledAt ?? null,
-        expiredAt: props.expiredAt ?? null,
-        reservationExpiresAt: props.reservationExpiresAt ?? null,
+        description: Appointment.normalizeDescription(props.description),
+        discountInCents: props.discountInCents ?? null,
+        status: props.status ?? "SCHEDULED",
         createdAt: props.createdAt ?? new Date(),
         updatedAt: props.updatedAt ?? new Date(),
-        status: props.status ?? "SCHEDULED",
+        doneAt: props.doneAt ?? null,
+        cancelledAt: props.cancelledAt ?? null,
       },
       id,
     );
@@ -113,197 +122,76 @@ export class Appointment extends AggregateRoot<AppointmentProps> {
     return appointment;
   }
 
-  static createAwaitingPayment(
-    props: Optional<
-      AppointmentProps,
-      | "bookedByCustomer"
-      | "createdAt"
-      | "updatedAt"
-      | "status"
-      | "confirmedAt"
-      | "cancelledAt"
-      | "expiredAt"
-    > & {
-      reservationExpiresAt: Date;
-    },
-    id?: UniqueEntityId,
-  ) {
-    const appointment = Appointment.create(
-      {
-        ...props,
-        status: "AWAITING_PAYMENT",
-        createdAt: props.createdAt ?? new Date(),
-        updatedAt: props.updatedAt ?? new Date(),
-      },
-      id,
-    );
+  changeStatus(status: AppointmentStatus, referenceDate: Date = new Date()) {
+    this.assertValidDate(referenceDate, "referenceDate must be a valid date.");
 
-    appointment.assertValidState({
-      validateFuturePaymentWindow: true,
-    });
+    this.props.status = status;
 
-    return appointment;
+    if (status === "DONE") {
+      this.props.doneAt = referenceDate;
+      this.props.cancelledAt = null;
+    }
+
+    if (status === "CANCELLED") {
+      this.props.cancelledAt = referenceDate;
+      this.props.doneAt = null;
+    }
+
+    if (status === "SCHEDULED") {
+      this.props.doneAt = null;
+      this.props.cancelledAt = null;
+    }
+
+    this.touch();
   }
 
-  touch() {
+  private touch() {
     this.props.updatedAt = new Date();
   }
 
-  isAwaitingPayment() {
-    return this.props.status === "AWAITING_PAYMENT";
-  }
-
-  isPaymentWindowExpired(referenceDate: Date = new Date()) {
-    if (this.props.status === "EXPIRED") {
-      return true;
-    }
-
-    if (this.props.status !== "AWAITING_PAYMENT") {
-      return false;
-    }
-
-    if (!this.props.reservationExpiresAt) {
-      return false;
-    }
-
-    return this.props.reservationExpiresAt.getTime() <= referenceDate.getTime();
-  }
-
-  blocksTimeSlot(referenceDate: Date = new Date()) {
-    if (this.props.status === "CANCELLED" || this.props.status === "EXPIRED") {
-      return false;
-    }
-
-    if (this.props.status === "AWAITING_PAYMENT") {
-      return !this.isPaymentWindowExpired(referenceDate);
-    }
-
-    return true;
-  }
-
-  confirmPayment(referenceDate: Date = new Date()) {
-    if (this.props.status !== "AWAITING_PAYMENT") {
-      throw new InvalidAppointmentStatusTransitionError(
-        "Only appointments awaiting payment can be confirmed.",
-      );
-    }
-
-    if (this.isPaymentWindowExpired(referenceDate)) {
-      throw new InvalidAppointmentStatusTransitionError(
-        "It wasn't possible to confirm the appointment because the payment window has expired.",
-      );
-    }
-
-    this.props.status = "SCHEDULED";
-    this.props.confirmedAt = referenceDate;
-    this.props.expiredAt = null;
-    this.props.reservationExpiresAt = null;
-    this.touch();
-  }
-
-  expirePayment(referenceDate: Date = new Date()) {
-    if (this.props.status !== "AWAITING_PAYMENT") {
-      throw new InvalidAppointmentStatusTransitionError(
-        "Only appointments awaiting payment can expire.",
-      );
-    }
-
-    if (!this.isPaymentWindowExpired(referenceDate)) {
-      throw new InvalidAppointmentStatusTransitionError(
-        "It wasn't possible to expire the appointment before the payment deadline.",
-      );
-    }
-
-    this.props.status = "EXPIRED";
-    this.props.expiredAt = referenceDate;
-    this.props.reservationExpiresAt = null;
-    this.touch();
-  }
-
-  cancel() {
-    if (this.props.status === "CANCELLED") {
-      throw new InvalidAppointmentStatusTransitionError();
-    }
-
-    if (this.props.status === "FINISHED" || this.props.status === "EXPIRED") {
-      throw new InvalidAppointmentStatusTransitionError();
-    }
-
-    this.props.status = "CANCELLED";
-    this.props.cancelledAt = new Date();
-    this.props.reservationExpiresAt = null;
-    this.touch();
-    this.addDomainEvent(
-      new AppointmentCancelledEvent(this, this.props.cancelledAt),
+  private assertValidState() {
+    this.assertValidDate(this.props.startsAt, "startsAt must be a valid date.");
+    this.assertNullableDate(this.props.endsAt, "endsAt must be a valid date.");
+    this.assertValidDate(this.props.createdAt, "createdAt must be a valid date.");
+    this.assertValidDate(this.props.updatedAt, "updatedAt must be a valid date.");
+    this.assertNullableDate(this.props.doneAt, "doneAt must be a valid date.");
+    this.assertNullableDate(
+      this.props.cancelledAt,
+      "cancelledAt must be a valid date.",
     );
-  }
 
-  advanceStatus() {
     if (
-      this.props.status === "AWAITING_PAYMENT" ||
-      this.props.status === "CANCELLED" ||
-      this.props.status === "FINISHED" ||
-      this.props.status === "EXPIRED"
+      this.props.endsAt &&
+      this.props.endsAt.getTime() <= this.props.startsAt.getTime()
     ) {
-      throw new InvalidAppointmentStatusTransitionError();
+      throw new InvalidAppointmentInputError(
+        "endsAt must be greater than startsAt.",
+      );
     }
 
-    if (this.props.status === "SCHEDULED") {
-      this.props.status = "IN_PROGRESS";
-    } else {
-      this.props.status = "FINISHED";
-    }
-
-    this.touch();
   }
 
-  reschedule(newSlot: TimeSlot) {
-    if (
-      this.props.status !== "SCHEDULED" &&
-      this.props.status !== "AWAITING_PAYMENT"
-    ) {
-      throw new InvalidAppointmentStatusTransitionError();
+  private assertValidDate(value: Date, message: string) {
+    if (!(value instanceof Date) || Number.isNaN(value.getTime())) {
+      throw new InvalidAppointmentInputError(message);
     }
-
-    this.props.slot = newSlot;
-    this.touch();
   }
 
-  private assertValidState(options?: {
-    validateFuturePaymentWindow?: boolean;
-  }) {
-    if (this.props.status !== "AWAITING_PAYMENT") {
-      if (this.props.reservationExpiresAt !== null) {
-        throw new InvalidAppointmentPaymentWindowError(
-          "reservationExpiresAt is only allowed for appointments awaiting payment.",
-        );
-      }
-
+  private assertNullableDate(value: Date | null, message: string) {
+    if (value === null) {
       return;
     }
 
-    if (!(this.props.reservationExpiresAt instanceof Date)) {
-      throw new InvalidAppointmentPaymentWindowError(
-        "reservationExpiresAt must be a valid date.",
-      );
+    this.assertValidDate(value, message);
+  }
+
+  private static normalizeDescription(description: string | null) {
+    const normalizedDescription = description?.trim();
+
+    if (!normalizedDescription) {
+      return null;
     }
 
-    if (Number.isNaN(this.props.reservationExpiresAt.getTime())) {
-      throw new InvalidAppointmentPaymentWindowError(
-        "reservationExpiresAt must be a valid date.",
-      );
-    }
-
-    if (!options?.validateFuturePaymentWindow) {
-      return;
-    }
-
-    const referenceDate = this.props.createdAt ?? new Date();
-
-    if (this.props.reservationExpiresAt.getTime() <= referenceDate.getTime()) {
-      throw new InvalidAppointmentPaymentWindowError(
-        "reservationExpiresAt must be a future date.",
-      );
-    }
+    return normalizedDescription;
   }
 }

@@ -1,4 +1,5 @@
 import { Injectable } from "@nestjs/common";
+
 import {
   AppointmentFilters,
   AppointmentsRepository,
@@ -45,91 +46,32 @@ export class PrismaAppointmentsRepository implements AppointmentsRepository {
     }
   }
 
-  async findManyByEstablishmentId(
+  async findByIdAndEstablishmentId(
+    id: string,
     establishmentId: string,
-    filters?: Omit<AppointmentFilters, "establishmentName">,
-  ): Promise<Appointment[]> {
-    const page = filters?.page ?? 1;
-    const size = filters?.size ?? 20;
-
+  ): Promise<Appointment | null> {
     try {
-      const appointments = await PrismaUnitOfWork.getClient(
+      const appointment = await PrismaUnitOfWork.getClient(
         this.prisma,
-      ).appointment.findMany({
+      ).appointment.findFirst({
         where: {
+          id,
           establishmentId,
-          ...(filters?.serviceName
-            ? { bookedServiceName: filters.serviceName }
-            : {}),
-          ...(filters?.status ? { status: filters.status } : {}),
-          ...(filters?.category
-            ? { bookedServiceCategory: filters.category }
-            : {}),
-          ...(filters?.minPrice !== undefined || filters?.maxPrice !== undefined
-            ? {
-                bookedServicePriceInCents: {
-                  ...(filters.minPrice !== undefined
-                    ? { gte: filters.minPrice }
-                    : {}),
-                  ...(filters.maxPrice !== undefined
-                    ? { lte: filters.maxPrice }
-                    : {}),
-                },
-              }
-            : {}),
-        },
-        orderBy: {
-          createdAt: "asc",
-        },
-        skip: (page - 1) * size,
-        take: size,
-      });
-
-      return appointments.map((appointment) =>
-        PrismaAppointmentMapper.toDomain(appointment),
-      );
-    } catch (error) {
-      rethrowPrismaRepositoryError(error);
-    }
-  }
-
-  async findManyByEstablishmentIdAndInterval(
-    establishmentId: string,
-    startsAt: Date,
-    endsAt: Date,
-  ): Promise<Appointment[] | null> {
-    try {
-      const appointments = await PrismaUnitOfWork.getClient(
-        this.prisma,
-      ).appointment.findMany({
-        where: {
-          establishmentId,
-          startsAt: {
-            lt: endsAt,
-          },
-          endsAt: {
-            gt: startsAt,
-          },
-        },
-        orderBy: {
-          startsAt: "asc",
         },
       });
 
-      if (appointments.length === 0) {
+      if (!appointment) {
         return null;
       }
 
-      return appointments.map((appointment) =>
-        PrismaAppointmentMapper.toDomain(appointment),
-      );
+      return PrismaAppointmentMapper.toDomain(appointment);
     } catch (error) {
       rethrowPrismaRepositoryError(error);
     }
   }
 
-  async findManyByCustomerId(
-    customerId: string,
+  async findManyByEstablishmentId(
+    establishmentId: string,
     filters?: AppointmentFilters,
   ): Promise<Appointment[]> {
     const page = filters?.page ?? 1;
@@ -140,38 +82,24 @@ export class PrismaAppointmentsRepository implements AppointmentsRepository {
         this.prisma,
       ).appointment.findMany({
         where: {
-          customerId,
-          ...(filters?.serviceName
-            ? { bookedServiceName: filters.serviceName }
+          establishmentId,
+          ...(filters?.customerId ? { customerId: filters.customerId } : {}),
+          ...(filters?.vehicleId ? { vehicleId: filters.vehicleId } : {}),
+          ...(filters?.serviceId
+            ? { bookedServiceId: filters.serviceId }
             : {}),
           ...(filters?.status ? { status: filters.status } : {}),
-          ...(filters?.category
-            ? { bookedServiceCategory: filters.category }
-            : {}),
-          ...(filters?.minPrice !== undefined || filters?.maxPrice !== undefined
+          ...(filters?.startsAt || filters?.endsAt
             ? {
-                bookedServicePriceInCents: {
-                  ...(filters.minPrice !== undefined
-                    ? { gte: filters.minPrice }
-                    : {}),
-                  ...(filters.maxPrice !== undefined
-                    ? { lte: filters.maxPrice }
-                    : {}),
-                },
-              }
-            : {}),
-          ...(filters?.establishmentName
-            ? {
-                establishment: {
-                  is: {
-                    corporateName: filters.establishmentName,
-                  },
+                startsAt: {
+                  ...(filters.startsAt ? { gte: filters.startsAt } : {}),
+                  ...(filters.endsAt ? { lte: filters.endsAt } : {}),
                 },
               }
             : {}),
         },
         orderBy: {
-          createdAt: "asc",
+          startsAt: "asc",
         },
         skip: (page - 1) * size,
         take: size,

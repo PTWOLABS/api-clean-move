@@ -6,7 +6,7 @@ export class AppointmentPresenter {
       id: appointment.id.toString(),
       establishmentId: appointment.establishmentId.toString(),
       customerId: appointment.customerId.toString(),
-      bookedByCustomer: appointment.bookedByCustomer,
+      vehicleId: appointment.vehicleId?.toString() ?? null,
       service: {
         id: appointment.service.serviceId.toString(),
         name: appointment.service.serviceName,
@@ -14,18 +14,24 @@ export class AppointmentPresenter {
         durationInMinutes: appointment.service.durationInMinutes ?? null,
         priceInCents: appointment.service.priceInCents,
       },
-      slot: {
-        startsAt: appointment.slot.startsAt.toISOString(),
-        endsAt: appointment.slot.endsAt.toISOString(),
-      },
+      vehicle: appointment.vehicle
+        ? {
+            plate: appointment.vehicle.plate,
+            brand: appointment.vehicle.brand,
+            model: appointment.vehicle.model,
+            color: appointment.vehicle.color,
+            year: appointment.vehicle.year,
+          }
+        : null,
+      startsAt: appointment.startsAt.toISOString(),
+      endsAt: appointment.endsAt?.toISOString() ?? null,
+      description: appointment.description,
+      discountInCents: appointment.discountInCents?.amountInCents ?? null,
       status: appointment.status,
-      createdAt: appointment.createdAt?.toISOString() ?? null,
-      updatedAt: appointment.updatedAt?.toISOString() ?? null,
-      confirmedAt: appointment.confirmedAt?.toISOString() ?? null,
+      createdAt: appointment.createdAt.toISOString(),
+      updatedAt: appointment.updatedAt.toISOString(),
+      doneAt: appointment.doneAt?.toISOString() ?? null,
       cancelledAt: appointment.cancelledAt?.toISOString() ?? null,
-      expiredAt: appointment.expiredAt?.toISOString() ?? null,
-      reservationExpiresAt:
-        appointment.reservationExpiresAt?.toISOString() ?? null,
     };
   }
 }
