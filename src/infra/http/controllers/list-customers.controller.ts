@@ -5,7 +5,18 @@ import {
   Get,
   Query,
 } from "@nestjs/common";
-import { ApiBearerAuth, ApiOkResponse, ApiTags } from "@nestjs/swagger";
+import {
+  ApiBadRequestResponse,
+  ApiBearerAuth,
+  ApiForbiddenResponse,
+  ApiInternalServerErrorResponse,
+  ApiNotFoundResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiQuery,
+  ApiTags,
+  ApiUnauthorizedResponse,
+} from "@nestjs/swagger";
 import z from "zod";
 
 import { ListCustomersUseCase } from "../../../modules/application/use-cases/customer/list-customers";
@@ -34,7 +45,52 @@ export class ListCustomersController {
   constructor(private readonly listCustomers: ListCustomersUseCase) {}
 
   @Get()
-  @ApiOkResponse({ type: ListCustomersResponseDto })
+  @ApiOperation({
+    summary: "List active customers for the authenticated establishment.",
+    description:
+      "Returns active internal customer records. The optional search term is applied to customer name, phone, email, and CPF/CNPJ.",
+  })
+  @ApiQuery({
+    name: "search",
+    required: false,
+    type: String,
+    description: "Search by full name, phone, email, CPF, or CNPJ.",
+    example: "Maria",
+  })
+  @ApiQuery({
+    name: "page",
+    required: false,
+    type: Number,
+    description: "Positive page number used for pagination.",
+    example: 1,
+  })
+  @ApiQuery({
+    name: "size",
+    required: false,
+    type: Number,
+    description: "Positive page size used for pagination.",
+    example: 20,
+  })
+  @ApiOkResponse({
+    description: "Customers listed successfully.",
+    type: ListCustomersResponseDto,
+  })
+  @ApiBadRequestResponse({
+    description: "Invalid query parameters.",
+  })
+  @ApiUnauthorizedResponse({
+    description: "Missing or invalid access token.",
+  })
+  @ApiForbiddenResponse({
+    description: "Authenticated user does not have the establishment role.",
+  })
+  @ApiNotFoundResponse({
+    description:
+      "The authenticated establishment user does not have an establishment profile.",
+  })
+  @ApiInternalServerErrorResponse({
+    description: "Unexpected failure while listing customers.",
+  })
   async handle(
     @CurrentUser() user: AuthenticatedUser,
     @Query(new ZodValidationPipe(listCustomersQuerySchema))

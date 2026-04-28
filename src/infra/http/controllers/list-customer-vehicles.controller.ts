@@ -6,7 +6,19 @@ import {
   Param,
   Query,
 } from "@nestjs/common";
-import { ApiBearerAuth, ApiOkResponse, ApiTags } from "@nestjs/swagger";
+import {
+  ApiBadRequestResponse,
+  ApiBearerAuth,
+  ApiForbiddenResponse,
+  ApiInternalServerErrorResponse,
+  ApiNotFoundResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiParam,
+  ApiQuery,
+  ApiTags,
+  ApiUnauthorizedResponse,
+} from "@nestjs/swagger";
 import z from "zod";
 
 import { ListCustomerVehiclesUseCase } from "../../../modules/application/use-cases/customer/list-customer-vehicles";
@@ -39,7 +51,50 @@ export class ListCustomerVehiclesController {
   ) {}
 
   @Get()
-  @ApiOkResponse({ type: ListCustomerVehiclesResponseDto })
+  @ApiOperation({
+    summary: "List active vehicles for an internal customer.",
+    description:
+      "Returns active vehicles linked to a customer owned by the authenticated establishment.",
+  })
+  @ApiParam({
+    name: "customerId",
+    description: "Customer identifier.",
+    format: "uuid",
+  })
+  @ApiQuery({
+    name: "page",
+    required: false,
+    type: Number,
+    description: "Positive page number used for pagination.",
+    example: 1,
+  })
+  @ApiQuery({
+    name: "size",
+    required: false,
+    type: Number,
+    description: "Positive page size used for pagination.",
+    example: 20,
+  })
+  @ApiOkResponse({
+    description: "Customer vehicles listed successfully.",
+    type: ListCustomerVehiclesResponseDto,
+  })
+  @ApiBadRequestResponse({
+    description: "Invalid customer id or invalid query parameters.",
+  })
+  @ApiUnauthorizedResponse({
+    description: "Missing or invalid access token.",
+  })
+  @ApiForbiddenResponse({
+    description: "Authenticated user does not have the establishment role.",
+  })
+  @ApiNotFoundResponse({
+    description:
+      "Customer was not found for the authenticated establishment, or the establishment profile does not exist.",
+  })
+  @ApiInternalServerErrorResponse({
+    description: "Unexpected failure while listing customer vehicles.",
+  })
   async handle(
     @CurrentUser() user: AuthenticatedUser,
     @Param("customerId", new ZodValidationPipe(customerIdParamSchema))
