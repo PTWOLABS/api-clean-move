@@ -68,7 +68,9 @@ export class ListCustomerVehiclesController {
     }
 
     return {
-      vehicles: result.value.vehicles.map(CustomerVehiclePresenter.toHTTP),
+      vehicles: result.value.vehicles.map((vehicle) =>
+        CustomerVehiclePresenter.toHTTP(vehicle),
+      ),
     };
   }
 }

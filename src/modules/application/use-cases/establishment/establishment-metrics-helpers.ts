@@ -10,7 +10,7 @@ export type EstablishmentMetricsFilters = {
   status?: AppointmentStatus[];
 };
 
-const PAGE_SIZE = 100;
+const PAGE_SIZE = 20;
 
 export async function findAllServicesByEstablishment(
   servicesRepository: ServicesRepository,

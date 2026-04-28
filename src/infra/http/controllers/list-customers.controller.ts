@@ -61,7 +61,9 @@ export class ListCustomersController {
     }
 
     return {
-      customers: result.value.customers.map(CustomerPresenter.toHTTP),
+      customers: result.value.customers.map((customer) =>
+        CustomerPresenter.toHTTP(customer),
+      ),
     };
   }
 }
