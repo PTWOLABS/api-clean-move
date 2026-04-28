@@ -17,34 +17,6 @@ export class AddressDto {
   city!: string;
 }
 
-export class RegisterCustomerBodyDto {
-  @ApiProperty({ example: "12345678900" })
-  cpf!: string;
-
-  @ApiProperty({ example: "Maria Silva" })
-  name!: string;
-
-  @ApiProperty({ example: "maria@example.com" })
-  email!: string;
-
-  @ApiProperty({ example: "123456" })
-  password!: string;
-
-  @ApiProperty({ example: "+5511999999999" })
-  phone!: string;
-
-  @ApiProperty({ type: AddressDto })
-  address!: AddressDto;
-}
-
-export class RegisterCustomerResponseDto {
-  @ApiProperty({
-    example: "9f7f5e87-1f82-4d7d-8c3c-90c4f6073d11",
-    description: "Created customer identifier.",
-  })
-  customerId!: string;
-}
-
 export class TimeRangeDto {
   @ApiProperty({ example: "08:00" })
   start!: string;
@@ -127,31 +99,205 @@ export class RegisterEstablishmentResponseDto {
   establishmentId!: string;
 }
 
-export class BookServiceBodyDto {
-  @ApiProperty({
-    example: "5f588c8b-ef0f-4193-aec0-2926e77c1d09",
-    description: "Customer identifier.",
-  })
+export class CreateCustomerBodyDto {
+  @ApiPropertyOptional({ example: "52998224725", nullable: true })
+  cpfCnpj?: string | null;
+
+  @ApiProperty({ example: "Maria Silva" })
+  fullName!: string;
+
+  @ApiProperty({ example: "11999999999" })
+  phone!: string;
+
+  @ApiProperty({ example: "maria@example.com" })
+  email!: string;
+
+  @ApiPropertyOptional({ type: AddressDto, nullable: true })
+  address?: AddressDto | null;
+
+  @ApiPropertyOptional({ example: "1990-01-01T00:00:00.000Z", nullable: true })
+  birthDate?: string | null;
+
+  @ApiPropertyOptional({ example: "Maria", nullable: true })
+  nickname?: string | null;
+}
+
+export class UpdateCustomerBodyDto {
+  @ApiPropertyOptional({ example: "52998224725", nullable: true })
+  cpfCnpj?: string | null;
+
+  @ApiPropertyOptional({ example: "Maria Silva" })
+  fullName?: string;
+
+  @ApiPropertyOptional({ example: "11999999999" })
+  phone?: string;
+
+  @ApiPropertyOptional({ example: "maria@example.com" })
+  email?: string;
+
+  @ApiPropertyOptional({ type: AddressDto, nullable: true })
+  address?: AddressDto | null;
+
+  @ApiPropertyOptional({ example: "1990-01-01T00:00:00.000Z", nullable: true })
+  birthDate?: string | null;
+
+  @ApiPropertyOptional({ example: "Maria", nullable: true })
+  nickname?: string | null;
+}
+
+export class CustomerDto {
+  @ApiProperty({ example: "5f588c8b-ef0f-4193-aec0-2926e77c1d09" })
+  id!: string;
+
+  @ApiProperty({ example: "2e11b57c-b96a-490a-9ae6-64ef2966fd84" })
+  establishmentId!: string;
+
+  @ApiProperty({ example: "52998224725", nullable: true })
+  cpfCnpj!: string | null;
+
+  @ApiProperty({ example: "CPF", nullable: true })
+  documentType!: "CPF" | "CNPJ" | null;
+
+  @ApiProperty({ example: "Maria Silva" })
+  fullName!: string;
+
+  @ApiProperty({ example: "11999999999" })
+  phone!: string;
+
+  @ApiProperty({ example: "maria@example.com" })
+  email!: string;
+
+  @ApiProperty({ type: AddressDto, nullable: true })
+  address!: AddressDto | null;
+
+  @ApiProperty({ example: "1990-01-01T00:00:00.000Z", nullable: true })
+  birthDate!: string | null;
+
+  @ApiProperty({ example: "Maria", nullable: true })
+  nickname!: string | null;
+
+  @ApiProperty({ example: null, nullable: true })
+  deletedAt!: string | null;
+
+  @ApiProperty({ example: "2026-04-20T10:00:00.000Z", nullable: true })
+  createdAt!: string | null;
+
+  @ApiProperty({ example: "2026-04-20T10:05:00.000Z", nullable: true })
+  updatedAt!: string | null;
+}
+
+export class CustomerResponseDto {
+  @ApiProperty({ type: CustomerDto })
+  customer!: CustomerDto;
+}
+
+export class ListCustomersResponseDto {
+  @ApiProperty({ type: CustomerDto, isArray: true })
+  customers!: CustomerDto[];
+}
+
+export class CreateCustomerVehicleBodyDto {
+  @ApiPropertyOptional({ example: "ABC1D23", nullable: true })
+  plate?: string | null;
+
+  @ApiPropertyOptional({ example: "Toyota", nullable: true })
+  brand?: string | null;
+
+  @ApiPropertyOptional({ example: "Corolla", nullable: true })
+  model?: string | null;
+
+  @ApiPropertyOptional({ example: "Prata", nullable: true })
+  color?: string | null;
+
+  @ApiPropertyOptional({ example: 2022, nullable: true })
+  year?: number | null;
+
+  @ApiPropertyOptional({ example: "Veiculo principal", nullable: true })
+  notes?: string | null;
+}
+
+export class UpdateCustomerVehicleBodyDto extends CreateCustomerVehicleBodyDto {}
+
+export class CustomerVehicleDto {
+  @ApiProperty({ example: "d4051bc0-3f48-4700-8208-ec64d1031618" })
+  id!: string;
+
+  @ApiProperty({ example: "2e11b57c-b96a-490a-9ae6-64ef2966fd84" })
+  establishmentId!: string;
+
+  @ApiProperty({ example: "5f588c8b-ef0f-4193-aec0-2926e77c1d09" })
   customerId!: string;
 
-  @ApiProperty({
-    example: "11cf3860-d512-47db-b9d1-c9044be6250d",
-    description: "Service identifier.",
-  })
+  @ApiProperty({ example: "ABC1D23", nullable: true })
+  plate!: string | null;
+
+  @ApiProperty({ example: "Toyota", nullable: true })
+  brand!: string | null;
+
+  @ApiProperty({ example: "Corolla", nullable: true })
+  model!: string | null;
+
+  @ApiProperty({ example: "Prata", nullable: true })
+  color!: string | null;
+
+  @ApiProperty({ example: 2022, nullable: true })
+  year!: number | null;
+
+  @ApiProperty({ example: "Veiculo principal", nullable: true })
+  notes!: string | null;
+
+  @ApiProperty({ example: null, nullable: true })
+  deletedAt!: string | null;
+
+  @ApiProperty({ example: "2026-04-20T10:00:00.000Z", nullable: true })
+  createdAt!: string | null;
+
+  @ApiProperty({ example: "2026-04-20T10:05:00.000Z", nullable: true })
+  updatedAt!: string | null;
+}
+
+export class CustomerVehicleResponseDto {
+  @ApiProperty({ type: CustomerVehicleDto })
+  vehicle!: CustomerVehicleDto;
+}
+
+export class ListCustomerVehiclesResponseDto {
+  @ApiProperty({ type: CustomerVehicleDto, isArray: true })
+  vehicles!: CustomerVehicleDto[];
+}
+
+export class CreateAppointmentBodyDto {
+  @ApiProperty({ example: "5f588c8b-ef0f-4193-aec0-2926e77c1d09" })
+  customerId!: string;
+
+  @ApiProperty({ example: "11cf3860-d512-47db-b9d1-c9044be6250d" })
   serviceId!: string;
 
-  @ApiProperty({
-    example: "2026-04-22T14:00:00.000Z",
-    description: "Appointment start date-time in ISO 8601 format.",
+  @ApiPropertyOptional({
+    example: "d4051bc0-3f48-4700-8208-ec64d1031618",
+    nullable: true,
   })
+  vehicleId?: string | null;
+
+  @ApiProperty({ example: "2026-04-22T14:00:00.000Z" })
   startsAt!: string;
 
+  @ApiPropertyOptional({ example: "2026-04-22T14:45:00.000Z", nullable: true })
+  endsAt?: string | null;
+
   @ApiPropertyOptional({
-    example: "2026-04-22T14:10:00.000Z",
+    example: "Cliente prefere lavagem externa.",
     nullable: true,
-    description: "Optional reservation expiration date-time.",
   })
-  reservationExpiresAt?: string | null;
+  description?: string | null;
+
+  @ApiPropertyOptional({ example: 500, nullable: true })
+  discountInCents?: number | null;
+}
+
+export class UpdateAppointmentStatusBodyDto {
+  @ApiProperty({ enum: ["SCHEDULED", "DONE", "CANCELLED"] })
+  status!: "SCHEDULED" | "DONE" | "CANCELLED";
 }
 
 export class AppointmentServiceDto {
@@ -171,12 +317,21 @@ export class AppointmentServiceDto {
   priceInCents!: number;
 }
 
-export class AppointmentSlotDto {
-  @ApiProperty({ example: "2026-04-22T14:00:00.000Z" })
-  startsAt!: string;
+export class AppointmentVehicleSnapshotDto {
+  @ApiProperty({ example: "ABC1D23", nullable: true })
+  plate!: string | null;
 
-  @ApiProperty({ example: "2026-04-22T14:45:00.000Z" })
-  endsAt!: string;
+  @ApiProperty({ example: "Toyota", nullable: true })
+  brand!: string | null;
+
+  @ApiProperty({ example: "Corolla", nullable: true })
+  model!: string | null;
+
+  @ApiProperty({ example: "Prata", nullable: true })
+  color!: string | null;
+
+  @ApiProperty({ example: 2022, nullable: true })
+  year!: number | null;
 }
 
 export class AppointmentDto {
@@ -189,40 +344,54 @@ export class AppointmentDto {
   @ApiProperty({ example: "5f588c8b-ef0f-4193-aec0-2926e77c1d09" })
   customerId!: string;
 
-  @ApiProperty({ example: false })
-  bookedByCustomer!: boolean;
+  @ApiProperty({
+    example: "d4051bc0-3f48-4700-8208-ec64d1031618",
+    nullable: true,
+  })
+  vehicleId!: string | null;
 
   @ApiProperty({ type: AppointmentServiceDto })
   service!: AppointmentServiceDto;
 
-  @ApiProperty({ type: AppointmentSlotDto })
-  slot!: AppointmentSlotDto;
+  @ApiProperty({ type: AppointmentVehicleSnapshotDto, nullable: true })
+  vehicle!: AppointmentVehicleSnapshotDto | null;
 
-  @ApiProperty({ example: "PENDING" })
-  status!: string;
+  @ApiProperty({ example: "2026-04-22T14:00:00.000Z" })
+  startsAt!: string;
 
-  @ApiProperty({ example: "2026-04-20T10:00:00.000Z", nullable: true })
-  createdAt!: string | null;
+  @ApiProperty({ example: "2026-04-22T14:45:00.000Z", nullable: true })
+  endsAt!: string | null;
 
-  @ApiProperty({ example: "2026-04-20T10:05:00.000Z", nullable: true })
-  updatedAt!: string | null;
+  @ApiProperty({ example: "Cliente prefere lavagem externa.", nullable: true })
+  description!: string | null;
+
+  @ApiProperty({ example: 500, nullable: true })
+  discountInCents!: number | null;
+
+  @ApiProperty({ enum: ["SCHEDULED", "DONE", "CANCELLED"] })
+  status!: "SCHEDULED" | "DONE" | "CANCELLED";
+
+  @ApiProperty({ example: "2026-04-20T10:00:00.000Z" })
+  createdAt!: string;
+
+  @ApiProperty({ example: "2026-04-20T10:05:00.000Z" })
+  updatedAt!: string;
 
   @ApiProperty({ example: null, nullable: true })
-  confirmedAt!: string | null;
+  doneAt!: string | null;
 
   @ApiProperty({ example: null, nullable: true })
   cancelledAt!: string | null;
-
-  @ApiProperty({ example: null, nullable: true })
-  expiredAt!: string | null;
-
-  @ApiProperty({ example: "2026-04-22T14:10:00.000Z", nullable: true })
-  reservationExpiresAt!: string | null;
 }
 
-export class BookServiceResponseDto {
+export class AppointmentResponseDto {
   @ApiProperty({ type: AppointmentDto })
   appointment!: AppointmentDto;
+}
+
+export class ListAppointmentsResponseDto {
+  @ApiProperty({ type: AppointmentDto, isArray: true })
+  appointments!: AppointmentDto[];
 }
 
 export class CreateServiceEstimatedDurationBodyDto {
