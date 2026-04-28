@@ -152,8 +152,14 @@ export class Appointment extends AggregateRoot<AppointmentProps> {
   private assertValidState() {
     this.assertValidDate(this.props.startsAt, "startsAt must be a valid date.");
     this.assertNullableDate(this.props.endsAt, "endsAt must be a valid date.");
-    this.assertValidDate(this.props.createdAt, "createdAt must be a valid date.");
-    this.assertValidDate(this.props.updatedAt, "updatedAt must be a valid date.");
+    this.assertValidDate(
+      this.props.createdAt,
+      "createdAt must be a valid date.",
+    );
+    this.assertValidDate(
+      this.props.updatedAt,
+      "updatedAt must be a valid date.",
+    );
     this.assertNullableDate(this.props.doneAt, "doneAt must be a valid date.");
     this.assertNullableDate(
       this.props.cancelledAt,
@@ -168,7 +174,6 @@ export class Appointment extends AggregateRoot<AppointmentProps> {
         "endsAt must be greater than startsAt.",
       );
     }
-
   }
 
   private assertValidDate(value: Date, message: string) {

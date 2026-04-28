@@ -11,9 +11,7 @@ import { PrismaUnitOfWork } from "../prisma-unit-of-work";
 import { PrismaService } from "../prisma.service";
 
 @Injectable()
-export class PrismaCustomerVehiclesRepository
-  implements CustomerVehiclesRepository
-{
+export class PrismaCustomerVehiclesRepository implements CustomerVehiclesRepository {
   constructor(private prisma: PrismaService) {}
 
   async create(vehicle: CustomerVehicle): Promise<void> {

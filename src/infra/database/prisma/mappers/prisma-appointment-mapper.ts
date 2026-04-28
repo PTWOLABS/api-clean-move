@@ -33,7 +33,9 @@ export class PrismaAppointmentMapper {
         endsAt: raw.endsAt,
         description: raw.description,
         discountInCents:
-          raw.discountInCents !== null ? Money.create(raw.discountInCents) : null,
+          raw.discountInCents !== null
+            ? Money.create(raw.discountInCents)
+            : null,
         status: raw.status,
         createdAt: raw.createdAt,
         updatedAt: raw.updatedAt,

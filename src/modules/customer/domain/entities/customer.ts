@@ -74,10 +74,7 @@ export class Customer extends AggregateRoot<CustomerProps> {
     return this.props.updatedAt;
   }
 
-  static create(
-    props: CustomerCreateProps,
-    id?: UniqueEntityId,
-  ) {
+  static create(props: CustomerCreateProps, id?: UniqueEntityId) {
     const customer = new Customer(
       {
         ...props,

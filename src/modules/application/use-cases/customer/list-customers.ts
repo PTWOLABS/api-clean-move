@@ -40,15 +40,14 @@ export class ListCustomersUseCase {
       return left(new ResourceNotFoundError({ resource: "establishment" }));
     }
 
-    const customers =
-      await this.customersRepository.findManyByEstablishmentId(
-        establishment.id.toString(),
-        {
-          ...(search !== undefined ? { search } : {}),
-          ...(page !== undefined ? { page } : {}),
-          ...(size !== undefined ? { size } : {}),
-        },
-      );
+    const customers = await this.customersRepository.findManyByEstablishmentId(
+      establishment.id.toString(),
+      {
+        ...(search !== undefined ? { search } : {}),
+        ...(page !== undefined ? { page } : {}),
+        ...(size !== undefined ? { size } : {}),
+      },
+    );
 
     return right({
       customers,

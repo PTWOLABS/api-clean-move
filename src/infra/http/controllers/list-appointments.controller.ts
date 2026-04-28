@@ -79,7 +79,9 @@ export class ListAppointmentsController {
     }
 
     return {
-      appointments: result.value.appointments.map(AppointmentPresenter.toHTTP),
+      appointments: result.value.appointments.map((appointment) =>
+        AppointmentPresenter.toHTTP(appointment),
+      ),
     };
   }
 }

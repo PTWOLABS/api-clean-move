@@ -50,11 +50,17 @@ export class InMemoryAppointmentsRepository implements AppointmentsRepository {
       .sort((a, b) => a.startsAt.getTime() - b.startsAt.getTime())
       .filter((item) => item.establishmentId.toString() === establishmentId)
       .filter((item) => {
-        if (filters?.customerId && item.customerId.toString() !== filters.customerId) {
+        if (
+          filters?.customerId &&
+          item.customerId.toString() !== filters.customerId
+        ) {
           return false;
         }
 
-        if (filters?.vehicleId && item.vehicleId?.toString() !== filters.vehicleId) {
+        if (
+          filters?.vehicleId &&
+          item.vehicleId?.toString() !== filters.vehicleId
+        ) {
           return false;
         }
 

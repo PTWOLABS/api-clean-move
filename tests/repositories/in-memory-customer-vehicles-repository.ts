@@ -4,9 +4,7 @@ import {
 } from "../../src/modules/application/repositories/customer-vehicles-repository";
 import { CustomerVehicle } from "../../src/modules/customer/domain/entities/customer-vehicle";
 
-export class InMemoryCustomerVehiclesRepository
-  implements CustomerVehiclesRepository
-{
+export class InMemoryCustomerVehiclesRepository implements CustomerVehiclesRepository {
   public items: CustomerVehicle[] = [];
 
   async create(vehicle: CustomerVehicle): Promise<void> {

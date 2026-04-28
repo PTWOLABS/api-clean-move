@@ -52,11 +52,10 @@ export class CreateCustomerVehicleUseCase {
       return left(new ResourceNotFoundError({ resource: "establishment" }));
     }
 
-    const customer =
-      await this.customersRepository.findByIdAndEstablishmentId(
-        customerId,
-        establishment.id.toString(),
-      );
+    const customer = await this.customersRepository.findByIdAndEstablishmentId(
+      customerId,
+      establishment.id.toString(),
+    );
 
     if (!customer || customer.isDeleted()) {
       return left(new ResourceNotFoundError({ resource: "customer" }));

@@ -83,14 +83,13 @@ describe("DeleteCustomerVehicleController (e2e)", () => {
   });
 
   it("should enforce authentication and establishment role", async () => {
-    const { accessToken, expiredAccessToken, establishment } =
-      await makeEstablishmentAuth({
-        app,
-        prisma,
-        userFactory,
-        establishmentFactory,
-        envService,
-      });
+    const { expiredAccessToken, establishment } = await makeEstablishmentAuth({
+      app,
+      prisma,
+      userFactory,
+      establishmentFactory,
+      envService,
+    });
     const customerRole = await makeCustomerAuth({
       app,
       prisma,

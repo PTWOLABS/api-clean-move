@@ -85,9 +85,7 @@ export class PrismaAppointmentsRepository implements AppointmentsRepository {
           establishmentId,
           ...(filters?.customerId ? { customerId: filters.customerId } : {}),
           ...(filters?.vehicleId ? { vehicleId: filters.vehicleId } : {}),
-          ...(filters?.serviceId
-            ? { bookedServiceId: filters.serviceId }
-            : {}),
+          ...(filters?.serviceId ? { bookedServiceId: filters.serviceId } : {}),
           ...(filters?.status ? { status: filters.status } : {}),
           ...(filters?.startsAt || filters?.endsAt
             ? {

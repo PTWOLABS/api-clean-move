@@ -1,5 +1,8 @@
 import { ValueObject } from "../../../../shared/entities/value-object";
-import { Cpf, InvalidCpfError } from "../../../accounts/domain/value-objects/cpf";
+import {
+  Cpf,
+  InvalidCpfError,
+} from "../../../accounts/domain/value-objects/cpf";
 import {
   Cnpj,
   InvalidCnpjError,
@@ -58,7 +61,10 @@ export class CustomerDocument extends ValueObject<CustomerDocumentProps> {
         });
       }
     } catch (error) {
-      if (error instanceof InvalidCpfError || error instanceof InvalidCnpjError) {
+      if (
+        error instanceof InvalidCpfError ||
+        error instanceof InvalidCnpjError
+      ) {
         throw new InvalidCustomerDocumentError(rawValue);
       }
 
