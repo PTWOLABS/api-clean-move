@@ -6,7 +6,18 @@ import {
   Param,
   Delete,
 } from "@nestjs/common";
-import { ApiBearerAuth, ApiNoContentResponse, ApiTags } from "@nestjs/swagger";
+import {
+  ApiBadRequestResponse,
+  ApiBearerAuth,
+  ApiForbiddenResponse,
+  ApiInternalServerErrorResponse,
+  ApiNoContentResponse,
+  ApiNotFoundResponse,
+  ApiOperation,
+  ApiParam,
+  ApiTags,
+  ApiUnauthorizedResponse,
+} from "@nestjs/swagger";
 
 import { DeleteCustomerUseCase } from "../../../modules/application/use-cases/customer/delete-customer";
 import { ResourceNotFoundError } from "../../../shared/errors/resource-not-found-error";
@@ -28,7 +39,33 @@ export class DeleteCustomerController {
 
   @Delete()
   @HttpCode(204)
+  @ApiOperation({
+    summary: "Soft-delete an internal customer.",
+    description:
+      "Soft-deletes a customer after validating that it belongs to the authenticated establishment. Deleted customers are excluded from active listings and cannot be used in new appointments.",
+  })
+  @ApiParam({
+    name: "customerId",
+    description: "Customer identifier.",
+    format: "uuid",
+  })
   @ApiNoContentResponse({ description: "Customer deleted successfully." })
+  @ApiBadRequestResponse({
+    description: "Invalid customer id.",
+  })
+  @ApiUnauthorizedResponse({
+    description: "Missing or invalid access token.",
+  })
+  @ApiForbiddenResponse({
+    description: "Authenticated user does not have the establishment role.",
+  })
+  @ApiNotFoundResponse({
+    description:
+      "Customer was not found for the authenticated establishment, or the establishment profile does not exist.",
+  })
+  @ApiInternalServerErrorResponse({
+    description: "Unexpected failure while deleting the customer.",
+  })
   async handle(
     @CurrentUser() user: AuthenticatedUser,
     @Param("customerId", new ZodValidationPipe(customerIdParamSchema))
