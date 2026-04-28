@@ -29,10 +29,24 @@ import { ListAppointmentsResponseDto } from "../docs/domain-swagger.dto";
 import { AppointmentPresenter } from "../presenters/appointment-presenter";
 import { ZodValidationPipe } from "../pipes/zod-validation.pipe";
 
+const appointmentTextFilterSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(100)
+  .optional();
+
 const listAppointmentsQuerySchema = z.object({
+  search: appointmentTextFilterSchema,
   customerId: z.uuid().optional(),
+  customerName: appointmentTextFilterSchema,
+  customerNickname: appointmentTextFilterSchema,
   vehicleId: z.uuid().optional(),
+  vehiclePlate: appointmentTextFilterSchema,
+  vehicleBrand: appointmentTextFilterSchema,
+  vehicleModel: appointmentTextFilterSchema,
   serviceId: z.uuid().optional(),
+  serviceName: appointmentTextFilterSchema,
   status: z.enum(["SCHEDULED", "DONE", "CANCELLED"]).optional(),
   startsAt: z.coerce.date().optional(),
   endsAt: z.coerce.date().optional(),
@@ -53,7 +67,19 @@ export class ListAppointmentsController {
   @ApiOperation({
     summary: "List appointments for the authenticated establishment.",
     description:
-      "Returns operational appointments for the authenticated establishment. Filters can be combined to narrow by customer, vehicle, service, status, and startsAt interval.",
+      "Returns operational appointments for the authenticated establishment. Filters can be combined to narrow by customer, vehicle, service, status, text search, and startsAt interval.",
+  })
+  @ApiQuery({
+    name: "search",
+    required: false,
+    schema: {
+      type: "string",
+      minLength: 1,
+      maxLength: 100,
+    },
+    description:
+      "General text search across customer full name, customer nickname, booked service name, vehicle plate, vehicle brand, and vehicle model. Non-alphanumeric characters are removed when matching against vehicle plate.",
+    example: "Maria",
   })
   @ApiQuery({
     name: "customerId",
@@ -63,6 +89,28 @@ export class ListAppointmentsController {
     description: "Filter by customer identifier.",
   })
   @ApiQuery({
+    name: "customerName",
+    required: false,
+    schema: {
+      type: "string",
+      minLength: 1,
+      maxLength: 100,
+    },
+    description: "Filter by current customer full name.",
+    example: "Maria Silva",
+  })
+  @ApiQuery({
+    name: "customerNickname",
+    required: false,
+    schema: {
+      type: "string",
+      minLength: 1,
+      maxLength: 100,
+    },
+    description: "Filter by current customer nickname.",
+    example: "Maria",
+  })
+  @ApiQuery({
     name: "vehicleId",
     required: false,
     type: String,
@@ -70,11 +118,56 @@ export class ListAppointmentsController {
     description: "Filter by customer vehicle identifier.",
   })
   @ApiQuery({
+    name: "vehiclePlate",
+    required: false,
+    schema: {
+      type: "string",
+      minLength: 1,
+      maxLength: 100,
+    },
+    description:
+      "Filter by vehicle plate snapshot. Non-alphanumeric characters are removed before matching.",
+    example: "ABC1D23",
+  })
+  @ApiQuery({
+    name: "vehicleBrand",
+    required: false,
+    schema: {
+      type: "string",
+      minLength: 1,
+      maxLength: 100,
+    },
+    description: "Filter by vehicle brand snapshot.",
+    example: "Toyota",
+  })
+  @ApiQuery({
+    name: "vehicleModel",
+    required: false,
+    schema: {
+      type: "string",
+      minLength: 1,
+      maxLength: 100,
+    },
+    description: "Filter by vehicle model snapshot.",
+    example: "Corolla",
+  })
+  @ApiQuery({
     name: "serviceId",
     required: false,
     type: String,
     format: "uuid",
     description: "Filter by service identifier.",
+  })
+  @ApiQuery({
+    name: "serviceName",
+    required: false,
+    schema: {
+      type: "string",
+      minLength: 1,
+      maxLength: 100,
+    },
+    description: "Filter by booked service name snapshot.",
+    example: "Lavagem premium",
   })
   @ApiQuery({
     name: "status",
@@ -142,14 +235,33 @@ export class ListAppointmentsController {
     const result = await this.listAppointments.execute({
       establishmentOwnerId: user.userId,
       filters: {
+        ...(query.search !== undefined ? { search: query.search } : {}),
         ...(query.customerId !== undefined
           ? { customerId: query.customerId }
+          : {}),
+        ...(query.customerName !== undefined
+          ? { customerName: query.customerName }
+          : {}),
+        ...(query.customerNickname !== undefined
+          ? { customerNickname: query.customerNickname }
           : {}),
         ...(query.vehicleId !== undefined
           ? { vehicleId: query.vehicleId }
           : {}),
+        ...(query.vehiclePlate !== undefined
+          ? { vehiclePlate: query.vehiclePlate }
+          : {}),
+        ...(query.vehicleBrand !== undefined
+          ? { vehicleBrand: query.vehicleBrand }
+          : {}),
+        ...(query.vehicleModel !== undefined
+          ? { vehicleModel: query.vehicleModel }
+          : {}),
         ...(query.serviceId !== undefined
           ? { serviceId: query.serviceId }
+          : {}),
+        ...(query.serviceName !== undefined
+          ? { serviceName: query.serviceName }
           : {}),
         ...(query.status !== undefined ? { status: query.status } : {}),
         ...(query.startsAt !== undefined ? { startsAt: query.startsAt } : {}),

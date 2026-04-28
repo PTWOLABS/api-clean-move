@@ -5,6 +5,7 @@ import {
   AppointmentsRepository,
 } from "../../../../modules/application/repositories/appointments-repository";
 import { Appointment } from "../../../../modules/scheduling/domain/entities/appointment";
+import { Prisma } from "../../../../generated/prisma/client";
 import { PrismaAppointmentMapper } from "../mappers/prisma-appointment-mapper";
 import { rethrowPrismaRepositoryError } from "../prisma-repository-error-handler";
 import { PrismaUnitOfWork } from "../prisma-unit-of-work";
@@ -13,6 +14,141 @@ import { PrismaService } from "../prisma.service";
 @Injectable()
 export class PrismaAppointmentsRepository implements AppointmentsRepository {
   constructor(private prisma: PrismaService) {}
+
+  private static normalizeTextFilter(value?: string): string | undefined {
+    const normalized = value?.trim();
+
+    return normalized || undefined;
+  }
+
+  private static normalizePlateFilter(value?: string): string | undefined {
+    const normalized = value?.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+
+    return normalized || undefined;
+  }
+
+  private static containsInsensitive(value: string) {
+    return {
+      contains: value,
+      mode: "insensitive" as const,
+    };
+  }
+
+  private static buildTextWhere(
+    filters?: AppointmentFilters,
+  ): Pick<Prisma.AppointmentWhereInput, "AND"> {
+    const and: Prisma.AppointmentWhereInput[] = [];
+    const search = PrismaAppointmentsRepository.normalizeTextFilter(
+      filters?.search,
+    );
+    const normalizedSearchPlate =
+      PrismaAppointmentsRepository.normalizePlateFilter(search);
+    const customerName = PrismaAppointmentsRepository.normalizeTextFilter(
+      filters?.customerName,
+    );
+    const customerNickname = PrismaAppointmentsRepository.normalizeTextFilter(
+      filters?.customerNickname,
+    );
+    const serviceName = PrismaAppointmentsRepository.normalizeTextFilter(
+      filters?.serviceName,
+    );
+    const vehiclePlate = PrismaAppointmentsRepository.normalizePlateFilter(
+      filters?.vehiclePlate,
+    );
+    const vehicleBrand = PrismaAppointmentsRepository.normalizeTextFilter(
+      filters?.vehicleBrand,
+    );
+    const vehicleModel = PrismaAppointmentsRepository.normalizeTextFilter(
+      filters?.vehicleModel,
+    );
+
+    if (customerName) {
+      and.push({
+        customer: {
+          fullName:
+            PrismaAppointmentsRepository.containsInsensitive(customerName),
+        },
+      });
+    }
+
+    if (customerNickname) {
+      and.push({
+        customer: {
+          nickname:
+            PrismaAppointmentsRepository.containsInsensitive(customerNickname),
+        },
+      });
+    }
+
+    if (serviceName) {
+      and.push({
+        bookedServiceName:
+          PrismaAppointmentsRepository.containsInsensitive(serviceName),
+      });
+    }
+
+    if (vehiclePlate) {
+      and.push({
+        vehiclePlate:
+          PrismaAppointmentsRepository.containsInsensitive(vehiclePlate),
+      });
+    }
+
+    if (vehicleBrand) {
+      and.push({
+        vehicleBrand:
+          PrismaAppointmentsRepository.containsInsensitive(vehicleBrand),
+      });
+    }
+
+    if (vehicleModel) {
+      and.push({
+        vehicleModel:
+          PrismaAppointmentsRepository.containsInsensitive(vehicleModel),
+      });
+    }
+
+    if (search) {
+      const searchOr: Prisma.AppointmentWhereInput[] = [
+        {
+          bookedServiceName:
+            PrismaAppointmentsRepository.containsInsensitive(search),
+        },
+        {
+          vehicleBrand:
+            PrismaAppointmentsRepository.containsInsensitive(search),
+        },
+        {
+          vehicleModel:
+            PrismaAppointmentsRepository.containsInsensitive(search),
+        },
+        {
+          customer: {
+            fullName: PrismaAppointmentsRepository.containsInsensitive(search),
+          },
+        },
+        {
+          customer: {
+            nickname: PrismaAppointmentsRepository.containsInsensitive(search),
+          },
+        },
+      ];
+
+      if (normalizedSearchPlate) {
+        searchOr.push({
+          vehiclePlate: PrismaAppointmentsRepository.containsInsensitive(
+            normalizedSearchPlate,
+          ),
+        });
+      }
+
+      and.push({
+        OR: searchOr,
+      });
+    }
+
+    return and.length > 0 ? { AND: and } : {};
+  }
 
   async create(appointment: Appointment): Promise<void> {
     const data = PrismaAppointmentMapper.toPrisma(appointment);
@@ -95,6 +231,7 @@ export class PrismaAppointmentsRepository implements AppointmentsRepository {
                 },
               }
             : {}),
+          ...PrismaAppointmentsRepository.buildTextWhere(filters),
         },
         orderBy: {
           startsAt: "asc",

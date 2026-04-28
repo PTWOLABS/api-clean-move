@@ -16,6 +16,7 @@ import {
 } from "../../../../tests/helpers/establishment-operated-scheduling.e2e-helpers";
 import { getHttpServer } from "../../../../tests/helpers/auth-session.e2e-helpers";
 import { HashGenerator } from "../../../modules/application/repositories/hash-generator";
+import { ServiceName } from "../../../modules/catalog/domain/value-objects/service-name";
 import { AppModule } from "../../app.module";
 import { PrismaService } from "../../database/prisma/prisma.service";
 import { EnvService } from "../../env/env.service";
@@ -60,22 +61,30 @@ describe("ListAppointmentsController (e2e)", () => {
     const firstCustomer = await customerFactory.makePrismaCustomer({
       establishmentId: establishment.id,
       cpfCnpj: null,
+      fullName: "Ana Maria Souza",
+      nickname: "Nina",
     });
     const secondCustomer = await customerFactory.makePrismaCustomer({
       establishmentId: establishment.id,
       cpfCnpj: null,
+      fullName: "Bruno Almeida",
+      nickname: "Breno",
     });
     const firstService = await serviceFactory.makePrismaService({
       establishmentId: establishment.id,
+      serviceName: ServiceName.create("Lavagem premium"),
     });
     const secondService = await serviceFactory.makePrismaService({
       establishmentId: establishment.id,
+      serviceName: ServiceName.create("Polimento tecnico"),
     });
     const vehicle = await prisma.customerVehicle.create({
       data: {
         establishmentId: establishment.id.toString(),
         customerId: firstCustomer.id.toString(),
         plate: "ABC1D23",
+        brand: "Toyota",
+        model: "Corolla",
       },
     });
     const firstResponse = await request(getHttpServer(app))
@@ -151,6 +160,34 @@ describe("ListAppointmentsController (e2e)", () => {
         startsAt: "2026-04-27T09:00:00.000Z",
         endsAt: "2026-04-27T13:00:00.000Z",
       });
+    const customerNameResponse = await request(getHttpServer(app))
+      .get("/appointments")
+      .set("Authorization", `Bearer ${accessToken}`)
+      .query({ customerName: "ana maria" });
+    const customerNicknameResponse = await request(getHttpServer(app))
+      .get("/appointments")
+      .set("Authorization", `Bearer ${accessToken}`)
+      .query({ customerNickname: "nina" });
+    const serviceNameResponse = await request(getHttpServer(app))
+      .get("/appointments")
+      .set("Authorization", `Bearer ${accessToken}`)
+      .query({ serviceName: "premium" });
+    const vehiclePlateTextResponse = await request(getHttpServer(app))
+      .get("/appointments")
+      .set("Authorization", `Bearer ${accessToken}`)
+      .query({ vehiclePlate: "abc-1d23" });
+    const vehicleBrandResponse = await request(getHttpServer(app))
+      .get("/appointments")
+      .set("Authorization", `Bearer ${accessToken}`)
+      .query({ vehicleBrand: "toy" });
+    const vehicleModelResponse = await request(getHttpServer(app))
+      .get("/appointments")
+      .set("Authorization", `Bearer ${accessToken}`)
+      .query({ vehicleModel: "cor" });
+    const searchResponse = await request(getHttpServer(app))
+      .get("/appointments")
+      .set("Authorization", `Bearer ${accessToken}`)
+      .query({ search: "nina" });
 
     const doneBody = listAppointmentsResponseSchema.parse(doneResponse.body);
     const customerBody = listAppointmentsResponseSchema.parse(
@@ -164,6 +201,27 @@ describe("ListAppointmentsController (e2e)", () => {
     );
     const dateRangeBody = listAppointmentsResponseSchema.parse(
       dateRangeResponse.body,
+    );
+    const customerNameBody = listAppointmentsResponseSchema.parse(
+      customerNameResponse.body,
+    );
+    const customerNicknameBody = listAppointmentsResponseSchema.parse(
+      customerNicknameResponse.body,
+    );
+    const serviceNameBody = listAppointmentsResponseSchema.parse(
+      serviceNameResponse.body,
+    );
+    const vehiclePlateTextBody = listAppointmentsResponseSchema.parse(
+      vehiclePlateTextResponse.body,
+    );
+    const vehicleBrandBody = listAppointmentsResponseSchema.parse(
+      vehicleBrandResponse.body,
+    );
+    const vehicleModelBody = listAppointmentsResponseSchema.parse(
+      vehicleModelResponse.body,
+    );
+    const searchBody = listAppointmentsResponseSchema.parse(
+      searchResponse.body,
     );
 
     expect(doneResponse.status).toBe(200);
@@ -195,6 +253,46 @@ describe("ListAppointmentsController (e2e)", () => {
       expect.arrayContaining([firstAppointment.id, secondAppointment.id]),
     );
     expect(dateRangeBody.appointments).toHaveLength(2);
+    expect(customerNameResponse.status).toBe(200);
+    expect(
+      customerNameBody.appointments.map((appointment) => appointment.id),
+    ).toEqual(
+      expect.arrayContaining([firstAppointment.id, secondAppointment.id]),
+    );
+    expect(customerNameBody.appointments).toHaveLength(2);
+    expect(customerNicknameResponse.status).toBe(200);
+    expect(
+      customerNicknameBody.appointments.map((appointment) => appointment.id),
+    ).toEqual(
+      expect.arrayContaining([firstAppointment.id, secondAppointment.id]),
+    );
+    expect(customerNicknameBody.appointments).toHaveLength(2);
+    expect(serviceNameResponse.status).toBe(200);
+    expect(
+      serviceNameBody.appointments.map((appointment) => appointment.id),
+    ).toEqual(
+      expect.arrayContaining([firstAppointment.id, thirdAppointment.id]),
+    );
+    expect(serviceNameBody.appointments).toHaveLength(2);
+    expect(vehiclePlateTextResponse.status).toBe(200);
+    expect(
+      vehiclePlateTextBody.appointments.map((appointment) => appointment.id),
+    ).toEqual([firstAppointment.id]);
+    expect(vehicleBrandResponse.status).toBe(200);
+    expect(
+      vehicleBrandBody.appointments.map((appointment) => appointment.id),
+    ).toEqual([firstAppointment.id]);
+    expect(vehicleModelResponse.status).toBe(200);
+    expect(
+      vehicleModelBody.appointments.map((appointment) => appointment.id),
+    ).toEqual([firstAppointment.id]);
+    expect(searchResponse.status).toBe(200);
+    expect(
+      searchBody.appointments.map((appointment) => appointment.id),
+    ).toEqual(
+      expect.arrayContaining([firstAppointment.id, secondAppointment.id]),
+    );
+    expect(searchBody.appointments).toHaveLength(2);
   });
 
   it("should enforce authentication and establishment role", async () => {
@@ -259,11 +357,21 @@ describe("ListAppointmentsController (e2e)", () => {
       .get("/appointments")
       .set("Authorization", `Bearer ${accessToken}`)
       .query({ page: 0 });
+    const emptySearchResponse = await request(getHttpServer(app))
+      .get("/appointments")
+      .set("Authorization", `Bearer ${accessToken}`)
+      .query({ search: "   " });
+    const tooLongSearchResponse = await request(getHttpServer(app))
+      .get("/appointments")
+      .set("Authorization", `Bearer ${accessToken}`)
+      .query({ search: "a".repeat(101) });
 
     expect(invalidCustomerResponse.status).toBe(400);
     expect(invalidStatusResponse.status).toBe(400);
     expect(invalidDateResponse.status).toBe(400);
     expect(invalidPageResponse.status).toBe(400);
+    expect(emptySearchResponse.status).toBe(400);
+    expect(tooLongSearchResponse.status).toBe(400);
   });
 
   it("should not expose appointments from another establishment", async () => {

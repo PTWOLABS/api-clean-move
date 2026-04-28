@@ -5,9 +5,16 @@ import {
 } from "../../scheduling/domain/entities/appointment";
 
 export type AppointmentFilters = {
+  search?: string;
   customerId?: string;
+  customerName?: string;
+  customerNickname?: string;
   vehicleId?: string;
+  vehiclePlate?: string;
+  vehicleBrand?: string;
+  vehicleModel?: string;
   serviceId?: string;
+  serviceName?: string;
   status?: AppointmentStatus;
   startsAt?: Date;
   endsAt?: Date;

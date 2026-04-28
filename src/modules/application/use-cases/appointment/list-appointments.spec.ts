@@ -5,18 +5,23 @@ import { makeCustomerVehicle } from "../../../../../tests/factories/customer-veh
 import { makeEstablishment } from "../../../../../tests/factories/establishment-factory";
 import { makeService } from "../../../../../tests/factories/service-factory";
 import { InMemoryAppointmentsRepository } from "../../../../../tests/repositories/in-memory-appointments-repository";
+import { InMemoryCustomersRepository } from "../../../../../tests/repositories/in-memory-customers-repository";
 import { InMemoryEstablishmentsRepository } from "../../../../../tests/repositories/in-memory-establishment-repository";
 import { InMemoryServicesRepository } from "../../../../../tests/repositories/in-memory-services-repository";
 import { ListAppointmentsUseCase } from "./list-appointments";
 
 let inMemoryAppointmentsRepository: InMemoryAppointmentsRepository;
+let inMemoryCustomersRepository: InMemoryCustomersRepository;
 let inMemoryEstablishmentsRepository: InMemoryEstablishmentsRepository;
 let inMemoryServicesRepository: InMemoryServicesRepository;
 let sut: ListAppointmentsUseCase;
 
 describe("List appointments", () => {
   beforeEach(() => {
-    inMemoryAppointmentsRepository = new InMemoryAppointmentsRepository();
+    inMemoryCustomersRepository = new InMemoryCustomersRepository();
+    inMemoryAppointmentsRepository = new InMemoryAppointmentsRepository(
+      inMemoryCustomersRepository,
+    );
     inMemoryServicesRepository = new InMemoryServicesRepository();
     inMemoryEstablishmentsRepository = new InMemoryEstablishmentsRepository(
       inMemoryServicesRepository,
@@ -31,7 +36,10 @@ describe("List appointments", () => {
   it("should list appointments with establishment scoped filters", async () => {
     const establishment = makeEstablishment();
     const otherEstablishment = makeEstablishment();
-    const customer = makeCustomer({ establishmentId: establishment.id });
+    const customer = makeCustomer({
+      establishmentId: establishment.id,
+      nickname: "Mary",
+    });
     const otherCustomer = makeCustomer({
       establishmentId: establishment.id,
       cpfCnpj: null,
@@ -117,6 +125,8 @@ describe("List appointments", () => {
 
     await inMemoryEstablishmentsRepository.create(establishment);
     await inMemoryEstablishmentsRepository.create(otherEstablishment);
+    await inMemoryCustomersRepository.create(customer);
+    await inMemoryCustomersRepository.create(otherCustomer);
     await inMemoryAppointmentsRepository.create(matchingAppointment);
     await inMemoryAppointmentsRepository.create(wrongStatusAppointment);
     await inMemoryAppointmentsRepository.create(wrongCustomerAppointment);
@@ -128,8 +138,15 @@ describe("List appointments", () => {
       filters: {
         status: "DONE",
         customerId: customer.id.toString(),
+        customerName: "maria",
+        customerNickname: "mary",
         serviceId: service.id.toString(),
+        serviceName: service.serviceName.value,
         vehicleId: vehicle.id.toString(),
+        vehiclePlate: "abc-1d23",
+        vehicleBrand: "toy",
+        vehicleModel: "cor",
+        search: "corolla",
         startsAt: new Date("2026-04-27T09:00:00.000Z"),
         endsAt: new Date("2026-04-27T10:30:00.000Z"),
       },
