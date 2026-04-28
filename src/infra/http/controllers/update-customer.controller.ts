@@ -9,11 +9,18 @@ import {
   Patch,
 } from "@nestjs/common";
 import {
+  ApiBadRequestResponse,
   ApiBearerAuth,
   ApiBody,
   ApiConflictResponse,
+  ApiForbiddenResponse,
+  ApiInternalServerErrorResponse,
+  ApiNotFoundResponse,
   ApiOkResponse,
+  ApiOperation,
+  ApiParam,
   ApiTags,
+  ApiUnauthorizedResponse,
 } from "@nestjs/swagger";
 import z from "zod";
 
@@ -66,10 +73,43 @@ export class UpdateCustomerController {
   constructor(private readonly updateCustomer: UpdateCustomerUseCase) {}
 
   @Patch()
-  @ApiBody({ type: UpdateCustomerBodyDto })
-  @ApiOkResponse({ type: CustomerResponseDto })
+  @ApiOperation({
+    summary: "Update an internal customer for the authenticated establishment.",
+    description:
+      "Updates one or more customer fields after validating that the customer belongs to the authenticated establishment.",
+  })
+  @ApiParam({
+    name: "customerId",
+    description: "Customer identifier.",
+    format: "uuid",
+  })
+  @ApiBody({
+    type: UpdateCustomerBodyDto,
+    description: "At least one field must be provided.",
+  })
+  @ApiOkResponse({
+    description: "Customer updated successfully.",
+    type: CustomerResponseDto,
+  })
+  @ApiBadRequestResponse({
+    description:
+      "Invalid customer id, empty update payload, invalid field value, or invalid document.",
+  })
+  @ApiUnauthorizedResponse({
+    description: "Missing or invalid access token.",
+  })
+  @ApiForbiddenResponse({
+    description: "Authenticated user does not have the establishment role.",
+  })
+  @ApiNotFoundResponse({
+    description:
+      "Customer was not found for the authenticated establishment, or the establishment profile does not exist.",
+  })
   @ApiConflictResponse({
     description: "Customer document already exists for this establishment.",
+  })
+  @ApiInternalServerErrorResponse({
+    description: "Unexpected failure while updating the customer.",
   })
   async handle(
     @CurrentUser() user: AuthenticatedUser,

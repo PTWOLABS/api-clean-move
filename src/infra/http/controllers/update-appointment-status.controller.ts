@@ -8,10 +8,17 @@ import {
   Patch,
 } from "@nestjs/common";
 import {
+  ApiBadRequestResponse,
   ApiBearerAuth,
   ApiBody,
+  ApiForbiddenResponse,
+  ApiInternalServerErrorResponse,
+  ApiNotFoundResponse,
   ApiOkResponse,
+  ApiOperation,
+  ApiParam,
   ApiTags,
+  ApiUnauthorizedResponse,
 } from "@nestjs/swagger";
 import z from "zod";
 
@@ -47,8 +54,37 @@ export class UpdateAppointmentStatusController {
   ) {}
 
   @Patch()
+  @ApiOperation({
+    summary: "Update an appointment status manually.",
+    description:
+      "Changes an appointment status to SCHEDULED, DONE, or CANCELLED after validating that the appointment belongs to the authenticated establishment.",
+  })
+  @ApiParam({
+    name: "appointmentId",
+    description: "Appointment identifier.",
+    format: "uuid",
+  })
   @ApiBody({ type: UpdateAppointmentStatusBodyDto })
-  @ApiOkResponse({ type: AppointmentResponseDto })
+  @ApiOkResponse({
+    description: "Appointment status updated successfully.",
+    type: AppointmentResponseDto,
+  })
+  @ApiBadRequestResponse({
+    description: "Invalid appointment id or invalid status.",
+  })
+  @ApiUnauthorizedResponse({
+    description: "Missing or invalid access token.",
+  })
+  @ApiForbiddenResponse({
+    description: "Authenticated user does not have the establishment role.",
+  })
+  @ApiNotFoundResponse({
+    description:
+      "Appointment was not found for the authenticated establishment, or the establishment profile does not exist.",
+  })
+  @ApiInternalServerErrorResponse({
+    description: "Unexpected failure while updating the appointment status.",
+  })
   async handle(
     @CurrentUser() user: AuthenticatedUser,
     @Param("appointmentId", new ZodValidationPipe(appointmentIdParamSchema))

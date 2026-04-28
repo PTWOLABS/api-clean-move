@@ -9,11 +9,18 @@ import {
   Patch,
 } from "@nestjs/common";
 import {
+  ApiBadRequestResponse,
   ApiBearerAuth,
   ApiBody,
   ApiConflictResponse,
+  ApiForbiddenResponse,
+  ApiInternalServerErrorResponse,
+  ApiNotFoundResponse,
   ApiOkResponse,
+  ApiOperation,
+  ApiParam,
   ApiTags,
+  ApiUnauthorizedResponse,
 } from "@nestjs/swagger";
 import z from "zod";
 
@@ -61,10 +68,48 @@ export class UpdateCustomerVehicleController {
   ) {}
 
   @Patch()
-  @ApiBody({ type: UpdateCustomerVehicleBodyDto })
-  @ApiOkResponse({ type: CustomerVehicleResponseDto })
+  @ApiOperation({
+    summary: "Update a vehicle for an internal customer.",
+    description:
+      "Updates one or more vehicle fields after validating customer, vehicle, and establishment ownership.",
+  })
+  @ApiParam({
+    name: "customerId",
+    description: "Customer identifier.",
+    format: "uuid",
+  })
+  @ApiParam({
+    name: "vehicleId",
+    description: "Customer vehicle identifier.",
+    format: "uuid",
+  })
+  @ApiBody({
+    type: UpdateCustomerVehicleBodyDto,
+    description: "At least one field must be provided.",
+  })
+  @ApiOkResponse({
+    description: "Customer vehicle updated successfully.",
+    type: CustomerVehicleResponseDto,
+  })
+  @ApiBadRequestResponse({
+    description:
+      "Invalid customer id, invalid vehicle id, empty update payload, invalid plate, or invalid vehicle field value.",
+  })
+  @ApiUnauthorizedResponse({
+    description: "Missing or invalid access token.",
+  })
+  @ApiForbiddenResponse({
+    description: "Authenticated user does not have the establishment role.",
+  })
+  @ApiNotFoundResponse({
+    description:
+      "Customer or vehicle was not found for the authenticated establishment, or the establishment profile does not exist.",
+  })
   @ApiConflictResponse({
     description: "Vehicle plate already exists for this establishment.",
+  })
+  @ApiInternalServerErrorResponse({
+    description: "Unexpected failure while updating the customer vehicle.",
   })
   async handle(
     @CurrentUser() user: AuthenticatedUser,
