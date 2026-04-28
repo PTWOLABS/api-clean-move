@@ -18,7 +18,6 @@ import {
 import z from "zod";
 
 import { CreateCustomerVehicleUseCase } from "../../../modules/application/use-cases/customer/create-customer-vehicle";
-import { CustomerVehicle } from "../../../modules/customer/domain/entities/customer-vehicle";
 import { ResourceAlreadyExistsError } from "../../../shared/errors/resource-already-exists-error";
 import { ResourceNotFoundError } from "../../../shared/errors/resource-not-found-error";
 import { UnexpectedDomainError } from "../../../shared/errors/unexpected-domain-error";
@@ -30,6 +29,7 @@ import {
   CustomerVehicleResponseDto,
 } from "../docs/domain-swagger.dto";
 import { ZodValidationPipe } from "../pipes/zod-validation.pipe";
+import { CustomerVehiclePresenter } from "../presenters/customer-vehicle-presenter";
 
 const customerVehicleBodySchema = z.object({
   plate: z.string().trim().optional().nullable(),
@@ -42,23 +42,6 @@ const customerVehicleBodySchema = z.object({
 
 type CustomerVehicleBodySchema = z.infer<typeof customerVehicleBodySchema>;
 const customerIdParamSchema = z.uuid();
-
-export function customerVehicleToHTTP(vehicle: CustomerVehicle) {
-  return {
-    id: vehicle.id.toString(),
-    establishmentId: vehicle.establishmentId.toString(),
-    customerId: vehicle.customerId.toString(),
-    plate: vehicle.plate,
-    brand: vehicle.brand,
-    model: vehicle.model,
-    color: vehicle.color,
-    year: vehicle.year,
-    notes: vehicle.notes,
-    deletedAt: vehicle.deletedAt?.toISOString() ?? null,
-    createdAt: vehicle.createdAt?.toISOString() ?? null,
-    updatedAt: vehicle.updatedAt?.toISOString() ?? null,
-  };
-}
 
 @ApiTags("customer vehicles")
 @ApiBearerAuth("access-token")
@@ -109,7 +92,7 @@ export class CreateCustomerVehicleController {
     }
 
     return {
-      vehicle: customerVehicleToHTTP(result.value.vehicle),
+      vehicle: CustomerVehiclePresenter.toHTTP(result.value.vehicle),
     };
   }
 }

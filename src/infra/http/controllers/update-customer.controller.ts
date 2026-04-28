@@ -29,7 +29,7 @@ import {
   UpdateCustomerBodyDto,
 } from "../docs/domain-swagger.dto";
 import { ZodValidationPipe } from "../pipes/zod-validation.pipe";
-import { customerToHTTP } from "./create-customer.controller";
+import { CustomerPresenter } from "../presenters/customer-presenter";
 
 const updateCustomerBodySchema = z
   .object({
@@ -106,7 +106,7 @@ export class UpdateCustomerController {
     }
 
     return {
-      customer: customerToHTTP(result.value.customer),
+      customer: CustomerPresenter.toHTTP(result.value.customer),
     };
   }
 }

@@ -17,7 +17,7 @@ import { CurrentUser } from "../../auth/current-user";
 import { Roles } from "../../auth/roles";
 import { ListCustomerVehiclesResponseDto } from "../docs/domain-swagger.dto";
 import { ZodValidationPipe } from "../pipes/zod-validation.pipe";
-import { customerVehicleToHTTP } from "./create-customer-vehicle.controller";
+import { CustomerVehiclePresenter } from "../presenters/customer-vehicle-presenter";
 
 const listCustomerVehiclesQuerySchema = z.object({
   page: z.coerce.number().int().positive().optional(),
@@ -68,7 +68,7 @@ export class ListCustomerVehiclesController {
     }
 
     return {
-      vehicles: result.value.vehicles.map(customerVehicleToHTTP),
+      vehicles: result.value.vehicles.map(CustomerVehiclePresenter.toHTTP),
     };
   }
 }

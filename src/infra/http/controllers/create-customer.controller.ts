@@ -17,7 +17,6 @@ import {
 import z from "zod";
 
 import { CreateCustomerUseCase } from "../../../modules/application/use-cases/customer/create-customer";
-import { Customer } from "../../../modules/customer/domain/entities/customer";
 import { ResourceAlreadyExistsError } from "../../../shared/errors/resource-already-exists-error";
 import { ResourceNotFoundError } from "../../../shared/errors/resource-not-found-error";
 import { UnexpectedDomainError } from "../../../shared/errors/unexpected-domain-error";
@@ -29,6 +28,7 @@ import {
   CustomerResponseDto,
 } from "../docs/domain-swagger.dto";
 import { ZodValidationPipe } from "../pipes/zod-validation.pipe";
+import { CustomerPresenter } from "../presenters/customer-presenter";
 
 const createCustomerBodySchema = z.object({
   cpfCnpj: z.string().trim().optional().nullable(),
@@ -50,32 +50,6 @@ const createCustomerBodySchema = z.object({
 });
 
 type CreateCustomerBodySchema = z.infer<typeof createCustomerBodySchema>;
-
-export function customerToHTTP(customer: Customer) {
-  return {
-    id: customer.id.toString(),
-    establishmentId: customer.establishmentId.toString(),
-    cpfCnpj: customer.cpfCnpj?.toString() ?? null,
-    documentType: customer.cpfCnpj?.type ?? null,
-    fullName: customer.fullName,
-    phone: customer.phone.toString(),
-    email: customer.email.toString(),
-    address: customer.address
-      ? {
-          street: customer.address.street,
-          country: customer.address.country,
-          state: customer.address.state,
-          zipCode: customer.address.zipCode,
-          city: customer.address.city,
-        }
-      : null,
-    birthDate: customer.birthDate?.toISOString() ?? null,
-    nickname: customer.nickname,
-    deletedAt: customer.deletedAt?.toISOString() ?? null,
-    createdAt: customer.createdAt?.toISOString() ?? null,
-    updatedAt: customer.updatedAt?.toISOString() ?? null,
-  };
-}
 
 @ApiTags("customers")
 @ApiBearerAuth("access-token")
@@ -122,7 +96,7 @@ export class CreateCustomerController {
     }
 
     return {
-      customer: customerToHTTP(result.value.customer),
+      customer: CustomerPresenter.toHTTP(result.value.customer),
     };
   }
 }

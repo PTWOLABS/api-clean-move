@@ -16,7 +16,7 @@ import { CurrentUser } from "../../auth/current-user";
 import { Roles } from "../../auth/roles";
 import { ListCustomersResponseDto } from "../docs/domain-swagger.dto";
 import { ZodValidationPipe } from "../pipes/zod-validation.pipe";
-import { customerToHTTP } from "./create-customer.controller";
+import { CustomerPresenter } from "../presenters/customer-presenter";
 
 const listCustomersQuerySchema = z.object({
   search: z.string().trim().optional(),
@@ -61,7 +61,7 @@ export class ListCustomersController {
     }
 
     return {
-      customers: result.value.customers.map(customerToHTTP),
+      customers: result.value.customers.map(CustomerPresenter.toHTTP),
     };
   }
 }
