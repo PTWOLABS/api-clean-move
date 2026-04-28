@@ -73,7 +73,7 @@ export class GetEstablishmentRevenueVsAppointmentsUseCase {
     const pointsMap = new Map<string, RevenueVsAppointmentsPoint>();
 
     for (const appointment of filteredAppointments) {
-      const period = formatPeriod(appointment.slot.startsAt);
+      const period = formatPeriod(appointment.startsAt);
       const currentPoint = pointsMap.get(period);
 
       if (!currentPoint) {

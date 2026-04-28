@@ -4,6 +4,7 @@ import { makeEstablishment } from "../../../../../tests/factories/establishment-
 import { InMemoryCustomersRepository } from "../../../../../tests/repositories/in-memory-customers-repository";
 import { InMemoryEstablishmentsRepository } from "../../../../../tests/repositories/in-memory-establishment-repository";
 import { InMemoryServicesRepository } from "../../../../../tests/repositories/in-memory-services-repository";
+import { CustomerDocument } from "../../../customer/domain/value-objects/customer-document";
 import { CreateCustomerUseCase } from "./create-customer";
 
 let inMemoryCustomersRepository: InMemoryCustomersRepository;
@@ -55,7 +56,7 @@ describe("Create customer", () => {
     const establishment = makeEstablishment();
     const existingCustomer = makeCustomer({
       establishmentId: establishment.id,
-      cpfCnpj: "52998224725",
+      cpfCnpj: CustomerDocument.create("52998224725"),
     });
 
     await inMemoryEstablishmentsRepository.create(establishment);
@@ -79,7 +80,7 @@ describe("Create customer", () => {
     const secondEstablishment = makeEstablishment();
     const existingCustomer = makeCustomer({
       establishmentId: firstEstablishment.id,
-      cpfCnpj: "52998224725",
+      cpfCnpj: CustomerDocument.create("52998224725"),
     });
 
     await inMemoryEstablishmentsRepository.create(firstEstablishment);
