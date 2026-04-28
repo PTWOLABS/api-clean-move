@@ -7,10 +7,16 @@ import {
   Post,
 } from "@nestjs/common";
 import {
+  ApiBadRequestResponse,
   ApiBearerAuth,
   ApiBody,
   ApiCreatedResponse,
+  ApiForbiddenResponse,
+  ApiInternalServerErrorResponse,
+  ApiNotFoundResponse,
+  ApiOperation,
   ApiTags,
+  ApiUnauthorizedResponse,
 } from "@nestjs/swagger";
 import z from "zod";
 
@@ -48,8 +54,33 @@ export class CreateAppointmentController {
   constructor(private readonly createAppointment: CreateAppointmentUseCase) {}
 
   @Post()
+  @ApiOperation({
+    summary: "Create an appointment for the authenticated establishment.",
+    description:
+      "Creates an operational appointment for an existing active customer and active service. The optional vehicle must belong to the selected customer. Overlapping appointments are allowed.",
+  })
   @ApiBody({ type: CreateAppointmentBodyDto })
-  @ApiCreatedResponse({ type: AppointmentResponseDto })
+  @ApiCreatedResponse({
+    description: "Appointment created successfully.",
+    type: AppointmentResponseDto,
+  })
+  @ApiBadRequestResponse({
+    description:
+      "Invalid payload, inactive service, invalid dates, invalid discount, deleted customer/vehicle, or vehicle that does not belong to the selected customer.",
+  })
+  @ApiUnauthorizedResponse({
+    description: "Missing or invalid access token.",
+  })
+  @ApiForbiddenResponse({
+    description: "Authenticated user does not have the establishment role.",
+  })
+  @ApiNotFoundResponse({
+    description:
+      "Customer, service, vehicle, or establishment profile was not found for the authenticated establishment.",
+  })
+  @ApiInternalServerErrorResponse({
+    description: "Unexpected failure while creating the appointment.",
+  })
   async handle(
     @CurrentUser() user: AuthenticatedUser,
     @Body(new ZodValidationPipe(createAppointmentBodySchema))

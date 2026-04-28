@@ -9,11 +9,18 @@ import {
   Post,
 } from "@nestjs/common";
 import {
+  ApiBadRequestResponse,
   ApiBearerAuth,
   ApiBody,
   ApiConflictResponse,
   ApiCreatedResponse,
+  ApiForbiddenResponse,
+  ApiInternalServerErrorResponse,
+  ApiNotFoundResponse,
+  ApiOperation,
+  ApiParam,
   ApiTags,
+  ApiUnauthorizedResponse,
 } from "@nestjs/swagger";
 import z from "zod";
 
@@ -53,10 +60,40 @@ export class CreateCustomerVehicleController {
   ) {}
 
   @Post()
+  @ApiOperation({
+    summary: "Create a vehicle for an internal customer.",
+    description:
+      "Creates a vehicle linked to an active customer owned by the authenticated establishment.",
+  })
+  @ApiParam({
+    name: "customerId",
+    description: "Customer identifier.",
+    format: "uuid",
+  })
   @ApiBody({ type: CreateCustomerVehicleBodyDto })
-  @ApiCreatedResponse({ type: CustomerVehicleResponseDto })
+  @ApiCreatedResponse({
+    description: "Customer vehicle created successfully.",
+    type: CustomerVehicleResponseDto,
+  })
+  @ApiBadRequestResponse({
+    description:
+      "Invalid customer id, invalid payload, invalid plate, or invalid vehicle field value.",
+  })
+  @ApiUnauthorizedResponse({
+    description: "Missing or invalid access token.",
+  })
+  @ApiForbiddenResponse({
+    description: "Authenticated user does not have the establishment role.",
+  })
+  @ApiNotFoundResponse({
+    description:
+      "Customer was not found for the authenticated establishment, or the establishment profile does not exist.",
+  })
   @ApiConflictResponse({
     description: "Vehicle plate already exists for this establishment.",
+  })
+  @ApiInternalServerErrorResponse({
+    description: "Unexpected failure while creating the customer vehicle.",
   })
   async handle(
     @CurrentUser() user: AuthenticatedUser,

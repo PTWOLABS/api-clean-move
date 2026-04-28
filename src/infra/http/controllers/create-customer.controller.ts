@@ -8,11 +8,17 @@ import {
   Post,
 } from "@nestjs/common";
 import {
+  ApiBadRequestResponse,
   ApiBearerAuth,
   ApiBody,
   ApiConflictResponse,
   ApiCreatedResponse,
+  ApiForbiddenResponse,
+  ApiInternalServerErrorResponse,
+  ApiNotFoundResponse,
+  ApiOperation,
   ApiTags,
+  ApiUnauthorizedResponse,
 } from "@nestjs/swagger";
 import z from "zod";
 
@@ -59,10 +65,35 @@ export class CreateCustomerController {
   constructor(private readonly createCustomer: CreateCustomerUseCase) {}
 
   @Post()
+  @ApiOperation({
+    summary: "Create an internal customer for the authenticated establishment.",
+    description:
+      "Creates a customer record scoped to the establishment owned by the authenticated user. The customer is not an application user and cannot authenticate.",
+  })
   @ApiBody({ type: CreateCustomerBodyDto })
-  @ApiCreatedResponse({ type: CustomerResponseDto })
+  @ApiCreatedResponse({
+    description: "Customer created successfully.",
+    type: CustomerResponseDto,
+  })
+  @ApiBadRequestResponse({
+    description:
+      "Invalid payload, invalid document, invalid email, invalid phone, or invalid optional address/date fields.",
+  })
+  @ApiUnauthorizedResponse({
+    description: "Missing or invalid access token.",
+  })
+  @ApiForbiddenResponse({
+    description: "Authenticated user does not have the establishment role.",
+  })
+  @ApiNotFoundResponse({
+    description:
+      "The authenticated establishment user does not have an establishment profile.",
+  })
   @ApiConflictResponse({
     description: "Customer document already exists for this establishment.",
+  })
+  @ApiInternalServerErrorResponse({
+    description: "Unexpected failure while creating the customer.",
   })
   async handle(
     @CurrentUser() user: AuthenticatedUser,
