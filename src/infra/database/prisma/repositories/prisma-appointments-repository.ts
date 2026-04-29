@@ -1,9 +1,11 @@
 import { Injectable } from "@nestjs/common";
+
 import {
   AppointmentFilters,
   AppointmentsRepository,
 } from "../../../../modules/application/repositories/appointments-repository";
 import { Appointment } from "../../../../modules/scheduling/domain/entities/appointment";
+import { Prisma } from "../../../../generated/prisma/client";
 import { PrismaAppointmentMapper } from "../mappers/prisma-appointment-mapper";
 import { rethrowPrismaRepositoryError } from "../prisma-repository-error-handler";
 import { PrismaUnitOfWork } from "../prisma-unit-of-work";
@@ -12,6 +14,141 @@ import { PrismaService } from "../prisma.service";
 @Injectable()
 export class PrismaAppointmentsRepository implements AppointmentsRepository {
   constructor(private prisma: PrismaService) {}
+
+  private static normalizeTextFilter(value?: string): string | undefined {
+    const normalized = value?.trim();
+
+    return normalized || undefined;
+  }
+
+  private static normalizePlateFilter(value?: string): string | undefined {
+    const normalized = value?.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+
+    return normalized || undefined;
+  }
+
+  private static containsInsensitive(value: string) {
+    return {
+      contains: value,
+      mode: "insensitive" as const,
+    };
+  }
+
+  private static buildTextWhere(
+    filters?: AppointmentFilters,
+  ): Pick<Prisma.AppointmentWhereInput, "AND"> {
+    const and: Prisma.AppointmentWhereInput[] = [];
+    const search = PrismaAppointmentsRepository.normalizeTextFilter(
+      filters?.search,
+    );
+    const normalizedSearchPlate =
+      PrismaAppointmentsRepository.normalizePlateFilter(search);
+    const customerName = PrismaAppointmentsRepository.normalizeTextFilter(
+      filters?.customerName,
+    );
+    const customerNickname = PrismaAppointmentsRepository.normalizeTextFilter(
+      filters?.customerNickname,
+    );
+    const serviceName = PrismaAppointmentsRepository.normalizeTextFilter(
+      filters?.serviceName,
+    );
+    const vehiclePlate = PrismaAppointmentsRepository.normalizePlateFilter(
+      filters?.vehiclePlate,
+    );
+    const vehicleBrand = PrismaAppointmentsRepository.normalizeTextFilter(
+      filters?.vehicleBrand,
+    );
+    const vehicleModel = PrismaAppointmentsRepository.normalizeTextFilter(
+      filters?.vehicleModel,
+    );
+
+    if (customerName) {
+      and.push({
+        customer: {
+          fullName:
+            PrismaAppointmentsRepository.containsInsensitive(customerName),
+        },
+      });
+    }
+
+    if (customerNickname) {
+      and.push({
+        customer: {
+          nickname:
+            PrismaAppointmentsRepository.containsInsensitive(customerNickname),
+        },
+      });
+    }
+
+    if (serviceName) {
+      and.push({
+        bookedServiceName:
+          PrismaAppointmentsRepository.containsInsensitive(serviceName),
+      });
+    }
+
+    if (vehiclePlate) {
+      and.push({
+        vehiclePlate:
+          PrismaAppointmentsRepository.containsInsensitive(vehiclePlate),
+      });
+    }
+
+    if (vehicleBrand) {
+      and.push({
+        vehicleBrand:
+          PrismaAppointmentsRepository.containsInsensitive(vehicleBrand),
+      });
+    }
+
+    if (vehicleModel) {
+      and.push({
+        vehicleModel:
+          PrismaAppointmentsRepository.containsInsensitive(vehicleModel),
+      });
+    }
+
+    if (search) {
+      const searchOr: Prisma.AppointmentWhereInput[] = [
+        {
+          bookedServiceName:
+            PrismaAppointmentsRepository.containsInsensitive(search),
+        },
+        {
+          vehicleBrand:
+            PrismaAppointmentsRepository.containsInsensitive(search),
+        },
+        {
+          vehicleModel:
+            PrismaAppointmentsRepository.containsInsensitive(search),
+        },
+        {
+          customer: {
+            fullName: PrismaAppointmentsRepository.containsInsensitive(search),
+          },
+        },
+        {
+          customer: {
+            nickname: PrismaAppointmentsRepository.containsInsensitive(search),
+          },
+        },
+      ];
+
+      if (normalizedSearchPlate) {
+        searchOr.push({
+          vehiclePlate: PrismaAppointmentsRepository.containsInsensitive(
+            normalizedSearchPlate,
+          ),
+        });
+      }
+
+      and.push({
+        OR: searchOr,
+      });
+    }
+
+    return and.length > 0 ? { AND: and } : {};
+  }
 
   async create(appointment: Appointment): Promise<void> {
     const data = PrismaAppointmentMapper.toPrisma(appointment);
@@ -45,91 +182,32 @@ export class PrismaAppointmentsRepository implements AppointmentsRepository {
     }
   }
 
-  async findManyByEstablishmentId(
+  async findByIdAndEstablishmentId(
+    id: string,
     establishmentId: string,
-    filters?: Omit<AppointmentFilters, "establishmentName">,
-  ): Promise<Appointment[]> {
-    const page = filters?.page ?? 1;
-    const size = filters?.size ?? 20;
-
+  ): Promise<Appointment | null> {
     try {
-      const appointments = await PrismaUnitOfWork.getClient(
+      const appointment = await PrismaUnitOfWork.getClient(
         this.prisma,
-      ).appointment.findMany({
+      ).appointment.findFirst({
         where: {
+          id,
           establishmentId,
-          ...(filters?.serviceName
-            ? { bookedServiceName: filters.serviceName }
-            : {}),
-          ...(filters?.status ? { status: filters.status } : {}),
-          ...(filters?.category
-            ? { bookedServiceCategory: filters.category }
-            : {}),
-          ...(filters?.minPrice !== undefined || filters?.maxPrice !== undefined
-            ? {
-                bookedServicePriceInCents: {
-                  ...(filters.minPrice !== undefined
-                    ? { gte: filters.minPrice }
-                    : {}),
-                  ...(filters.maxPrice !== undefined
-                    ? { lte: filters.maxPrice }
-                    : {}),
-                },
-              }
-            : {}),
-        },
-        orderBy: {
-          createdAt: "asc",
-        },
-        skip: (page - 1) * size,
-        take: size,
-      });
-
-      return appointments.map((appointment) =>
-        PrismaAppointmentMapper.toDomain(appointment),
-      );
-    } catch (error) {
-      rethrowPrismaRepositoryError(error);
-    }
-  }
-
-  async findManyByEstablishmentIdAndInterval(
-    establishmentId: string,
-    startsAt: Date,
-    endsAt: Date,
-  ): Promise<Appointment[] | null> {
-    try {
-      const appointments = await PrismaUnitOfWork.getClient(
-        this.prisma,
-      ).appointment.findMany({
-        where: {
-          establishmentId,
-          startsAt: {
-            lt: endsAt,
-          },
-          endsAt: {
-            gt: startsAt,
-          },
-        },
-        orderBy: {
-          startsAt: "asc",
         },
       });
 
-      if (appointments.length === 0) {
+      if (!appointment) {
         return null;
       }
 
-      return appointments.map((appointment) =>
-        PrismaAppointmentMapper.toDomain(appointment),
-      );
+      return PrismaAppointmentMapper.toDomain(appointment);
     } catch (error) {
       rethrowPrismaRepositoryError(error);
     }
   }
 
-  async findManyByCustomerId(
-    customerId: string,
+  async findManyByEstablishmentId(
+    establishmentId: string,
     filters?: AppointmentFilters,
   ): Promise<Appointment[]> {
     const page = filters?.page ?? 1;
@@ -140,38 +218,23 @@ export class PrismaAppointmentsRepository implements AppointmentsRepository {
         this.prisma,
       ).appointment.findMany({
         where: {
-          customerId,
-          ...(filters?.serviceName
-            ? { bookedServiceName: filters.serviceName }
-            : {}),
+          establishmentId,
+          ...(filters?.customerId ? { customerId: filters.customerId } : {}),
+          ...(filters?.vehicleId ? { vehicleId: filters.vehicleId } : {}),
+          ...(filters?.serviceId ? { bookedServiceId: filters.serviceId } : {}),
           ...(filters?.status ? { status: filters.status } : {}),
-          ...(filters?.category
-            ? { bookedServiceCategory: filters.category }
-            : {}),
-          ...(filters?.minPrice !== undefined || filters?.maxPrice !== undefined
+          ...(filters?.startsAt || filters?.endsAt
             ? {
-                bookedServicePriceInCents: {
-                  ...(filters.minPrice !== undefined
-                    ? { gte: filters.minPrice }
-                    : {}),
-                  ...(filters.maxPrice !== undefined
-                    ? { lte: filters.maxPrice }
-                    : {}),
+                startsAt: {
+                  ...(filters.startsAt ? { gte: filters.startsAt } : {}),
+                  ...(filters.endsAt ? { lte: filters.endsAt } : {}),
                 },
               }
             : {}),
-          ...(filters?.establishmentName
-            ? {
-                establishment: {
-                  is: {
-                    corporateName: filters.establishmentName,
-                  },
-                },
-              }
-            : {}),
+          ...PrismaAppointmentsRepository.buildTextWhere(filters),
         },
         orderBy: {
-          createdAt: "asc",
+          startsAt: "asc",
         },
         skip: (page - 1) * size,
         take: size,

@@ -1,23 +1,19 @@
 import { Global, Module } from "@nestjs/common";
 
 import { AppointmentsRepository } from "../../modules/application/repositories/appointments-repository";
+import { CustomerVehiclesRepository } from "../../modules/application/repositories/customer-vehicles-repository";
 import { CustomersRepository } from "../../modules/application/repositories/customers-repository";
-import { FavoritesRepository } from "../../modules/application/repositories/favorites-repository";
 import { EstablishmentsRepository } from "../../modules/application/repositories/establishment-repository";
 import { ServicesRepository } from "../../modules/application/repositories/services-repository";
-import { PaymentsRepository } from "../../modules/application/repositories/payments-repository";
-import { CheckoutRecoveriesRepository } from "../../modules/application/repositories/checkout-recoveries-repository";
 import { UnitOfWork } from "../../modules/application/repositories/unit-of-work";
 import { UsersRepository } from "../../modules/application/repositories/users-repository";
 import { EnvModule } from "../env/env.module";
 import { PrismaAppointmentsRepository } from "./prisma/repositories/prisma-appointments-repository";
 import { PrismaService } from "./prisma/prisma.service";
-import { PrismaCheckoutRecoveriesRepository } from "./prisma/repositories/prisma-checkout-recoveries-repository";
+import { PrismaCustomerVehiclesRepository } from "./prisma/repositories/prisma-customer-vehicles-repository";
 import { PrismaEstablishmentRepository } from "./prisma/repositories/prisma-establishments-repository";
-import { PrismaFavoritesRepository } from "./prisma/repositories/prisma-favorites-repository";
 import { PrismaCustomersRepository } from "./prisma/repositories/prisma-customers-repository";
 import { PrismaServicesRepository } from "./prisma/repositories/prisma-services-repository";
-import { PrismaPaymentsRepository } from "./prisma/repositories/prisma-payments-repository";
 import { PrismaUsersRepository } from "./prisma/repositories/prisma-users-repository";
 import { PrismaUnitOfWork } from "./prisma/prisma-unit-of-work";
 import { SessionsRepository } from "../../modules/application/repositories/sessions-repository";
@@ -45,6 +41,10 @@ import { PrismaSessionsRepository } from "./prisma/repositories/prisma-sessions-
       useClass: PrismaCustomersRepository,
     },
     {
+      provide: CustomerVehiclesRepository,
+      useClass: PrismaCustomerVehiclesRepository,
+    },
+    {
       provide: ServicesRepository,
       useClass: PrismaServicesRepository,
     },
@@ -56,18 +56,6 @@ import { PrismaSessionsRepository } from "./prisma/repositories/prisma-sessions-
       provide: SessionsRepository,
       useClass: PrismaSessionsRepository,
     },
-    {
-      provide: FavoritesRepository,
-      useClass: PrismaFavoritesRepository,
-    },
-    {
-      provide: PaymentsRepository,
-      useClass: PrismaPaymentsRepository,
-    },
-    {
-      provide: CheckoutRecoveriesRepository,
-      useClass: PrismaCheckoutRecoveriesRepository,
-    },
   ],
   exports: [
     PrismaService,
@@ -76,11 +64,9 @@ import { PrismaSessionsRepository } from "./prisma/repositories/prisma-sessions-
     UsersRepository,
     SessionsRepository,
     CustomersRepository,
+    CustomerVehiclesRepository,
     ServicesRepository,
     AppointmentsRepository,
-    FavoritesRepository,
-    PaymentsRepository,
-    CheckoutRecoveriesRepository,
   ],
 })
 export class DatabaseModule {}

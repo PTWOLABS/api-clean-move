@@ -10,7 +10,7 @@ export type EstablishmentMetricsFilters = {
   status?: AppointmentStatus[];
 };
 
-const PAGE_SIZE = 100;
+const PAGE_SIZE = 20;
 
 export async function findAllServicesByEstablishment(
   servicesRepository: ServicesRepository,
@@ -82,11 +82,11 @@ export function filterAppointmentsByMetrics(
   filters?: EstablishmentMetricsFilters,
 ) {
   return appointments.filter((appointment) => {
-    if (filters?.startsAt && appointment.slot.startsAt < filters.startsAt) {
+    if (filters?.startsAt && appointment.startsAt < filters.startsAt) {
       return false;
     }
 
-    if (filters?.endsAt && appointment.slot.startsAt > filters.endsAt) {
+    if (filters?.endsAt && appointment.startsAt > filters.endsAt) {
       return false;
     }
 

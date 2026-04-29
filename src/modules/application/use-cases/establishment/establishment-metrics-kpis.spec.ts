@@ -5,8 +5,6 @@ import { makeService } from "../../../../../tests/factories/service-factory";
 import { InMemoryAppointmentsRepository } from "../../../../../tests/repositories/in-memory-appointments-repository";
 import { InMemoryEstablishmentsRepository } from "../../../../../tests/repositories/in-memory-establishment-repository";
 import { InMemoryServicesRepository } from "../../../../../tests/repositories/in-memory-services-repository";
-import { BookedServiceSnapshot } from "../../../scheduling/domain/value-objects/booked-service-snapshot";
-import { TimeSlot } from "../../../scheduling/domain/value-objects/time-slot";
 import { GetEstablishmentAppointmentsCountUseCase } from "./get-establishment-appointments-count";
 import { GetEstablishmentAverageTicketUseCase } from "./get-establishment-average-ticket";
 import { GetEstablishmentCancellationRateUseCase } from "./get-establishment-cancellation-rate";
@@ -48,17 +46,15 @@ describe("Establishment metrics KPIs", () => {
       makeAppointment({
         establishmentId: establishment.id,
         status: "SCHEDULED",
-        service: BookedServiceSnapshot.create({
+        service: {
           serviceId: washService.id,
           serviceName: washService.serviceName.value,
           category: washService.category,
           durationInMinutes: 60,
           priceInCents: 10000,
-        }),
-        slot: TimeSlot.create({
-          startsAt: new Date("2026-04-01T10:00:00Z"),
-          endsAt: new Date("2026-04-01T11:00:00Z"),
-        }),
+        },
+        startsAt: new Date("2026-04-01T10:00:00Z"),
+        endsAt: new Date("2026-04-01T11:00:00Z"),
       }),
     );
 
@@ -66,17 +62,15 @@ describe("Establishment metrics KPIs", () => {
       makeAppointment({
         establishmentId: establishment.id,
         status: "CANCELLED",
-        service: BookedServiceSnapshot.create({
+        service: {
           serviceId: washService.id,
           serviceName: washService.serviceName.value,
           category: washService.category,
           durationInMinutes: 60,
           priceInCents: 15000,
-        }),
-        slot: TimeSlot.create({
-          startsAt: new Date("2026-04-02T10:00:00Z"),
-          endsAt: new Date("2026-04-02T11:00:00Z"),
-        }),
+        },
+        startsAt: new Date("2026-04-02T10:00:00Z"),
+        endsAt: new Date("2026-04-02T11:00:00Z"),
       }),
     );
 
@@ -84,17 +78,15 @@ describe("Establishment metrics KPIs", () => {
       makeAppointment({
         establishmentId: establishment.id,
         status: "SCHEDULED",
-        service: BookedServiceSnapshot.create({
+        service: {
           serviceId: protectionService.id,
           serviceName: protectionService.serviceName.value,
           category: protectionService.category,
           durationInMinutes: 60,
           priceInCents: 25000,
-        }),
-        slot: TimeSlot.create({
-          startsAt: new Date("2026-04-03T10:00:00Z"),
-          endsAt: new Date("2026-04-03T11:00:00Z"),
-        }),
+        },
+        startsAt: new Date("2026-04-03T10:00:00Z"),
+        endsAt: new Date("2026-04-03T11:00:00Z"),
       }),
     );
 

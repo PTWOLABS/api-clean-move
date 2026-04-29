@@ -1,48 +1,82 @@
 import { Module } from "@nestjs/common";
-import { AppointmentBookingService } from "../../modules/application/services/appointment-booking-service";
+import { CreateAppointmentUseCase } from "../../modules/application/use-cases/appointment/create-appointment";
+import { ListAppointmentsUseCase } from "../../modules/application/use-cases/appointment/list-appointments";
+import { UpdateAppointmentStatusUseCase } from "../../modules/application/use-cases/appointment/update-appointment-status";
 import { AuthenticateWithOAuthUseCase } from "../../modules/application/use-cases/auth/authenticate-with-oauth";
-import { BookServiceUseCase } from "../../modules/application/use-cases/appointment/book-service";
 import { LoginWithCredentialsUseCase } from "../../modules/application/use-cases/auth/login-with-credentials";
 import { RefreshSessionUseCase } from "../../modules/application/use-cases/auth/refresh-session";
 import { SignOutUseCase } from "../../modules/application/use-cases/auth/sign-out";
-import { RegisterCustomerUseCase } from "../../modules/application/use-cases/customer/register-customer";
+import { CreateCustomerUseCase } from "../../modules/application/use-cases/customer/create-customer";
+import { CreateCustomerVehicleUseCase } from "../../modules/application/use-cases/customer/create-customer-vehicle";
+import { DeleteCustomerUseCase } from "../../modules/application/use-cases/customer/delete-customer";
+import { DeleteCustomerVehicleUseCase } from "../../modules/application/use-cases/customer/delete-customer-vehicle";
+import { ListCustomersUseCase } from "../../modules/application/use-cases/customer/list-customers";
+import { ListCustomerVehiclesUseCase } from "../../modules/application/use-cases/customer/list-customer-vehicles";
+import { UpdateCustomerUseCase } from "../../modules/application/use-cases/customer/update-customer";
+import { UpdateCustomerVehicleUseCase } from "../../modules/application/use-cases/customer/update-customer-vehicle";
 import { RegisterEstablishmentUseCase } from "../../modules/application/use-cases/establishment/register-establishment";
 import { CreateServiceUseCase } from "../../modules/application/use-cases/service/create-service";
 import { SessionCreationService } from "../../modules/accounts/domain/services/session-creation-service";
 import { AuthModule } from "../auth/auth.module";
 import { DatabaseModule } from "../database/database.module";
 import { AuthenticateWithGoogleController } from "./controllers/authenticate-with-google.controller";
-import { BookServiceController } from "./controllers/book-service.controller";
+import { CreateAppointmentController } from "./controllers/create-appointment.controller";
+import { CreateCustomerController } from "./controllers/create-customer.controller";
+import { CreateCustomerVehicleController } from "./controllers/create-customer-vehicle.controller";
 import { CreateServiceController } from "./controllers/create-service.controller";
+import { DeleteCustomerController } from "./controllers/delete-customer.controller";
+import { DeleteCustomerVehicleController } from "./controllers/delete-customer-vehicle.controller";
+import { ListAppointmentsController } from "./controllers/list-appointments.controller";
+import { ListCustomersController } from "./controllers/list-customers.controller";
+import { ListCustomerVehiclesController } from "./controllers/list-customer-vehicles.controller";
 import { LoginWithCredentialsController } from "./controllers/login-with-credentials.controller";
 import { SignOutController } from "./controllers/sign-out.controller";
-import { RegisterCustomerController } from "./controllers/register-customer.controller";
 import { RefreshSessionController } from "./controllers/refresh-session.controller";
 import { RegisterEstablishmentController } from "./controllers/register-establishment.controller";
+import { UpdateAppointmentStatusController } from "./controllers/update-appointment-status.controller";
+import { UpdateCustomerController } from "./controllers/update-customer.controller";
+import { UpdateCustomerVehicleController } from "./controllers/update-customer-vehicle.controller";
 
 @Module({
   imports: [AuthModule, DatabaseModule],
   controllers: [
     RegisterEstablishmentController,
-    RegisterCustomerController,
     AuthenticateWithGoogleController,
     LoginWithCredentialsController,
     RefreshSessionController,
     SignOutController,
-    BookServiceController,
     CreateServiceController,
+    CreateCustomerController,
+    ListCustomersController,
+    UpdateCustomerController,
+    DeleteCustomerController,
+    CreateCustomerVehicleController,
+    ListCustomerVehiclesController,
+    UpdateCustomerVehicleController,
+    DeleteCustomerVehicleController,
+    CreateAppointmentController,
+    ListAppointmentsController,
+    UpdateAppointmentStatusController,
   ],
   providers: [
     RegisterEstablishmentUseCase,
     AuthenticateWithOAuthUseCase,
-    BookServiceUseCase,
     CreateServiceUseCase,
+    CreateCustomerUseCase,
+    ListCustomersUseCase,
+    UpdateCustomerUseCase,
+    DeleteCustomerUseCase,
+    CreateCustomerVehicleUseCase,
+    ListCustomerVehiclesUseCase,
+    UpdateCustomerVehicleUseCase,
+    DeleteCustomerVehicleUseCase,
+    CreateAppointmentUseCase,
+    ListAppointmentsUseCase,
+    UpdateAppointmentStatusUseCase,
     LoginWithCredentialsUseCase,
     RefreshSessionUseCase,
     SignOutUseCase,
-    RegisterCustomerUseCase,
     SessionCreationService,
-    AppointmentBookingService,
   ],
 })
 export class HttpModule {}

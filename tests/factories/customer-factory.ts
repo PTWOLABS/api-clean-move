@@ -2,7 +2,9 @@ import {
   Customer,
   CustomerProps,
 } from "../../src/modules/customer/domain/entities/customer";
-import { Cpf } from "../../src/modules/accounts/domain/value-objects/cpf";
+import { Email } from "../../src/modules/accounts/domain/value-objects/email";
+import { Phone } from "../../src/modules/accounts/domain/value-objects/phone";
+import { CustomerDocument } from "../../src/modules/customer/domain/value-objects/customer-document";
 import { PrismaCustomerMapper } from "../../src/infra/database/prisma/mappers/prisma-customer-mapper";
 import { PrismaService } from "../../src/infra/database/prisma/prisma.service";
 import { UniqueEntityId } from "../../src/shared/entities/unique-entity-id";
@@ -13,8 +15,14 @@ export function makeCustomer(
 ) {
   const customer = Customer.create(
     {
-      userId: new UniqueEntityId(),
-      cpf: Cpf.create("52998224725"),
+      establishmentId: new UniqueEntityId(),
+      cpfCnpj: CustomerDocument.create("52998224725"),
+      fullName: "Maria Silva",
+      phone: Phone.create("11999999999"),
+      email: new Email("maria@example.com"),
+      address: null,
+      birthDate: null,
+      nickname: null,
       ...override,
     },
     id,

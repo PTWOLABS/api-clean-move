@@ -100,8 +100,10 @@ async function bootstrap(): Promise<void> {
       "refresh-token",
     )
     .addTag("auth", "Authentication and session management")
-    .addTag("register", "Customer and establishment registration")
-    .addTag("appointment", "Appointment management")
+    .addTag("register", "Establishment registration")
+    .addTag("customers", "Internal customer management")
+    .addTag("customer vehicles", "Internal customer vehicle management")
+    .addTag("appointments", "Establishment-operated appointment management")
     .addTag("service", "Service catalog management")
     .build();
   const documentFactory = () => SwaggerModule.createDocument(app, config);

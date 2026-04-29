@@ -1,34 +1,34 @@
-import { ServiceCategory } from "../../catalog/domain/value-objects/service-category";
+import { PaginationParams } from "../../../shared/types/pagination-params";
 import {
   Appointment,
   AppointmentStatus,
 } from "../../scheduling/domain/entities/appointment";
 
 export type AppointmentFilters = {
-  establishmentName?: string;
-  category?: ServiceCategory;
+  search?: string;
+  customerId?: string;
+  customerName?: string;
+  customerNickname?: string;
+  vehicleId?: string;
+  vehiclePlate?: string;
+  vehicleBrand?: string;
+  vehicleModel?: string;
+  serviceId?: string;
   serviceName?: string;
   status?: AppointmentStatus;
-  minPrice?: number;
-  maxPrice?: number;
-  page?: number;
-  size?: number;
-};
+  startsAt?: Date;
+  endsAt?: Date;
+} & PaginationParams;
 
 export abstract class AppointmentsRepository {
   abstract create(appointment: Appointment): Promise<void>;
   abstract findById(id: string): Promise<Appointment | null>;
+  abstract findByIdAndEstablishmentId(
+    id: string,
+    establishmentId: string,
+  ): Promise<Appointment | null>;
   abstract findManyByEstablishmentId(
     establishmentId: string,
-    filters?: Omit<AppointmentFilters, "establishmentName">,
-  ): Promise<Appointment[]>;
-  abstract findManyByEstablishmentIdAndInterval(
-    establishmentId: string,
-    startsAt: Date,
-    endsAt: Date,
-  ): Promise<Appointment[] | null>;
-  abstract findManyByCustomerId(
-    customerId: string,
     filters?: AppointmentFilters,
   ): Promise<Appointment[]>;
   abstract save(appointment: Appointment): Promise<void>;
