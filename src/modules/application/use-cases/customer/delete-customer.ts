@@ -4,8 +4,10 @@ import { Either, left, right } from "../../../../shared/either";
 import { ResourceNotFoundError } from "../../../../shared/errors/resource-not-found-error";
 import { UnexpectedDomainError } from "../../../../shared/errors/unexpected-domain-error";
 import { Customer } from "../../../customer/domain/entities/customer";
+import { CustomerVehiclesRepository } from "../../repositories/customer-vehicles-repository";
 import { CustomersRepository } from "../../repositories/customers-repository";
 import { EstablishmentsRepository } from "../../repositories/establishment-repository";
+import { UnitOfWork } from "../../repositories/unit-of-work";
 
 type DeleteCustomerUseCaseRequest = {
   establishmentOwnerId: string;
@@ -23,7 +25,9 @@ type DeleteCustomerUseCaseResponse = Either<
 export class DeleteCustomerUseCase {
   constructor(
     private customersRepository: CustomersRepository,
+    private customerVehiclesRepository: CustomerVehiclesRepository,
     private establishmentsRepository: EstablishmentsRepository,
+    private unitOfWork: UnitOfWork,
   ) {}
 
   async execute({
@@ -47,12 +51,26 @@ export class DeleteCustomerUseCase {
     }
 
     try {
-      customer.softDelete();
+      await this.unitOfWork.execute(async () => {
+        const referenceDate = new Date();
+        const vehicles =
+          await this.customerVehiclesRepository.findManyByCustomerIdAndEstablishmentId(
+            customer.id.toString(),
+            establishment.id.toString(),
+          );
+
+        customer.softDelete(referenceDate);
+
+        for (const vehicle of vehicles) {
+          vehicle.softDelete(referenceDate);
+          await this.customerVehiclesRepository.save(vehicle);
+        }
+
+        await this.customersRepository.save(customer);
+      });
     } catch (error) {
       return left(error instanceof Error ? error : new UnexpectedDomainError());
     }
-
-    await this.customersRepository.save(customer);
 
     return right({
       customer,

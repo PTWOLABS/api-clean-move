@@ -11,6 +11,8 @@ import {
   makeCustomerAuth,
   makeEstablishmentAuth,
   validCustomerPayload,
+  validVehiclePayload,
+  vehicleResponseSchema,
 } from "../../../../tests/helpers/establishment-operated-scheduling.e2e-helpers";
 import { getHttpServer } from "../../../../tests/helpers/auth-session.e2e-helpers";
 import { HashGenerator } from "../../../modules/application/repositories/hash-generator";
@@ -43,7 +45,7 @@ describe("DeleteCustomerController (e2e)", () => {
     await app.close();
   });
 
-  it("should soft delete a customer and hide it from active listings", async () => {
+  it("should soft delete a customer, its vehicles and hide it from active listings", async () => {
     const { accessToken } = await makeEstablishmentAuth({
       app,
       prisma,
@@ -57,6 +59,12 @@ describe("DeleteCustomerController (e2e)", () => {
       .send(validCustomerPayload());
     const customerId = customerResponseSchema.parse(createResponse.body)
       .customer.id;
+    const createVehicleResponse = await request(getHttpServer(app))
+      .post(`/customers/${customerId}/vehicles`)
+      .set("Authorization", `Bearer ${accessToken}`)
+      .send(validVehiclePayload({ plate: "ABC1D23" }));
+    const vehicleId = vehicleResponseSchema.parse(createVehicleResponse.body)
+      .vehicle.id;
 
     const deleteResponse = await request(getHttpServer(app))
       .delete(`/customers/${customerId}`)
@@ -69,10 +77,17 @@ describe("DeleteCustomerController (e2e)", () => {
         id: customerId,
       },
     });
+    const deletedVehicle = await prisma.customerVehicle.findUnique({
+      where: {
+        id: vehicleId,
+      },
+    });
     const listBody = listCustomersResponseSchema.parse(listResponse.body);
 
     expect(deleteResponse.status).toBe(204);
     expect(deletedCustomer?.deletedAt).toBeInstanceOf(Date);
+    expect(deletedVehicle?.deletedAt).toBeInstanceOf(Date);
+    expect(deletedVehicle?.deletedAt).toEqual(deletedCustomer?.deletedAt);
     expect(listBody.customers).toHaveLength(0);
   });
 
