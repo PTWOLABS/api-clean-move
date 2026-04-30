@@ -11,6 +11,7 @@ datasource db {
 enum UserRole {
   CUSTOMER
   ESTABLISHMENT
+  EMPLOYEE
   ADMIN
 }
 
@@ -32,6 +33,25 @@ enum AppointmentStatus {
   CANCELLED
 }
 
+model Employee {
+  id              String    @id @default(uuid()) @db.Uuid
+  establishmentId String    @map("establishment_id") @db.Uuid
+  userId          String    @unique @map("user_id") @db.Uuid
+  profileImageUrl String?   @map("profile_image_url")
+  name            String?
+  cpf             String?   @db.VarChar(11)
+  birthDate       DateTime? @map("birth_date")
+  features        String[]  @default(["read:services", "read:appointments", "read:customers"])
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  establishment Establishment @relation(fields: [establishmentId], references: [id], onDelete: Restrict)
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([establishmentId])
+  @@map("employees")
+}
+
 model User {
   id             String   @id @default(uuid()) @db.Uuid
   name           String
@@ -47,6 +67,7 @@ model User {
   sessions           Session[]
   passwordResetToken PasswordResetToken?
   ownedEstablishment Establishment?      @relation("EstablishmentOwner")
+  employee           Employee?
 
   @@index([role])
   @@map("users")
@@ -111,7 +132,7 @@ model Customer {
   createdAt       DateTime  @default(now()) @map("created_at")
   updatedAt       DateTime  @default(now()) @updatedAt @map("updated_at")
 
-  establishment Establishment      @relation(fields: [establishmentId], references: [id], onDelete: Restrict)
+  establishment Establishment     @relation(fields: [establishmentId], references: [id], onDelete: Restrict)
   vehicles      CustomerVehicle[]
   appointments  Appointment[]
 
@@ -149,36 +170,38 @@ model CustomerVehicle {
 }
 
 model Establishment {
-  id             String @id @default(uuid()) @db.Uuid
-  ownerId        String @unique @map("owner_id") @db.Uuid
-  corporateName  String @map("corporate_name")
-  socialReason   String @map("social_reason")
-  slug           String @unique
-  operatingHours Json   @map("operating_hours")
-  cnpj           String @unique @db.VarChar(14)
+  id              String  @id @default(uuid()) @db.Uuid
+  ownerId         String  @unique @map("owner_id") @db.Uuid
+  profileImageUrl String? @map("profile_image_url")
+  corporateName   String  @map("corporate_name")
+  socialReason    String  @map("social_reason")
+  slug            String  @unique
+  operatingHours  Json    @map("operating_hours")
+  cnpj            String  @unique @db.VarChar(14)
 
-  owner        User                    @relation("EstablishmentOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+  owner        User              @relation("EstablishmentOwner", fields: [ownerId], references: [id], onDelete: Restrict)
   services     Service[]
   customers    Customer[]
   vehicles     CustomerVehicle[]
-  appointments Appointment[]           @relation("EstablishmentAppointments")
+  appointments Appointment[]     @relation("EstablishmentAppointments")
+  employees    Employee[]
 
   @@index([corporateName])
   @@map("establishments")
 }
 
 model Service {
-  id                            String          @id @default(uuid()) @db.Uuid
-  establishmentId               String          @map("establishment_id") @db.Uuid
-  serviceName                   String          @map("service_name") @db.VarChar(72)
-  description                   String?         @db.Text
+  id                            String           @id @default(uuid()) @db.Uuid
+  establishmentId               String           @map("establishment_id") @db.Uuid
+  serviceName                   String           @map("service_name") @db.VarChar(72)
+  description                   String?          @db.Text
   category                      ServiceCategory?
-  estimatedDurationMinInMinutes Int?            @map("estimated_duration_min_in_minutes")
-  estimatedDurationMaxInMinutes Int?            @map("estimated_duration_max_in_minutes")
-  priceInCents                  Int             @map("price_in_cents")
-  isActive                      Boolean         @default(true) @map("is_active")
-  createdAt                     DateTime        @default(now()) @map("created_at")
-  updatedAt                     DateTime        @default(now()) @updatedAt @map("updated_at")
+  estimatedDurationMinInMinutes Int?             @map("estimated_duration_min_in_minutes")
+  estimatedDurationMaxInMinutes Int?             @map("estimated_duration_max_in_minutes")
+  priceInCents                  Int              @map("price_in_cents")
+  isActive                      Boolean          @default(true) @map("is_active")
+  createdAt                     DateTime         @default(now()) @map("created_at")
+  updatedAt                     DateTime         @default(now()) @updatedAt @map("updated_at")
 
   establishment Establishment @relation(fields: [establishmentId], references: [id], onDelete: Restrict)
   appointments  Appointment[] @relation("BookedServiceAppointments")
