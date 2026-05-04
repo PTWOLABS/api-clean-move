@@ -1,12 +1,9 @@
-import { INestApplication } from "@nestjs/common";
-import { JwtService } from "@nestjs/jwt";
 import z from "zod";
 
-import { PrismaService } from "../../src/infra/database/prisma/prisma.service";
-import { EnvService } from "../../src/infra/env/env.service";
-import { EstablishmentFactory } from "../factories/establishment-factory";
-import { UserFactory } from "../factories/user-factory";
-import { loginUser } from "./auth-session.e2e-helpers";
+export {
+  makeCustomerAuth,
+  makeEstablishmentAuth,
+} from "./auth-session.e2e-helpers";
 
 export const customerResponseSchema = z.object({
   customer: z.object({
@@ -186,79 +183,5 @@ export function appointmentPayload({
     ...(endsAt !== undefined ? { endsAt } : {}),
     ...(description !== undefined ? { description } : {}),
     ...(discountInCents !== undefined ? { discountInCents } : {}),
-  };
-}
-
-export async function makeEstablishmentAuth({
-  app,
-  prisma,
-  userFactory,
-  establishmentFactory,
-  envService,
-}: {
-  app: INestApplication;
-  prisma: PrismaService;
-  userFactory: UserFactory;
-  establishmentFactory: EstablishmentFactory;
-  envService: EnvService;
-}) {
-  const { user, plainPassword } = await userFactory.makePrismaUser({
-    role: "ESTABLISHMENT",
-    plainPassword: "strong-password",
-  });
-  const establishment = await establishmentFactory.makePrismaEstablishment({
-    ownerId: user.id,
-  });
-  const login = await loginUser({
-    app,
-    prisma,
-    userId: user.id.toString(),
-    email: user.email.toString(),
-    password: plainPassword ?? "",
-  });
-  const expiredAccessToken = await new JwtService({
-    secret: envService.get("JWT_ACCESS_SECRET"),
-  }).signAsync(
-    {
-      sub: user.id.toString(),
-      role: user.role,
-      sid: login.sessionId,
-      type: "access",
-    },
-    {
-      expiresIn: "-1s",
-    },
-  );
-
-  return {
-    accessToken: login.loginBody.accessToken,
-    expiredAccessToken,
-    establishment,
-  };
-}
-
-export async function makeCustomerAuth({
-  app,
-  prisma,
-  userFactory,
-}: {
-  app: INestApplication;
-  prisma: PrismaService;
-  userFactory: UserFactory;
-}) {
-  const { user, plainPassword } = await userFactory.makePrismaUser({
-    role: "CUSTOMER",
-    plainPassword: "strong-password",
-  });
-  const login = await loginUser({
-    app,
-    prisma,
-    userId: user.id.toString(),
-    email: user.email.toString(),
-    password: plainPassword ?? "",
-  });
-
-  return {
-    accessToken: login.loginBody.accessToken,
   };
 }
