@@ -1,4 +1,8 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
+import {
+  ALLOWED_EMPLOYEE_FEATURES,
+  ALLOWED_EXTRA_EMPLOYEE_FEATURES,
+} from "../../../modules/employees/domain/policies/employee-features-policy";
 
 export class AddressDto {
   @ApiProperty({ example: "Rua das Flores, 123" })
@@ -97,6 +101,104 @@ export class RegisterEstablishmentResponseDto {
     description: "Created establishment identifier.",
   })
   establishmentId!: string;
+}
+
+export class RegisterEmployeeBodyDto {
+  @ApiProperty({ example: "Ana Silva", minLength: 1 })
+  name!: string;
+
+  @ApiProperty({ example: "ana@example.com", format: "email" })
+  email!: string;
+
+  @ApiProperty({ example: "strong-password", maxLength: 72 })
+  password!: string;
+
+  @ApiPropertyOptional({
+    type: String,
+    example: "52998224725",
+    nullable: true,
+    description: "Optional employee CPF.",
+  })
+  cpf?: string | null;
+
+  @ApiPropertyOptional({
+    type: String,
+    example: "1995-01-01T00:00:00.000Z",
+    nullable: true,
+    format: "date-time",
+    description: "Optional birth date. Employees must be at least 18 years old.",
+  })
+  birthDate?: string | null;
+
+  @ApiPropertyOptional({
+    enum: ALLOWED_EXTRA_EMPLOYEE_FEATURES,
+    isArray: true,
+    example: ["create:appointments", "update:customers"],
+    description:
+      "Optional features beyond the default read permissions. Default read permissions are added automatically.",
+  })
+  extraFeatures?: string[];
+}
+
+export class EmployeeDto {
+  @ApiProperty({ example: "5f588c8b-ef0f-4193-aec0-2926e77c1d09" })
+  id!: string;
+
+  @ApiProperty({ example: "2e11b57c-b96a-490a-9ae6-64ef2966fd84" })
+  establishmentId!: string;
+
+  @ApiProperty({ example: "b62c5971-4081-4d3d-8e5d-80722b926e4a" })
+  userId!: string;
+
+  @ApiProperty({ type: String, nullable: true, example: null })
+  profileImageUrl!: string | null;
+
+  @ApiProperty({ example: "Ana Silva" })
+  name!: string;
+
+  @ApiProperty({ type: String, example: "52998224725", nullable: true })
+  cpf!: string | null;
+
+  @ApiProperty({
+    type: String,
+    example: "1995-01-01T00:00:00.000Z",
+    nullable: true,
+    format: "date-time",
+  })
+  birthDate!: string | null;
+
+  @ApiProperty({
+    enum: ALLOWED_EMPLOYEE_FEATURES,
+    isArray: true,
+    example: [
+      "read:appointments",
+      "read:services",
+      "read:customers",
+      "create:appointments",
+    ],
+  })
+  features!: string[];
+
+  @ApiProperty({
+    type: String,
+    example: "2026-05-04T10:00:00.000Z",
+    nullable: true,
+    format: "date-time",
+  })
+  createdAt!: string | null;
+
+  @ApiProperty({
+    type: String,
+    example: "2026-05-04T10:00:00.000Z",
+    nullable: true,
+    format: "date-time",
+  })
+  updatedAt!: string | null;
+}
+
+export class RegisterEmployeeResponseDto {
+  @ApiProperty({ type: EmployeeDto })
+  employee!: EmployeeDto;
 }
 
 export class CreateCustomerBodyDto {
