@@ -3,6 +3,7 @@ import { Global, Module } from "@nestjs/common";
 import { AppointmentsRepository } from "../../modules/application/repositories/appointments-repository";
 import { CustomerVehiclesRepository } from "../../modules/application/repositories/customer-vehicles-repository";
 import { CustomersRepository } from "../../modules/application/repositories/customers-repository";
+import { EmployeesRepository } from "../../modules/application/repositories/employees-repository";
 import { EstablishmentsRepository } from "../../modules/application/repositories/establishment-repository";
 import { ServicesRepository } from "../../modules/application/repositories/services-repository";
 import { UnitOfWork } from "../../modules/application/repositories/unit-of-work";
@@ -13,6 +14,7 @@ import { PrismaService } from "./prisma/prisma.service";
 import { PrismaCustomerVehiclesRepository } from "./prisma/repositories/prisma-customer-vehicles-repository";
 import { PrismaEstablishmentRepository } from "./prisma/repositories/prisma-establishments-repository";
 import { PrismaCustomersRepository } from "./prisma/repositories/prisma-customers-repository";
+import { PrismaEmployeesRepository } from "./prisma/repositories/prisma-employees-repository";
 import { PrismaServicesRepository } from "./prisma/repositories/prisma-services-repository";
 import { PrismaUsersRepository } from "./prisma/repositories/prisma-users-repository";
 import { PrismaUnitOfWork } from "./prisma/prisma-unit-of-work";
@@ -53,6 +55,10 @@ import { PrismaSessionsRepository } from "./prisma/repositories/prisma-sessions-
       useClass: PrismaAppointmentsRepository,
     },
     {
+      provide: EmployeesRepository,
+      useClass: PrismaEmployeesRepository,
+    },
+    {
       provide: SessionsRepository,
       useClass: PrismaSessionsRepository,
     },
@@ -67,6 +73,7 @@ import { PrismaSessionsRepository } from "./prisma/repositories/prisma-sessions-
     CustomerVehiclesRepository,
     ServicesRepository,
     AppointmentsRepository,
+    EmployeesRepository,
   ],
 })
 export class DatabaseModule {}
