@@ -131,7 +131,7 @@ export class RegisterEmployeeUseCase {
 
     try {
       hashedPassword = await this.hashGenerator.hash(password);
-    } catch (error) {
+    } catch {
       return left(new UnexpectedDomainError());
     }
 

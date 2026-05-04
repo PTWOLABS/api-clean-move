@@ -261,6 +261,22 @@ describe("Register employee controller (e2e)", () => {
         },
       },
       {
+        name: "birth date as number",
+        payload: {
+          ...validEmployeePayload(),
+          email: "number-birth-date@example.com",
+          birthDate: 0,
+        },
+      },
+      {
+        name: "birth date as boolean",
+        payload: {
+          ...validEmployeePayload(),
+          email: "boolean-birth-date@example.com",
+          birthDate: true,
+        },
+      },
+      {
         name: "default feature sent as extra",
         payload: {
           ...validEmployeePayload(),

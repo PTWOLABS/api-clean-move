@@ -43,7 +43,11 @@ const registerEmployeeBodySchema = z
     email: z.email().trim(),
     password: z.string().nonempty().max(72),
     cpf: z.string().trim().optional().nullable(),
-    birthDate: z.coerce.date().optional().nullable(),
+    birthDate: z.iso
+      .datetime({ offset: true })
+      .transform((value) => new Date(value))
+      .optional()
+      .nullable(),
     extraFeatures: z
       .array(z.enum(ALLOWED_EXTRA_EMPLOYEE_FEATURES))
       .optional()
