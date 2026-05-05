@@ -23,6 +23,21 @@ export class PrismaEstablishmentRepository implements EstablishmentsRepository {
     }
   }
 
+  async save(establishment: Establishment): Promise<void> {
+    const data = PrismaEstablishmentMapper.toPrismaUpdate(establishment);
+
+    try {
+      await PrismaUnitOfWork.getClient(this.prisma).establishment.update({
+        where: {
+          id: establishment.id.toString(),
+        },
+        data,
+      });
+    } catch (error) {
+      rethrowPrismaRepositoryError(error);
+    }
+  }
+
   async findByCnpj(cnpj: string): Promise<Establishment | null> {
     try {
       const establishment = await PrismaUnitOfWork.getClient(
