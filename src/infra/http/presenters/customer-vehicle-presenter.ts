@@ -6,6 +6,7 @@ export class CustomerVehiclePresenter {
       id: vehicle.id.toString(),
       establishmentId: vehicle.establishmentId.toString(),
       customerId: vehicle.customerId.toString(),
+      imageUrl: vehicle.imageUrl,
       plate: vehicle.plate,
       brand: vehicle.brand,
       model: vehicle.model,
