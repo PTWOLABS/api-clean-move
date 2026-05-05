@@ -42,4 +42,15 @@ export class PrismaEmployeeMapper {
       ...(raw.updatedAt ? { updatedAt: raw.updatedAt } : {}),
     };
   }
+
+  static toPrismaUpdate(raw: Employee): Prisma.EmployeeUncheckedUpdateInput {
+    return {
+      profileImageUrl: raw.profileImageUrl,
+      name: raw.name,
+      cpf: raw.cpf?.toString() ?? null,
+      birthDate: raw.birthDate?.toDate() ?? null,
+      features: raw.features,
+      ...(raw.updatedAt ? { updatedAt: raw.updatedAt } : {}),
+    };
+  }
 }
