@@ -21,8 +21,7 @@ export const ALLOWED_EMPLOYEE_FEATURES = [
   ...ALLOWED_EXTRA_EMPLOYEE_FEATURES,
 ] as const;
 
-export type DefaultEmployeeFeature =
-  (typeof DEFAULT_EMPLOYEE_FEATURES)[number];
+export type DefaultEmployeeFeature = (typeof DEFAULT_EMPLOYEE_FEATURES)[number];
 export type ExtraEmployeeFeature =
   (typeof ALLOWED_EXTRA_EMPLOYEE_FEATURES)[number];
 export type EmployeeFeature = (typeof ALLOWED_EMPLOYEE_FEATURES)[number];

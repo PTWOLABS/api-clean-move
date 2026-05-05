@@ -6,7 +6,10 @@ import { ResourceNotFoundError } from "../../../../shared/errors/resource-not-fo
 import { UnexpectedDomainError } from "../../../../shared/errors/unexpected-domain-error";
 import { UniqueConstraintViolationError } from "../../../../shared/errors/unique-constraint-violation-error";
 import { User } from "../../../accounts/domain/entities/user";
-import { InvalidCpfError, Cpf } from "../../../accounts/domain/value-objects/cpf";
+import {
+  InvalidCpfError,
+  Cpf,
+} from "../../../accounts/domain/value-objects/cpf";
 import {
   Email,
   InvalidEmailError,
@@ -123,7 +126,9 @@ export class RegisterEmployeeUseCase {
     }
 
     if (userWithTheSameEmail) {
-      return left(new ResourceAlreadyExistsError("Employee already registered."));
+      return left(
+        new ResourceAlreadyExistsError("Employee already registered."),
+      );
     }
 
     const userRole: UserRole = "EMPLOYEE";

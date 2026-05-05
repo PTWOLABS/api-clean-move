@@ -62,15 +62,12 @@ describe("BirthDate", () => {
   const referenceDate = new Date("2026-05-04T12:00:00.000Z");
 
   it("should create a valid adult birth date", () => {
-    const birthDate = BirthDate.create(
-      new Date("1995-01-01T00:00:00.000Z"),
-      { referenceDate },
-    );
+    const birthDate = BirthDate.create(new Date("1995-01-01T00:00:00.000Z"), {
+      referenceDate,
+    });
 
     expect(birthDate.value).toEqual(new Date("1995-01-01T00:00:00.000Z"));
-    expect(birthDate.toDate()).toEqual(
-      new Date("1995-01-01T00:00:00.000Z"),
-    );
+    expect(birthDate.toDate()).toEqual(new Date("1995-01-01T00:00:00.000Z"));
     expect(birthDate.toString()).toBe("1995-01-01T00:00:00.000Z");
   });
 
@@ -99,13 +96,10 @@ describe("BirthDate", () => {
   });
 
   it("should allow a minor when mustBeAdult is false", () => {
-    const birthDate = BirthDate.create(
-      new Date("2010-05-04T00:00:00.000Z"),
-      {
-        mustBeAdult: false,
-        referenceDate,
-      },
-    );
+    const birthDate = BirthDate.create(new Date("2010-05-04T00:00:00.000Z"), {
+      mustBeAdult: false,
+      referenceDate,
+    });
 
     expect(birthDate.toString()).toBe("2010-05-04T00:00:00.000Z");
   });
@@ -188,7 +182,9 @@ export class BirthDate extends ValueObject<BirthDateProps> {
     }
 
     if (mustBeAdult && !BirthDate.isAdultAt(birthDate, referenceDate)) {
-      throw new InvalidBirthDateError("Employee must be at least 18 years old.");
+      throw new InvalidBirthDateError(
+        "Employee must be at least 18 years old.",
+      );
     }
 
     return new BirthDate({ value: birthDate });
@@ -299,15 +295,15 @@ describe("EmployeeFeaturesPolicy", () => {
   });
 
   it("should reject default features sent as extras", () => {
-    expect(() =>
-      EmployeeFeaturesPolicy.build(["read:appointments"]),
-    ).toThrow(InvalidEmployeeFeatureError);
+    expect(() => EmployeeFeaturesPolicy.build(["read:appointments"])).toThrow(
+      InvalidEmployeeFeatureError,
+    );
   });
 
   it("should reject unknown features", () => {
-    expect(() =>
-      EmployeeFeaturesPolicy.build(["approve:payments"]),
-    ).toThrow(InvalidEmployeeFeatureError);
+    expect(() => EmployeeFeaturesPolicy.build(["approve:payments"])).toThrow(
+      InvalidEmployeeFeatureError,
+    );
   });
 
   it("should validate persisted final employee features", () => {
@@ -473,10 +469,9 @@ describe("Employee", () => {
   it("should create an employee with normalized values", () => {
     const establishmentId = new UniqueEntityId();
     const userId = new UniqueEntityId();
-    const birthDate = BirthDate.create(
-      new Date("1995-01-01T00:00:00.000Z"),
-      { referenceDate },
-    );
+    const birthDate = BirthDate.create(new Date("1995-01-01T00:00:00.000Z"), {
+      referenceDate,
+    });
 
     const employee = Employee.create({
       establishmentId,
@@ -535,10 +530,9 @@ describe("Employee", () => {
       userId: new UniqueEntityId(),
       name: "Ana Silva",
     });
-    const birthDate = BirthDate.create(
-      new Date("1995-01-01T00:00:00.000Z"),
-      { referenceDate },
-    );
+    const birthDate = BirthDate.create(new Date("1995-01-01T00:00:00.000Z"), {
+      referenceDate,
+    });
 
     employee.changeName(" Beatriz Souza ");
     employee.changeCpf(Cpf.create("52998224725"));
@@ -949,7 +943,9 @@ describe("Register employee", () => {
       "strong-password-hashed",
     );
     expect(result.value.employee.establishmentId).toBe(establishment.id);
-    expect(result.value.employee.userId).toBe(inMemoryUsersRepository.items[0]?.id);
+    expect(result.value.employee.userId).toBe(
+      inMemoryUsersRepository.items[0]?.id,
+    );
     expect(result.value.employee.features).toEqual([
       "read:appointments",
       "read:services",
@@ -1099,7 +1095,10 @@ import {
   Email,
   InvalidEmailError,
 } from "../../../accounts/domain/value-objects/email";
-import { InvalidCpfError, Cpf } from "../../../accounts/domain/value-objects/cpf";
+import {
+  InvalidCpfError,
+  Cpf,
+} from "../../../accounts/domain/value-objects/cpf";
 import { UserRole } from "../../../accounts/domain/value-objects/user-role";
 import { Employee } from "../../../employees/domain/entities/employee";
 import { InvalidRegisterEmployeeInputError } from "../../../employees/domain/errors/invalid-register-employee-input-error";
@@ -1201,7 +1200,9 @@ export class RegisterEmployeeUseCase {
     }
 
     if (userWithTheSameEmail) {
-      return left(new ResourceAlreadyExistsError("Employee already registered."));
+      return left(
+        new ResourceAlreadyExistsError("Employee already registered."),
+      );
     }
 
     const userRole: UserRole = "EMPLOYEE";
@@ -1719,7 +1720,8 @@ export class RegisterEmployeeBodyDto {
     example: "1995-01-01T00:00:00.000Z",
     nullable: true,
     format: "date-time",
-    description: "Optional birth date. Employees must be at least 18 years old.",
+    description:
+      "Optional birth date. Employees must be at least 18 years old.",
   })
   birthDate?: string | null;
 

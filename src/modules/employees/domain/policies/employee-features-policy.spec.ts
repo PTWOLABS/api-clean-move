@@ -43,15 +43,15 @@ describe("EmployeeFeaturesPolicy", () => {
   });
 
   it("should reject default features sent as extras", () => {
-    expect(() =>
-      EmployeeFeaturesPolicy.build(["read:appointments"]),
-    ).toThrow(InvalidEmployeeFeatureError);
+    expect(() => EmployeeFeaturesPolicy.build(["read:appointments"])).toThrow(
+      InvalidEmployeeFeatureError,
+    );
   });
 
   it("should reject unknown features", () => {
-    expect(() =>
-      EmployeeFeaturesPolicy.build(["approve:payments"]),
-    ).toThrow(InvalidEmployeeFeatureError);
+    expect(() => EmployeeFeaturesPolicy.build(["approve:payments"])).toThrow(
+      InvalidEmployeeFeatureError,
+    );
   });
 
   it("should validate persisted final employee features", () => {

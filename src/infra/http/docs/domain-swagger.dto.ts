@@ -126,7 +126,8 @@ export class RegisterEmployeeBodyDto {
     example: "1995-01-01T00:00:00.000Z",
     nullable: true,
     format: "date-time",
-    description: "Optional birth date. Employees must be at least 18 years old.",
+    description:
+      "Optional birth date. Employees must be at least 18 years old.",
   })
   birthDate?: string | null;
 

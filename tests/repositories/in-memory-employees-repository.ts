@@ -9,7 +9,9 @@ export class InMemoryEmployeesRepository implements EmployeesRepository {
   }
 
   async findByUserId(userId: string): Promise<Employee | null> {
-    const employee = this.items.find((item) => item.userId.toString() === userId);
+    const employee = this.items.find(
+      (item) => item.userId.toString() === userId,
+    );
 
     return employee ?? null;
   }

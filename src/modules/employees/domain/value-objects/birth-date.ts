@@ -48,7 +48,9 @@ export class BirthDate extends ValueObject<BirthDateProps> {
     }
 
     if (mustBeAdult && !BirthDate.isAdultAt(birthDate, referenceDate)) {
-      throw new InvalidBirthDateError("Employee must be at least 18 years old.");
+      throw new InvalidBirthDateError(
+        "Employee must be at least 18 years old.",
+      );
     }
 
     return new BirthDate({ value: birthDate });
