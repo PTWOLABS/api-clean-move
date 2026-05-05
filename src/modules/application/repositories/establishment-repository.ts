@@ -5,6 +5,7 @@ import { Establishment } from "../../establishments/domain/entities/establishmen
 @Injectable()
 export abstract class EstablishmentsRepository {
   abstract create(data: Establishment): Promise<void>;
+  abstract save(establishment: Establishment): Promise<void>;
   abstract findById(id: string): Promise<Establishment | null>;
   abstract findByOwnerId(ownerId: string): Promise<Establishment | null>;
   abstract findByCnpj(cnpj: string): Promise<Establishment | null>;

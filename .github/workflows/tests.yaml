@@ -23,6 +23,9 @@ jobs:
       JWT_ACCESS_EXPIRES_IN: 15m
       REFRESH_TOKEN_TTL_IN_MS: 1296000000
       GOOGLE_CLIENT_ID: test-google-client-id
+      AWS_REGION: us-east-1
+      AWS_S3_BUCKET: test-upload-bucket
+      AWS_S3_PUBLIC_BASE_URL: https://cdn.test.example
     steps:
       - uses: actions/checkout@v4
 
@@ -52,6 +55,9 @@ jobs:
       JWT_ACCESS_EXPIRES_IN: 15m
       REFRESH_TOKEN_TTL_IN_MS: 1296000000
       GOOGLE_CLIENT_ID: test-google-client-id
+      AWS_REGION: us-east-1
+      AWS_S3_BUCKET: test-upload-bucket
+      AWS_S3_PUBLIC_BASE_URL: https://cdn.test.example
     steps:
       - uses: actions/checkout@v4
 
@@ -78,6 +84,9 @@ jobs:
           JWT_ACCESS_EXPIRES_IN=${JWT_ACCESS_EXPIRES_IN}
           REFRESH_TOKEN_TTL_IN_MS=${REFRESH_TOKEN_TTL_IN_MS}
           GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+          AWS_REGION=${AWS_REGION}
+          AWS_S3_BUCKET=${AWS_S3_BUCKET}
+          AWS_S3_PUBLIC_BASE_URL=${AWS_S3_PUBLIC_BASE_URL}
           EOF
 
       - name: Start Postgres with Docker Compose

@@ -6,6 +6,7 @@ import { InvalidCustomerInputError } from "../errors/invalid-customer-input-erro
 export type CustomerVehicleProps = {
   establishmentId: UniqueEntityId;
   customerId: UniqueEntityId;
+  imageUrl: string | null;
   plate: string | null;
   brand: string | null;
   model: string | null;
@@ -24,6 +25,10 @@ export class CustomerVehicle extends AggregateRoot<CustomerVehicleProps> {
 
   get customerId() {
     return this.props.customerId;
+  }
+
+  get imageUrl() {
+    return this.props.imageUrl;
   }
 
   get plate() {
@@ -65,13 +70,14 @@ export class CustomerVehicle extends AggregateRoot<CustomerVehicleProps> {
   static create(
     props: Optional<
       CustomerVehicleProps,
-      "createdAt" | "updatedAt" | "deletedAt"
+      "createdAt" | "updatedAt" | "deletedAt" | "imageUrl"
     >,
     id?: UniqueEntityId,
   ) {
     return new CustomerVehicle(
       {
         ...props,
+        imageUrl: CustomerVehicle.normalizeOptionalText(props.imageUrl ?? null),
         plate: CustomerVehicle.normalizePlate(props.plate),
         brand: CustomerVehicle.normalizeOptionalText(props.brand),
         model: CustomerVehicle.normalizeOptionalText(props.model),
@@ -87,6 +93,7 @@ export class CustomerVehicle extends AggregateRoot<CustomerVehicleProps> {
   }
 
   update(data: {
+    imageUrl?: string | null;
     plate?: string | null;
     brand?: string | null;
     model?: string | null;
@@ -94,6 +101,12 @@ export class CustomerVehicle extends AggregateRoot<CustomerVehicleProps> {
     year?: number | null;
     notes?: string | null;
   }) {
+    if (data.imageUrl !== undefined) {
+      this.props.imageUrl = CustomerVehicle.normalizeOptionalText(
+        data.imageUrl,
+      );
+    }
+
     if (data.plate !== undefined) {
       this.props.plate = CustomerVehicle.normalizePlate(data.plate);
     }
@@ -164,8 +177,8 @@ export class CustomerVehicle extends AggregateRoot<CustomerVehicleProps> {
     return value;
   }
 
-  private static normalizeOptionalText(value: string | null) {
-    if (value === null) {
+  private static normalizeOptionalText(value: string | null | undefined) {
+    if (value === null || value === undefined) {
       return null;
     }
 

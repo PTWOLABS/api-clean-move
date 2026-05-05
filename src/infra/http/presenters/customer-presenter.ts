@@ -5,6 +5,7 @@ export class CustomerPresenter {
     return {
       id: customer.id.toString(),
       establishmentId: customer.establishmentId.toString(),
+      profileImageUrl: customer.profileImageUrl,
       cpfCnpj: customer.cpfCnpj?.toString() ?? null,
       documentType: customer.cpfCnpj?.type ?? null,
       fullName: customer.fullName,

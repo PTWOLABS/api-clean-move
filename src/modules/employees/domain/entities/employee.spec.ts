@@ -116,6 +116,18 @@ describe("Employee", () => {
     ]);
   });
 
+  it("should set profile image URL", () => {
+    const employee = Employee.create({
+      establishmentId: new UniqueEntityId(),
+      userId: new UniqueEntityId(),
+      name: "Ana Silva",
+    });
+
+    employee.setProfileImageUrl("  https://cdn.example.com/a.png  ");
+
+    expect(employee.profileImageUrl).toBe("https://cdn.example.com/a.png");
+  });
+
   it("should return a defensive copy for features getter", () => {
     const employee = Employee.create({
       establishmentId: new UniqueEntityId(),

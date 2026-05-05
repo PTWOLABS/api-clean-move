@@ -15,4 +15,27 @@ export class InMemoryEmployeesRepository implements EmployeesRepository {
 
     return employee ?? null;
   }
+
+  async findByIdAndEstablishmentId(
+    id: string,
+    establishmentId: string,
+  ): Promise<Employee | null> {
+    const employee = this.items.find(
+      (item) =>
+        item.id.toString() === id &&
+        item.establishmentId.toString() === establishmentId,
+    );
+
+    return employee ?? null;
+  }
+
+  async save(employee: Employee): Promise<void> {
+    const index = this.items.findIndex((item) => item.id.equals(employee.id));
+
+    if (index === -1) {
+      throw new Error("Employee not found.");
+    }
+
+    this.items[index] = employee;
+  }
 }

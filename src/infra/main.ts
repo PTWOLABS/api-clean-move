@@ -105,6 +105,7 @@ async function bootstrap(): Promise<void> {
     .addTag("customer vehicles", "Internal customer vehicle management")
     .addTag("appointments", "Establishment-operated appointment management")
     .addTag("service", "Service catalog management")
+    .addTag("media", "Image uploads and media")
     .build();
   const documentFactory = () => SwaggerModule.createDocument(app, config);
   SwaggerModule.setup("api", app, documentFactory, {

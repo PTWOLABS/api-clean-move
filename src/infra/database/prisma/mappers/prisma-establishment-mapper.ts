@@ -1,7 +1,7 @@
 import {
   Establishment as PrismaEstablishment,
   Prisma,
-} from "../../../../generated/prisma/browser";
+} from "../../../../generated/prisma/client";
 import { Establishment } from "../../../../modules/establishments/domain/entities/establishment";
 import { Cnpj } from "../../../../modules/establishments/domain/value-objects/cnpj";
 import { OperatingHours } from "../../../../modules/establishments/domain/value-objects/operating-hours";
@@ -13,7 +13,7 @@ export class PrismaEstablishmentMapper {
   static toDomain(raw: PrismaEstablishment): Establishment {
     const operatingHours = operatingHoursSchema.parse(raw.operatingHours);
 
-    return Establishment.create(
+    return Establishment.restore(
       {
         ownerId: new UniqueEntityId(raw.ownerId),
         corporateName: raw.corporateName,
@@ -21,6 +21,8 @@ export class PrismaEstablishmentMapper {
         cnpj: Cnpj.create(raw.cnpj),
         operatingHours: OperatingHours.create(operatingHours),
         slug: Slug.create(raw.slug),
+        profileImageUrl: raw.profileImageUrl,
+        bannerImageUrl: raw.bannerImageUrl,
       },
       new UniqueEntityId(raw.id),
     );
@@ -41,6 +43,26 @@ export class PrismaEstablishmentMapper {
       cnpj: raw.cnpj.value,
       slug: raw.slug.value,
       operatingHours,
+      profileImageUrl: raw.profileImageUrl,
+      bannerImageUrl: raw.bannerImageUrl,
+    };
+  }
+
+  static toPrismaUpdate(
+    raw: Establishment,
+  ): Prisma.EstablishmentUncheckedUpdateInput {
+    const operatingHours = {
+      days: raw.operatingHours.days,
+    } satisfies Prisma.InputJsonObject;
+
+    return {
+      corporateName: raw.corporateName,
+      socialReason: raw.socialReason,
+      cnpj: raw.cnpj.value,
+      slug: raw.slug.value,
+      operatingHours,
+      profileImageUrl: raw.profileImageUrl,
+      bannerImageUrl: raw.bannerImageUrl,
     };
   }
 }
