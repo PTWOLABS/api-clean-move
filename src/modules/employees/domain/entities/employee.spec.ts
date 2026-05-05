@@ -156,6 +156,34 @@ describe("Employee", () => {
     ]);
   });
 
+  it("should keep update atomic when later validation fails", () => {
+    const originalFeatures = [
+      "read:appointments",
+      "read:services",
+      "read:customers",
+      "read:employees:self",
+      "create:sessions:self",
+      "read:sessions:self",
+    ];
+    const employee = Employee.create({
+      establishmentId: new UniqueEntityId(),
+      userId: new UniqueEntityId(),
+      name: "Ana Silva",
+    });
+
+    expect(employee.features).toEqual(originalFeatures);
+
+    expect(() =>
+      employee.update({
+        name: "Beatriz Souza",
+        extraFeatures: ["invalid:feature"],
+      }),
+    ).toThrow(InvalidEmployeeFeatureError);
+
+    expect(employee.name).toBe("Ana Silva");
+    expect(employee.features).toEqual(originalFeatures);
+  });
+
   it("should soft-delete an employee and remove only session features", () => {
     const deletedAt = new Date("2026-05-05T10:00:00.000Z");
     const employee = Employee.create({
@@ -168,6 +196,7 @@ describe("Employee", () => {
     employee.softDelete(deletedAt);
 
     expect(employee.deletedAt).toEqual(deletedAt);
+    expect(employee.updatedAt).toEqual(deletedAt);
     expect(employee.isDeleted()).toBe(true);
     expect(employee.features).toEqual([
       "read:appointments",
@@ -194,6 +223,16 @@ describe("Employee", () => {
     expect(() => employee.changeName("Beatriz Souza")).toThrow(
       EmployeeAlreadyDeletedError,
     );
+    expect(() => employee.changeCpf(Cpf.create("52998224725"))).toThrow(
+      EmployeeAlreadyDeletedError,
+    );
+    expect(() =>
+      employee.changeBirthDate(
+        BirthDate.create(new Date("1995-01-01T00:00:00.000Z"), {
+          referenceDate,
+        }),
+      ),
+    ).toThrow(EmployeeAlreadyDeletedError);
     expect(() => employee.replaceFeatures(["update:employees:self"])).toThrow(
       EmployeeAlreadyDeletedError,
     );

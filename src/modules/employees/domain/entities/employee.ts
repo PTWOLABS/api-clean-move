@@ -112,16 +112,45 @@ export class Employee extends AggregateRoot<EmployeeProps> {
   }) {
     this.ensureActive();
 
-    if (data.name !== undefined) {
-      this.changeName(data.name);
+    const normalizedName =
+      data.name !== undefined
+        ? Employee.normalizeRequiredText(data.name, "name")
+        : undefined;
+    const normalizedBirthDate =
+      data.birthDate !== undefined
+        ? Employee.normalizeBirthDate(data.birthDate)
+        : undefined;
+    const normalizedFeatures =
+      data.extraFeatures !== undefined
+        ? EmployeeFeaturesPolicy.build(data.extraFeatures)
+        : undefined;
+
+    let shouldTouch = false;
+
+    if (normalizedName !== undefined && this.props.name !== normalizedName) {
+      this.props.name = normalizedName;
+      shouldTouch = true;
     }
 
-    if (data.birthDate !== undefined) {
-      this.changeBirthDate(Employee.normalizeBirthDate(data.birthDate));
+    if (normalizedBirthDate !== undefined) {
+      const birthDateChanged =
+        this.props.birthDate === null || normalizedBirthDate === null
+          ? this.props.birthDate !== normalizedBirthDate
+          : !this.props.birthDate.equals(normalizedBirthDate);
+
+      if (birthDateChanged) {
+        this.props.birthDate = normalizedBirthDate;
+        shouldTouch = true;
+      }
     }
 
-    if (data.extraFeatures !== undefined) {
-      this.replaceFeatures(data.extraFeatures);
+    if (normalizedFeatures !== undefined) {
+      this.props.features = normalizedFeatures;
+      shouldTouch = true;
+    }
+
+    if (shouldTouch) {
+      this.touch();
     }
   }
 
