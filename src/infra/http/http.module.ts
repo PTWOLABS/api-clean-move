@@ -14,6 +14,7 @@ import { ListCustomersUseCase } from "../../modules/application/use-cases/custom
 import { ListCustomerVehiclesUseCase } from "../../modules/application/use-cases/customer/list-customer-vehicles";
 import { UpdateCustomerUseCase } from "../../modules/application/use-cases/customer/update-customer";
 import { UpdateCustomerVehicleUseCase } from "../../modules/application/use-cases/customer/update-customer-vehicle";
+import { RegisterEmployeeUseCase } from "../../modules/application/use-cases/employee/register-employee";
 import { RegisterEstablishmentUseCase } from "../../modules/application/use-cases/establishment/register-establishment";
 import { CreateServiceUseCase } from "../../modules/application/use-cases/service/create-service";
 import { SessionCreationService } from "../../modules/accounts/domain/services/session-creation-service";
@@ -32,6 +33,7 @@ import { ListCustomerVehiclesController } from "./controllers/list-customer-vehi
 import { LoginWithCredentialsController } from "./controllers/login-with-credentials.controller";
 import { SignOutController } from "./controllers/sign-out.controller";
 import { RefreshSessionController } from "./controllers/refresh-session.controller";
+import { RegisterEmployeeController } from "./controllers/register-employee.controller";
 import { RegisterEstablishmentController } from "./controllers/register-establishment.controller";
 import { UpdateAppointmentStatusController } from "./controllers/update-appointment-status.controller";
 import { UpdateCustomerController } from "./controllers/update-customer.controller";
@@ -57,6 +59,7 @@ import { UpdateCustomerVehicleController } from "./controllers/update-customer-v
     CreateAppointmentController,
     ListAppointmentsController,
     UpdateAppointmentStatusController,
+    RegisterEmployeeController,
   ],
   providers: [
     RegisterEstablishmentUseCase,
@@ -73,6 +76,7 @@ import { UpdateCustomerVehicleController } from "./controllers/update-customer-v
     CreateAppointmentUseCase,
     ListAppointmentsUseCase,
     UpdateAppointmentStatusUseCase,
+    RegisterEmployeeUseCase,
     LoginWithCredentialsUseCase,
     RefreshSessionUseCase,
     SignOutUseCase,

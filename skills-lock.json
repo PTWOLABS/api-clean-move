@@ -19,7 +19,14 @@
     "requesting-code-review": {
       "source": "obra/superpowers",
       "sourceType": "github",
+      "skillPath": "skills/requesting-code-review/SKILL.md",
       "computedHash": "246e65cd72a7e360987d94e6c61564ce6d71c6361d1784d529d70e4cbbe8522d"
+    },
+    "subagent-driven-development": {
+      "source": "obra/superpowers",
+      "sourceType": "github",
+      "skillPath": "skills/subagent-driven-development/SKILL.md",
+      "computedHash": "a197f8e5fba5ea59013e1adbaa90dd42db35de8f074feca200c8038de584a83b"
     },
     "writing-plans": {
       "source": "obra/superpowers",
