@@ -1,6 +1,7 @@
 import { AggregateRoot } from "../../../../shared/entities/aggregate-root";
 import { UniqueEntityId } from "../../../../shared/entities/unique-entity-id";
 import { Cpf } from "../../../accounts/domain/value-objects/cpf";
+import { EmployeeAlreadyDeletedError } from "../errors/employee-already-deleted-error";
 import { InvalidRegisterEmployeeInputError } from "../errors/invalid-register-employee-input-error";
 import {
   EmployeeFeature,
@@ -16,6 +17,7 @@ export type EmployeeProps = {
   cpf: Cpf | null;
   birthDate: BirthDate | null;
   features: EmployeeFeature[];
+  deletedAt: Date | null;
   createdAt: Date | null;
   updatedAt: Date | null;
 };
@@ -28,6 +30,7 @@ export type EmployeeCreateProps = {
   birthDate?: BirthDate | Date | null;
   extraFeatures?: string[];
   profileImageUrl?: string | null;
+  deletedAt?: Date | null;
   createdAt?: Date | null;
   updatedAt?: Date | null;
 };
@@ -61,6 +64,10 @@ export class Employee extends AggregateRoot<EmployeeProps> {
     return [...this.props.features];
   }
 
+  get deletedAt() {
+    return this.props.deletedAt;
+  }
+
   get createdAt() {
     return this.props.createdAt;
   }
@@ -79,6 +86,7 @@ export class Employee extends AggregateRoot<EmployeeProps> {
         cpf: Employee.normalizeCpf(props.cpf ?? null),
         birthDate: Employee.normalizeBirthDate(props.birthDate ?? null),
         features: EmployeeFeaturesPolicy.build(props.extraFeatures ?? []),
+        deletedAt: props.deletedAt ?? null,
         createdAt: props.createdAt ?? new Date(),
         updatedAt: props.updatedAt ?? new Date(),
       },
@@ -97,7 +105,29 @@ export class Employee extends AggregateRoot<EmployeeProps> {
     );
   }
 
+  update(data: {
+    name?: string;
+    birthDate?: BirthDate | Date | null;
+    extraFeatures?: string[];
+  }) {
+    this.ensureActive();
+
+    if (data.name !== undefined) {
+      this.changeName(data.name);
+    }
+
+    if (data.birthDate !== undefined) {
+      this.changeBirthDate(Employee.normalizeBirthDate(data.birthDate));
+    }
+
+    if (data.extraFeatures !== undefined) {
+      this.replaceFeatures(data.extraFeatures);
+    }
+  }
+
   changeName(name: string) {
+    this.ensureActive();
+
     const normalizedName = Employee.normalizeRequiredText(name, "name");
 
     if (this.props.name === normalizedName) {
@@ -109,6 +139,8 @@ export class Employee extends AggregateRoot<EmployeeProps> {
   }
 
   changeCpf(cpf: Cpf | null) {
+    this.ensureActive();
+
     if ((cpf && this.props.cpf?.equals(cpf)) || this.props.cpf === cpf) {
       return;
     }
@@ -118,6 +150,8 @@ export class Employee extends AggregateRoot<EmployeeProps> {
   }
 
   changeBirthDate(birthDate: BirthDate | null) {
+    this.ensureActive();
+
     if (
       this.props.birthDate !== null &&
       birthDate !== null &&
@@ -135,12 +169,32 @@ export class Employee extends AggregateRoot<EmployeeProps> {
   }
 
   replaceFeatures(extraFeatures: string[]) {
+    this.ensureActive();
     this.props.features = EmployeeFeaturesPolicy.build(extraFeatures);
     this.touch();
   }
 
-  touch() {
-    this.props.updatedAt = new Date();
+  softDelete(referenceDate: Date = new Date()) {
+    this.ensureActive();
+    this.props.deletedAt = referenceDate;
+    this.props.features = EmployeeFeaturesPolicy.withoutSystemManagedFeatures(
+      this.props.features,
+    );
+    this.touch(referenceDate);
+  }
+
+  isDeleted() {
+    return this.props.deletedAt !== null;
+  }
+
+  touch(referenceDate: Date = new Date()) {
+    this.props.updatedAt = referenceDate;
+  }
+
+  private ensureActive() {
+    if (this.isDeleted()) {
+      throw new EmployeeAlreadyDeletedError();
+    }
   }
 
   private static normalizeCpf(value: Cpf | string | null) {

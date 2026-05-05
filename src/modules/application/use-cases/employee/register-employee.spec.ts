@@ -85,6 +85,9 @@ describe("Register employee", () => {
       "read:appointments",
       "read:services",
       "read:customers",
+      "read:employees:self",
+      "create:sessions:self",
+      "read:sessions:self",
     ]);
   });
 
@@ -117,6 +120,9 @@ describe("Register employee", () => {
       "read:appointments",
       "read:services",
       "read:customers",
+      "read:employees:self",
+      "create:sessions:self",
+      "read:sessions:self",
       "create:appointments",
       "update:customers",
     ]);
