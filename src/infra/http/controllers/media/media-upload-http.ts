@@ -36,6 +36,6 @@ export function throwUploadError(error: unknown): never {
     case UnexpectedDomainError:
       throw new InternalServerErrorException((error as Error).message);
     default:
-      throw new BadRequestException((error as Error).message);
+      throw new InternalServerErrorException((error as Error).message);
   }
 }

@@ -142,6 +142,7 @@ describe("UploadDomainImageUseCase", () => {
     });
 
     expect(result.isLeft()).toBe(true);
+    expect(objectStorage.puts).toHaveLength(0);
     if (result.isLeft()) {
       expect(result.value).toBeInstanceOf(ResourceNotFoundError);
     }
@@ -233,5 +234,45 @@ describe("UploadDomainImageUseCase", () => {
     });
 
     expect(result.isLeft()).toBe(true);
+    expect(objectStorage.puts).toHaveLength(0);
+  });
+
+  it("should not upload vehicle image when customer id does not match vehicle owner", async () => {
+    const ownerId = new UniqueEntityId();
+    const establishment = makeEstablishment({ ownerId });
+    await establishmentsRepository.create(establishment);
+
+    const customerA = makeCustomer({
+      establishmentId: establishment.id,
+    });
+    const customerB = makeCustomer({
+      establishmentId: establishment.id,
+    });
+    await customersRepository.create(customerA);
+    await customersRepository.create(customerB);
+
+    const vehicle = makeCustomerVehicle({
+      establishmentId: establishment.id,
+      customerId: customerA.id,
+    });
+    await vehiclesRepository.create(vehicle);
+
+    const result = await sut.execute({
+      establishmentOwnerId: ownerId.toString(),
+      kind: "VEHICLE",
+      entityId: vehicle.id.toString(),
+      customerId: customerB.id.toString(),
+      file: {
+        buffer: Buffer.from([0x89, 0x50, 0x4e, 0x47]),
+        mimetype: "image/png",
+        originalname: "mismatch.png",
+      },
+    });
+
+    expect(result.isLeft()).toBe(true);
+    expect(objectStorage.puts).toHaveLength(0);
+    if (result.isLeft()) {
+      expect(result.value).toBeInstanceOf(ResourceNotFoundError);
+    }
   });
 });

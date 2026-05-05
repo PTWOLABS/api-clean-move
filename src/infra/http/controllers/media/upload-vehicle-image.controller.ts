@@ -91,6 +91,7 @@ export class UploadVehicleImageController {
       establishmentOwnerId: user.userId,
       kind: "VEHICLE",
       entityId: parsedVehicleId.data,
+      customerId: parsedCustomerId.data,
       file: uploadFile,
     });
 

@@ -179,6 +179,55 @@ describe("UploadDomainImageController (e2e)", () => {
     expect(row?.imageUrl).toBe(body.url);
   });
 
+  it("should reject vehicle image upload when customerId does not match vehicle owner", async () => {
+    const { accessToken, establishment } = await makeEstablishmentAccessToken({
+      app,
+      prisma,
+      userFactory,
+      establishmentFactory,
+      envService,
+    });
+
+    const customerA = await customerFactory.makePrismaCustomer({
+      establishmentId: establishment.id,
+      cpfCnpj: null,
+    });
+    const customerB = await customerFactory.makePrismaCustomer({
+      establishmentId: establishment.id,
+      cpfCnpj: null,
+    });
+
+    const vehicleResponse = await request(getHttpServer(app))
+      .post(`/customers/${customerA.id.toString()}/vehicles`)
+      .set("Authorization", `Bearer ${accessToken}`)
+      .send({
+        plate: "abc1d23",
+        brand: "Toyota",
+        model: "Corolla",
+        color: "Silver",
+        year: 2022,
+        notes: null,
+      });
+
+    expect(vehicleResponse.status).toBe(201);
+    const vehicleBody = vehicleResponseSchema.parse(vehicleResponse.body);
+    const vehicleId = vehicleBody.vehicle.id;
+
+    const previousPuts = fakeObjectStorage.puts.length;
+    const uploadResponse = await request(getHttpServer(app))
+      .post(`/customers/${customerB.id.toString()}/vehicles/${vehicleId}/image`)
+      .set("Authorization", `Bearer ${accessToken}`)
+      .attach("file", tinyPng, "vehicle-mismatch.png");
+
+    expect(uploadResponse.status).toBe(404);
+    expect(fakeObjectStorage.puts.length).toBe(previousPuts);
+
+    const row = await prisma.customerVehicle.findUnique({
+      where: { id: vehicleId },
+    });
+    expect(row?.imageUrl).toBeNull();
+  });
+
   it("should upload customer profile image", async () => {
     const { accessToken, establishment } = await makeEstablishmentAccessToken({
       app,

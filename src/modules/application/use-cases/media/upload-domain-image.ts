@@ -53,6 +53,7 @@ type UploadDomainImageUseCaseRequest = {
   establishmentOwnerId: string;
   kind: DomainImageKind;
   entityId: string;
+  customerId?: string;
   file: UploadedImageFile;
 };
 
@@ -91,26 +92,7 @@ export class UploadDomainImageUseCase {
       return left(new ResourceNotFoundError({ resource: "Establishment" }));
     }
 
-    const fileUuid = randomUUID();
-    const safeName = sanitizeUploadedFileName(request.file.originalname);
-    const prefix = KIND_TO_PREFIX[request.kind];
-    const objectKey = `${prefix}/${fileUuid}/${safeName}`;
-
-    const putInput: ObjectStoragePutInput = {
-      key: objectKey,
-      buffer: request.file.buffer,
-      contentType: request.file.mimetype,
-    };
-
-    try {
-      await this.objectStorage.putObject(putInput);
-    } catch {
-      return left(new UnexpectedDomainError());
-    }
-
-    const publicBaseUrl = this.envService.get("AWS_S3_PUBLIC_BASE_URL");
-    const url = buildPublicObjectUrl(publicBaseUrl, objectKey);
-
+    let persistImageUrl: ((url: string) => Promise<void>) | null = null;
     try {
       if (request.kind === "EMPLOYEE_PROFILE") {
         const employee =
@@ -123,8 +105,10 @@ export class UploadDomainImageUseCase {
           return left(new ResourceNotFoundError({ resource: "Employee" }));
         }
 
-        employee.setProfileImageUrl(url);
-        await this.employeesRepository.save(employee);
+        persistImageUrl = async (url) => {
+          employee.setProfileImageUrl(url);
+          await this.employeesRepository.save(employee);
+        };
       } else if (request.kind === "CUSTOMER_PROFILE") {
         const customer =
           await this.customersRepository.findByIdAndEstablishmentId(
@@ -136,14 +120,21 @@ export class UploadDomainImageUseCase {
           return left(new ResourceNotFoundError({ resource: "Customer" }));
         }
 
-        customer.update({ profileImageUrl: url });
-        await this.customersRepository.save(customer);
+        persistImageUrl = async (url) => {
+          customer.update({ profileImageUrl: url });
+          await this.customersRepository.save(customer);
+        };
       } else if (request.kind === "VEHICLE") {
-        const vehicle =
-          await this.customerVehiclesRepository.findByIdAndEstablishmentId(
-            request.entityId,
-            establishment.id.toString(),
-          );
+        const vehicle = request.customerId
+          ? await this.customerVehiclesRepository.findByIdAndCustomerIdAndEstablishmentId(
+              request.entityId,
+              request.customerId,
+              establishment.id.toString(),
+            )
+          : await this.customerVehiclesRepository.findByIdAndEstablishmentId(
+              request.entityId,
+              establishment.id.toString(),
+            );
 
         if (!vehicle) {
           return left(
@@ -151,16 +142,44 @@ export class UploadDomainImageUseCase {
           );
         }
 
-        vehicle.update({ imageUrl: url });
-        await this.customerVehiclesRepository.save(vehicle);
+        persistImageUrl = async (url) => {
+          vehicle.update({ imageUrl: url });
+          await this.customerVehiclesRepository.save(vehicle);
+        };
       } else {
         if (request.entityId !== establishment.id.toString()) {
           return left(new NotAllowedError());
         }
 
-        establishment.setBannerImageUrl(url);
-        await this.establishmentsRepository.save(establishment);
+        persistImageUrl = async (url) => {
+          establishment.setBannerImageUrl(url);
+          await this.establishmentsRepository.save(establishment);
+        };
       }
+    } catch {
+      return left(new UnexpectedDomainError());
+    }
+
+    if (!persistImageUrl) {
+      return left(new UnexpectedDomainError());
+    }
+
+    const fileUuid = randomUUID();
+    const safeName = sanitizeUploadedFileName(request.file.originalname);
+    const prefix = KIND_TO_PREFIX[request.kind];
+    const objectKey = `${prefix}/${fileUuid}/${safeName}`;
+    const publicBaseUrl = this.envService.get("AWS_S3_PUBLIC_BASE_URL");
+    const url = buildPublicObjectUrl(publicBaseUrl, objectKey);
+
+    const putInput: ObjectStoragePutInput = {
+      key: objectKey,
+      buffer: request.file.buffer,
+      contentType: request.file.mimetype,
+    };
+
+    try {
+      await this.objectStorage.putObject(putInput);
+      await persistImageUrl(url);
     } catch {
       return left(new UnexpectedDomainError());
     }
