@@ -2,12 +2,21 @@ import {
   DEFAULT_EMPLOYEE_FEATURES,
   EmployeeFeaturesPolicy,
   InvalidEmployeeFeatureError,
+  SYSTEM_MANAGED_EMPLOYEE_FEATURES,
 } from "./employee-features-policy";
 
 describe("EmployeeFeaturesPolicy", () => {
-  it("should return only default features when no extra feature is provided", () => {
+  it("should return active default features when no extra feature is provided", () => {
     const features = EmployeeFeaturesPolicy.build();
 
+    expect(features).toEqual([
+      "read:appointments",
+      "read:services",
+      "read:customers",
+      "read:employees:self",
+      "create:sessions:self",
+      "read:sessions:self",
+    ]);
     expect(features).toEqual(DEFAULT_EMPLOYEE_FEATURES);
   });
 
@@ -15,14 +24,19 @@ describe("EmployeeFeaturesPolicy", () => {
     const features = EmployeeFeaturesPolicy.build([
       "update:customers",
       "create:appointments",
+      "update:employees:self",
     ]);
 
     expect(features).toEqual([
       "read:appointments",
       "read:services",
       "read:customers",
+      "read:employees:self",
+      "create:sessions:self",
+      "read:sessions:self",
       "create:appointments",
       "update:customers",
+      "update:employees:self",
     ]);
   });
 
@@ -37,13 +51,21 @@ describe("EmployeeFeaturesPolicy", () => {
       "read:appointments",
       "read:services",
       "read:customers",
+      "read:employees:self",
+      "create:sessions:self",
+      "read:sessions:self",
       "create:appointments",
       "delete:services",
     ]);
   });
 
-  it("should reject default features sent as extras", () => {
-    expect(() => EmployeeFeaturesPolicy.build(["read:appointments"])).toThrow(
+  it.each([
+    "read:appointments",
+    "read:employees:self",
+    "create:sessions:self",
+    "read:sessions:self",
+  ])("should reject default or system-managed feature %s sent as extra", (feature) => {
+    expect(() => EmployeeFeaturesPolicy.build([feature])).toThrow(
       InvalidEmployeeFeatureError,
     );
   });
@@ -54,11 +76,15 @@ describe("EmployeeFeaturesPolicy", () => {
     );
   });
 
-  it("should validate persisted final employee features", () => {
+  it("should validate and normalize persisted final employee features", () => {
     const features = EmployeeFeaturesPolicy.normalizePersisted([
-      "read:appointments",
-      "read:services",
+      "create:services",
+      "read:sessions:self",
       "read:customers",
+      "read:appointments",
+      "create:sessions:self",
+      "read:services",
+      "read:employees:self",
       "create:services",
     ]);
 
@@ -66,7 +92,40 @@ describe("EmployeeFeaturesPolicy", () => {
       "read:appointments",
       "read:services",
       "read:customers",
+      "read:employees:self",
+      "create:sessions:self",
+      "read:sessions:self",
       "create:services",
     ]);
+  });
+
+  it("should remove system-managed session features", () => {
+    const features = EmployeeFeaturesPolicy.withoutSystemManagedFeatures([
+      "read:appointments",
+      "create:sessions:self",
+      "read:sessions:self",
+      "update:employees:self",
+    ]);
+
+    expect(SYSTEM_MANAGED_EMPLOYEE_FEATURES).toEqual([
+      "create:sessions:self",
+      "read:sessions:self",
+    ]);
+    expect(features).toEqual(["read:appointments", "update:employees:self"]);
+  });
+
+  it("should check if all required features are present", () => {
+    expect(
+      EmployeeFeaturesPolicy.hasAll(
+        ["read:employees:self", "update:employees:self"],
+        ["read:employees:self"],
+      ),
+    ).toBe(true);
+    expect(
+      EmployeeFeaturesPolicy.hasAll(
+        ["read:employees:self"],
+        ["read:employees:self", "update:employees:self"],
+      ),
+    ).toBe(false);
   });
 });
