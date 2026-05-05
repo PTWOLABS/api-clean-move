@@ -42,4 +42,43 @@ export class PrismaEmployeesRepository implements EmployeesRepository {
       rethrowPrismaRepositoryError(error);
     }
   }
+
+  async findByIdAndEstablishmentId(
+    id: string,
+    establishmentId: string,
+  ): Promise<Employee | null> {
+    try {
+      const employee = await PrismaUnitOfWork.getClient(
+        this.prisma,
+      ).employee.findFirst({
+        where: {
+          id,
+          establishmentId,
+        },
+      });
+
+      if (!employee) {
+        return null;
+      }
+
+      return PrismaEmployeeMapper.toDomain(employee);
+    } catch (error) {
+      rethrowPrismaRepositoryError(error);
+    }
+  }
+
+  async save(employee: Employee): Promise<void> {
+    const data = PrismaEmployeeMapper.toPrismaUpdate(employee);
+
+    try {
+      await PrismaUnitOfWork.getClient(this.prisma).employee.update({
+        where: {
+          id: employee.id.toString(),
+        },
+        data,
+      });
+    } catch (error) {
+      rethrowPrismaRepositoryError(error);
+    }
+  }
 }
