@@ -58,7 +58,14 @@ describe("RefreshSessionUseCase", () => {
     );
   });
 
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it("should rotate the refresh token and issue a new access token", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-04-17T12:30:00.000Z"));
+
     const user = makeUser("CUSTOMER");
     const sessionId = new UniqueEntityId();
     const initialRefreshToken = await authService.generateRefreshToken({
