@@ -11,6 +11,7 @@ export class PrismaCustomerVehicleMapper {
       {
         establishmentId: new UniqueEntityId(raw.establishmentId),
         customerId: new UniqueEntityId(raw.customerId),
+        imageUrl: raw.imageUrl,
         plate: raw.plate,
         brand: raw.brand,
         model: raw.model,
@@ -32,6 +33,7 @@ export class PrismaCustomerVehicleMapper {
       id: raw.id.toString(),
       establishmentId: raw.establishmentId.toString(),
       customerId: raw.customerId.toString(),
+      imageUrl: raw.imageUrl,
       plate: raw.plate,
       brand: raw.brand,
       model: raw.model,
@@ -48,6 +50,7 @@ export class PrismaCustomerVehicleMapper {
     raw: CustomerVehicle,
   ): Prisma.CustomerVehicleUncheckedUpdateInput {
     return {
+      imageUrl: raw.imageUrl,
       plate: raw.plate,
       brand: raw.brand,
       model: raw.model,
