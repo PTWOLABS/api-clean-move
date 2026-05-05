@@ -21,6 +21,7 @@ export class PrismaEmployeeMapper {
           ? BirthDate.create(raw.birthDate, { mustBeAdult: false })
           : null,
         features: EmployeeFeaturesPolicy.normalizePersisted(raw.features),
+        deletedAt: null,
         createdAt: raw.createdAt,
         updatedAt: raw.updatedAt,
       },
