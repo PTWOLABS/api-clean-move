@@ -64,11 +64,14 @@ describe("EmployeeFeaturesPolicy", () => {
     "read:employees:self",
     "create:sessions:self",
     "read:sessions:self",
-  ])("should reject default or system-managed feature %s sent as extra", (feature) => {
-    expect(() => EmployeeFeaturesPolicy.build([feature])).toThrow(
-      InvalidEmployeeFeatureError,
-    );
-  });
+  ])(
+    "should reject default or system-managed feature %s sent as extra",
+    (feature) => {
+      expect(() => EmployeeFeaturesPolicy.build([feature])).toThrow(
+        InvalidEmployeeFeatureError,
+      );
+    },
+  );
 
   it("should reject unknown features", () => {
     expect(() => EmployeeFeaturesPolicy.build(["approve:payments"])).toThrow(
@@ -97,6 +100,12 @@ describe("EmployeeFeaturesPolicy", () => {
       "read:sessions:self",
       "create:services",
     ]);
+  });
+
+  it("should reject invalid persisted employee features", () => {
+    expect(() =>
+      EmployeeFeaturesPolicy.normalizePersisted(["approve:payments"]),
+    ).toThrow(InvalidEmployeeFeatureError);
   });
 
   it("should remove system-managed session features", () => {
