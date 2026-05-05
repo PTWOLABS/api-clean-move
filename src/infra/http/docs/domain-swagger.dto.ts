@@ -299,6 +299,9 @@ export class CustomerDto {
   @ApiProperty({ example: "2e11b57c-b96a-490a-9ae6-64ef2966fd84" })
   establishmentId!: string;
 
+  @ApiProperty({ type: String, example: null, nullable: true })
+  profileImageUrl!: string | null;
+
   @ApiProperty({ type: String, example: "52998224725", nullable: true })
   cpfCnpj!: string | null;
 
