@@ -9,6 +9,7 @@ export const customerResponseSchema = z.object({
   customer: z.object({
     id: z.uuid(),
     establishmentId: z.uuid(),
+    profileImageUrl: z.string().nullable(),
     cpfCnpj: z.string().nullable(),
     documentType: z.enum(["CPF", "CNPJ"]).nullable(),
     fullName: z.string(),
@@ -40,6 +41,7 @@ export const vehicleResponseSchema = z.object({
     id: z.uuid(),
     establishmentId: z.uuid(),
     customerId: z.uuid(),
+    imageUrl: z.string().nullable(),
     plate: z.string().nullable(),
     brand: z.string().nullable(),
     model: z.string().nullable(),
