@@ -22,6 +22,7 @@ const vehicleResponseSchema = z.object({
     id: z.uuid(),
     establishmentId: z.uuid(),
     customerId: z.uuid(),
+    imageUrl: z.string().nullable(),
     plate: z.string().nullable(),
     brand: z.string().nullable(),
     model: z.string().nullable(),
