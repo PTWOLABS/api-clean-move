@@ -63,10 +63,7 @@ export class InMemoryEmployeesRepository implements EmployeesRepository {
       item.id.equals(employee.id),
     );
 
-    if (employeeIndex === -1) {
-      this.items.push(employee);
-      return;
-    }
+    if (employeeIndex === -1) throw new Error("Employee not found.");
 
     this.items[employeeIndex] = employee;
   }
