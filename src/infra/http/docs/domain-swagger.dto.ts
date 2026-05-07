@@ -182,6 +182,14 @@ export class EmployeeDto {
 
   @ApiProperty({
     type: String,
+    example: null,
+    nullable: true,
+    format: "date-time",
+  })
+  deletedAt!: string | null;
+
+  @ApiProperty({
+    type: String,
     example: "2026-05-04T10:00:00.000Z",
     nullable: true,
     format: "date-time",
@@ -200,6 +208,40 @@ export class EmployeeDto {
 export class RegisterEmployeeResponseDto {
   @ApiProperty({ type: EmployeeDto })
   employee!: EmployeeDto;
+}
+
+export class EmployeeResponseDto {
+  @ApiProperty({ type: EmployeeDto })
+  employee!: EmployeeDto;
+}
+
+export class ListEmployeesResponseDto {
+  @ApiProperty({ type: EmployeeDto, isArray: true })
+  employees!: EmployeeDto[];
+}
+
+export class UpdateEmployeeBodyDto {
+  @ApiPropertyOptional({ example: "Ana Silva", minLength: 1 })
+  name?: string;
+
+  @ApiPropertyOptional({
+    type: String,
+    example: "1995-01-01T00:00:00.000Z",
+    nullable: true,
+    format: "date-time",
+    description:
+      "Optional birth date. Employees must be at least 18 years old when provided.",
+  })
+  birthDate?: string | null;
+
+  @ApiPropertyOptional({
+    enum: ALLOWED_EXTRA_EMPLOYEE_FEATURES,
+    isArray: true,
+    example: ["create:appointments", "update:employees:self"],
+    description:
+      "Optional business features. System-managed session features are not accepted.",
+  })
+  extraFeatures?: string[];
 }
 
 export class CreateCustomerBodyDto {

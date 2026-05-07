@@ -21,6 +21,7 @@ export class PrismaEmployeeMapper {
           ? BirthDate.create(raw.birthDate, { mustBeAdult: false })
           : null,
         features: EmployeeFeaturesPolicy.normalizePersisted(raw.features),
+        deletedAt: raw.deletedAt,
         createdAt: raw.createdAt,
         updatedAt: raw.updatedAt,
       },
@@ -38,6 +39,7 @@ export class PrismaEmployeeMapper {
       cpf: raw.cpf?.toString() ?? null,
       birthDate: raw.birthDate?.toDate() ?? null,
       features: raw.features,
+      deletedAt: raw.deletedAt,
       ...(raw.createdAt ? { createdAt: raw.createdAt } : {}),
       ...(raw.updatedAt ? { updatedAt: raw.updatedAt } : {}),
     };
@@ -50,6 +52,7 @@ export class PrismaEmployeeMapper {
       cpf: raw.cpf?.toString() ?? null,
       birthDate: raw.birthDate?.toDate() ?? null,
       features: raw.features,
+      deletedAt: raw.deletedAt,
       ...(raw.updatedAt ? { updatedAt: raw.updatedAt } : {}),
     };
   }

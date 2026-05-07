@@ -7,6 +7,7 @@ import {
 import { Reflector } from "@nestjs/core";
 import { UserRole } from "../../modules/accounts/domain/value-objects/user-role";
 import { SessionsRepository } from "../../modules/application/repositories/sessions-repository";
+import { EmployeeSessionAccessService } from "../../modules/application/services/employee-session-access";
 import { AuthenticatedRequest } from "./authenticated-user";
 import { AuthService } from "./auth.service";
 import { IS_PUBLIC_KEY } from "./public";
@@ -17,6 +18,7 @@ export class AccessSessionGuard implements CanActivate {
     private readonly authService: AuthService,
     private readonly sessionsRepository: SessionsRepository,
     private readonly reflector: Reflector,
+    private readonly employeeSessionAccess: EmployeeSessionAccessService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -49,10 +51,22 @@ export class AccessSessionGuard implements CanActivate {
         throw new UnauthorizedException("Invalid or expired session.");
       }
 
+      const role = payload.role as UserRole;
+      const canReadSession = await this.employeeSessionAccess.canReadSessionFor(
+        {
+          userId: payload.sub,
+          role,
+        },
+      );
+
+      if (!canReadSession) {
+        throw new UnauthorizedException("Invalid or expired session.");
+      }
+
       request.user = {
         userId: payload.sub,
         sessionId: payload.sid,
-        role: payload.role as UserRole,
+        role,
       };
 
       return true;

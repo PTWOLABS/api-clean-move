@@ -9,6 +9,7 @@ import { EnvService } from "../../../../infra/env/env.service";
 import { SessionsRepository } from "../../repositories/sessions-repository";
 import { TokenHasher } from "../../repositories/token-hasher";
 import { UsersRepository } from "../../repositories/users-repository";
+import { EmployeeSessionAccessService } from "../../services/employee-session-access";
 
 type RefreshSessionUseCaseRequest = {
   refreshToken: string;
@@ -32,6 +33,7 @@ export class RefreshSessionUseCase {
     private readonly sessionsRepository: SessionsRepository,
     private readonly usersRepository: UsersRepository,
     private readonly tokenHasher: TokenHasher,
+    private readonly employeeSessionAccess: EmployeeSessionAccessService,
   ) {}
 
   async execute({
@@ -67,6 +69,17 @@ export class RefreshSessionUseCase {
       const user = await this.usersRepository.findById(payload.sub);
 
       if (!user) {
+        return left(new InvalidSessionError());
+      }
+
+      const canReadSession = await this.employeeSessionAccess.canReadSessionFor(
+        {
+          userId: user.id.toString(),
+          role: user.role,
+        },
+      );
+
+      if (!canReadSession) {
         return left(new InvalidSessionError());
       }
 

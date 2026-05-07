@@ -1,4 +1,7 @@
-import { EmployeesRepository } from "../../src/modules/application/repositories/employees-repository";
+import {
+  EmployeeFilters,
+  EmployeesRepository,
+} from "../../src/modules/application/repositories/employees-repository";
 import { Employee } from "../../src/modules/employees/domain/entities/employee";
 
 export class InMemoryEmployeesRepository implements EmployeesRepository {
@@ -6,6 +9,12 @@ export class InMemoryEmployeesRepository implements EmployeesRepository {
 
   async create(employee: Employee): Promise<void> {
     this.items.push(employee);
+  }
+
+  async findById(id: string): Promise<Employee | null> {
+    const employee = this.items.find((item) => item.id.toString() === id);
+
+    return employee ?? null;
   }
 
   async findByUserId(userId: string): Promise<Employee | null> {
@@ -29,13 +38,33 @@ export class InMemoryEmployeesRepository implements EmployeesRepository {
     return employee ?? null;
   }
 
+  async findManyByEstablishmentId(
+    establishmentId: string,
+    filters?: EmployeeFilters,
+  ): Promise<Employee[]> {
+    const name = filters?.name?.trim().toLowerCase();
+
+    return this.items
+      .slice()
+      .sort((a, b) => a.createdAt!.getTime() - b.createdAt!.getTime())
+      .filter((item) => item.establishmentId.toString() === establishmentId)
+      .filter((item) => filters?.includeDeleted || !item.isDeleted())
+      .filter((item) => {
+        if (!name) {
+          return true;
+        }
+
+        return item.name.toLowerCase().includes(name);
+      });
+  }
+
   async save(employee: Employee): Promise<void> {
-    const index = this.items.findIndex((item) => item.id.equals(employee.id));
+    const employeeIndex = this.items.findIndex((item) =>
+      item.id.equals(employee.id),
+    );
 
-    if (index === -1) {
-      throw new Error("Employee not found.");
-    }
+    if (employeeIndex === -1) throw new Error("Employee not found.");
 
-    this.items[index] = employee;
+    this.items[employeeIndex] = employee;
   }
 }
