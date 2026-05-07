@@ -1,6 +1,9 @@
 import { Injectable } from "@nestjs/common";
 
-import { EmployeesRepository } from "../../../../modules/application/repositories/employees-repository";
+import {
+  EmployeeFilters,
+  EmployeesRepository,
+} from "../../../../modules/application/repositories/employees-repository";
 import { Employee } from "../../../../modules/employees/domain/entities/employee";
 import { PrismaEmployeeMapper } from "../mappers/prisma-employee-mapper";
 import { rethrowPrismaRepositoryError } from "../prisma-repository-error-handler";
@@ -23,6 +26,26 @@ export class PrismaEmployeesRepository implements EmployeesRepository {
     }
   }
 
+  async findById(id: string): Promise<Employee | null> {
+    try {
+      const employee = await PrismaUnitOfWork.getClient(
+        this.prisma,
+      ).employee.findUnique({
+        where: {
+          id,
+        },
+      });
+
+      if (!employee) {
+        return null;
+      }
+
+      return PrismaEmployeeMapper.toDomain(employee);
+    } catch (error) {
+      rethrowPrismaRepositoryError(error);
+    }
+  }
+
   async findByUserId(userId: string): Promise<Employee | null> {
     try {
       const employee = await PrismaUnitOfWork.getClient(
@@ -38,6 +61,80 @@ export class PrismaEmployeesRepository implements EmployeesRepository {
       }
 
       return PrismaEmployeeMapper.toDomain(employee);
+    } catch (error) {
+      rethrowPrismaRepositoryError(error);
+    }
+  }
+
+  async findByIdAndEstablishmentId(
+    id: string,
+    establishmentId: string,
+  ): Promise<Employee | null> {
+    try {
+      const employee = await PrismaUnitOfWork.getClient(
+        this.prisma,
+      ).employee.findFirst({
+        where: {
+          id,
+          establishmentId,
+        },
+      });
+
+      if (!employee) {
+        return null;
+      }
+
+      return PrismaEmployeeMapper.toDomain(employee);
+    } catch (error) {
+      rethrowPrismaRepositoryError(error);
+    }
+  }
+
+  async findManyByEstablishmentId(
+    establishmentId: string,
+    filters?: EmployeeFilters,
+  ): Promise<Employee[]> {
+    const name = filters?.name?.trim();
+
+    try {
+      const employees = await PrismaUnitOfWork.getClient(
+        this.prisma,
+      ).employee.findMany({
+        where: {
+          establishmentId,
+          ...(filters?.includeDeleted ? {} : { deletedAt: null }),
+          ...(name
+            ? {
+                name: {
+                  contains: name,
+                  mode: "insensitive",
+                },
+              }
+            : {}),
+        },
+        orderBy: {
+          createdAt: "asc",
+        },
+      });
+
+      return employees.map((employee) =>
+        PrismaEmployeeMapper.toDomain(employee),
+      );
+    } catch (error) {
+      rethrowPrismaRepositoryError(error);
+    }
+  }
+
+  async save(employee: Employee): Promise<void> {
+    const data = PrismaEmployeeMapper.toPrismaUpdate(employee);
+
+    try {
+      await PrismaUnitOfWork.getClient(this.prisma).employee.update({
+        where: {
+          id: employee.id.toString(),
+        },
+        data,
+      });
     } catch (error) {
       rethrowPrismaRepositoryError(error);
     }
