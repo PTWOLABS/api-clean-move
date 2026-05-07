@@ -299,12 +299,21 @@ describe("Manage employees controller (e2e)", () => {
     const crossGetResponse = await request(getHttpServer(app))
       .get(`/employees/${employee.id}`)
       .set("Authorization", `Bearer ${secondOwner.accessToken}`);
+    const crossUpdateResponse = await request(getHttpServer(app))
+      .patch(`/employees/${employee.id}`)
+      .set("Authorization", `Bearer ${secondOwner.accessToken}`)
+      .send({ name: "Cross Update" });
+    const crossDeleteResponse = await request(getHttpServer(app))
+      .delete(`/employees/${employee.id}`)
+      .set("Authorization", `Bearer ${secondOwner.accessToken}`);
     const invalidUuidResponse = await request(getHttpServer(app))
       .get("/employees/not-a-uuid")
       .set("Authorization", `Bearer ${firstOwner.accessToken}`);
 
     expect(customerListResponse.status).toBe(403);
     expect(crossGetResponse.status).toBe(404);
+    expect(crossUpdateResponse.status).toBe(404);
+    expect(crossDeleteResponse.status).toBe(404);
     expect(invalidUuidResponse.status).toBe(400);
   });
 });
