@@ -452,7 +452,7 @@ Existing employees will have `deletedAt = null` after the migration.
 Existing employees may not have the newly introduced default features in their persisted array. The implementation should include a backfill migration or application-level normalization plan so existing active employee rows receive:
 
 ```ts
-["read:employees:self", "create:sessions:self", "read:sessions:self"]
+["read:employees:self", "create:sessions:self", "read:sessions:self"];
 ```
 
 The preferred approach is to update existing employee rows in the migration because session authorization depends on persisted features.

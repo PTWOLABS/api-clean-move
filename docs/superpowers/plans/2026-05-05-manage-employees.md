@@ -141,11 +141,14 @@ describe("EmployeeFeaturesPolicy", () => {
     "read:employees:self",
     "create:sessions:self",
     "read:sessions:self",
-  ])("should reject default or system-managed feature %s sent as extra", (feature) => {
-    expect(() => EmployeeFeaturesPolicy.build([feature])).toThrow(
-      InvalidEmployeeFeatureError,
-    );
-  });
+  ])(
+    "should reject default or system-managed feature %s sent as extra",
+    (feature) => {
+      expect(() => EmployeeFeaturesPolicy.build([feature])).toThrow(
+        InvalidEmployeeFeatureError,
+      );
+    },
+  );
 
   it("should reject unknown features", () => {
     expect(() => EmployeeFeaturesPolicy.build(["approve:payments"])).toThrow(
@@ -954,7 +957,7 @@ Update expected arrays in `src/modules/application/use-cases/employee/register-e
   "read:employees:self",
   "create:sessions:self",
   "read:sessions:self",
-]
+];
 ```
 
 and, when extra features are expected, keep extras after those defaults:
@@ -969,7 +972,7 @@ and, when extra features are expected, keep extras after those defaults:
   "read:sessions:self",
   "create:appointments",
   "update:customers",
-]
+];
 ```
 
 - [ ] **Step 7: Re-run affected domain and register tests**
@@ -1477,25 +1480,25 @@ let employeeSessionAccessService: EmployeeSessionAccessService;
 In `beforeEach`, instantiate the new repository and service:
 
 ```ts
-    inMemoryEmployeesRepository = new InMemoryEmployeesRepository();
-    employeeSessionAccessService = new EmployeeSessionAccessService(
-      inMemoryEmployeesRepository,
-    );
+inMemoryEmployeesRepository = new InMemoryEmployeesRepository();
+employeeSessionAccessService = new EmployeeSessionAccessService(
+  inMemoryEmployeesRepository,
+);
 ```
 
 Pass `employeeSessionAccessService` as the last constructor argument:
 
 ```ts
-    sut = new LoginWithCredentialsUseCase(
-      inMemoryUsersRepository,
-      inMemorySessionsRepository,
-      fakeHashComparer,
-      fakeTokenHasher,
-      sessionCreationService,
-      envService as EnvService,
-      authService,
-      employeeSessionAccessService,
-    );
+sut = new LoginWithCredentialsUseCase(
+  inMemoryUsersRepository,
+  inMemorySessionsRepository,
+  fakeHashComparer,
+  fakeTokenHasher,
+  sessionCreationService,
+  envService as EnvService,
+  authService,
+  employeeSessionAccessService,
+);
 ```
 
 Add these tests before the final `should create a session with null metadata` test:
@@ -1563,60 +1566,60 @@ import { EmployeeSessionAccessService } from "../../services/employee-session-ac
 Add declarations inside `describe("RefreshSessionUseCase", () => {` beside the existing declarations:
 
 ```ts
-  let inMemoryEmployeesRepository: InMemoryEmployeesRepository;
-  let employeeSessionAccessService: EmployeeSessionAccessService;
+let inMemoryEmployeesRepository: InMemoryEmployeesRepository;
+let employeeSessionAccessService: EmployeeSessionAccessService;
 ```
 
 In `beforeEach`, instantiate the repository and service:
 
 ```ts
-    inMemoryEmployeesRepository = new InMemoryEmployeesRepository();
-    employeeSessionAccessService = new EmployeeSessionAccessService(
-      inMemoryEmployeesRepository,
-    );
+inMemoryEmployeesRepository = new InMemoryEmployeesRepository();
+employeeSessionAccessService = new EmployeeSessionAccessService(
+  inMemoryEmployeesRepository,
+);
 ```
 
 Pass `employeeSessionAccessService` as the last constructor argument:
 
 ```ts
-    sut = new RefreshSessionUseCase(
-      authService,
-      envService as EnvService,
-      inMemorySessionsRepository,
-      inMemoryUsersRepository,
-      fakeTokenHasher,
-      employeeSessionAccessService,
-    );
+sut = new RefreshSessionUseCase(
+  authService,
+  envService as EnvService,
+  inMemorySessionsRepository,
+  inMemoryUsersRepository,
+  fakeTokenHasher,
+  employeeSessionAccessService,
+);
 ```
 
 Add this helper inside the `describe` block after `afterEach`:
 
 ```ts
-  async function makeRefreshableUserSession(role: "CUSTOMER" | "EMPLOYEE") {
-    const user = makeUser(role);
-    const sessionId = new UniqueEntityId();
-    const refreshToken = await authService.generateRefreshToken({
-      sub: user.id.toString(),
-      sid: sessionId.toString(),
-    });
-    const refreshTokenHash = await fakeTokenHasher.hash(refreshToken);
-    const session = sessionCreationService.execute({
-      id: sessionId,
-      userId: user.id,
-      refreshTokenHash,
-      ttlInMs: refreshTokenTtlInMs,
-      referenceDate: new Date("2026-04-17T12:00:00.000Z"),
-    });
+async function makeRefreshableUserSession(role: "CUSTOMER" | "EMPLOYEE") {
+  const user = makeUser(role);
+  const sessionId = new UniqueEntityId();
+  const refreshToken = await authService.generateRefreshToken({
+    sub: user.id.toString(),
+    sid: sessionId.toString(),
+  });
+  const refreshTokenHash = await fakeTokenHasher.hash(refreshToken);
+  const session = sessionCreationService.execute({
+    id: sessionId,
+    userId: user.id,
+    refreshTokenHash,
+    ttlInMs: refreshTokenTtlInMs,
+    referenceDate: new Date("2026-04-17T12:00:00.000Z"),
+  });
 
-    await inMemoryUsersRepository.create(user);
-    await inMemorySessionsRepository.create(session);
+  await inMemoryUsersRepository.create(user);
+  await inMemorySessionsRepository.create(session);
 
-    return {
-      refreshToken,
-      session,
-      user,
-    };
-  }
+  return {
+    refreshToken,
+    session,
+    user,
+  };
+}
 ```
 
 Add these tests after `should reject an invalid refresh token`:
@@ -1642,8 +1645,7 @@ it("should reject employee refresh without read sessions feature", async () => {
 });
 
 it("should allow employee refresh with read sessions feature", async () => {
-  const { refreshToken, user } =
-    await makeRefreshableUserSession("EMPLOYEE");
+  const { refreshToken, user } = await makeRefreshableUserSession("EMPLOYEE");
   await inMemoryEmployeesRepository.create(
     makeEmployee({
       userId: user.id,
@@ -1732,15 +1734,14 @@ Add constructor dependency after `authService`:
 After password comparison succeeds and before session creation, add:
 
 ```ts
-    const canCreateSession =
-      await this.employeeSessionAccess.canCreateSessionFor({
-        userId: user.id.toString(),
-        role: user.role,
-      });
+const canCreateSession = await this.employeeSessionAccess.canCreateSessionFor({
+  userId: user.id.toString(),
+  role: user.role,
+});
 
-    if (!canCreateSession) {
-      return left(new InvalidCredentialsError());
-    }
+if (!canCreateSession) {
+  return left(new InvalidCredentialsError());
+}
 ```
 
 - [ ] **Step 5: Update refresh use case to require read session feature**
@@ -1762,15 +1763,14 @@ Add constructor dependency after `tokenHasher`:
 After user lookup and before generating the new refresh token, add:
 
 ```ts
-      const canReadSession =
-        await this.employeeSessionAccess.canReadSessionFor({
-          userId: user.id.toString(),
-          role: user.role,
-        });
+const canReadSession = await this.employeeSessionAccess.canReadSessionFor({
+  userId: user.id.toString(),
+  role: user.role,
+});
 
-      if (!canReadSession) {
-        return left(new InvalidSessionError());
-      }
+if (!canReadSession) {
+  return left(new InvalidSessionError());
+}
 ```
 
 - [ ] **Step 6: Add employee feature decorator and guard**
@@ -1852,26 +1852,25 @@ Add constructor dependency:
 After the existing session validity check and before assigning `request.user`, add:
 
 ```ts
-      const role = payload.role as UserRole;
-      const canReadSession =
-        await this.employeeSessionAccess.canReadSessionFor({
-          userId: payload.sub,
-          role,
-        });
+const role = payload.role as UserRole;
+const canReadSession = await this.employeeSessionAccess.canReadSessionFor({
+  userId: payload.sub,
+  role,
+});
 
-      if (!canReadSession) {
-        throw new UnauthorizedException("Invalid or expired session.");
-      }
+if (!canReadSession) {
+  throw new UnauthorizedException("Invalid or expired session.");
+}
 ```
 
 Then update the existing `request.user` assignment to use `role`:
 
 ```ts
-      request.user = {
-        userId: payload.sub,
-        sessionId: payload.sid,
-        role,
-      };
+request.user = {
+  userId: payload.sub,
+  sessionId: payload.sid,
+  role,
+};
 ```
 
 - [ ] **Step 8: Register auth providers and guard**
@@ -1984,7 +1983,10 @@ describe("Update employee", () => {
     establishmentsRepository = new InMemoryEstablishmentsRepository(
       new InMemoryServicesRepository(),
     );
-    sut = new UpdateEmployeeUseCase(employeesRepository, establishmentsRepository);
+    sut = new UpdateEmployeeUseCase(
+      employeesRepository,
+      establishmentsRepository,
+    );
   });
 
   it("should allow an establishment to update employee data and features", async () => {
@@ -2142,7 +2144,10 @@ describe("Delete employee", () => {
     establishmentsRepository = new InMemoryEstablishmentsRepository(
       new InMemoryServicesRepository(),
     );
-    sut = new DeleteEmployeeUseCase(employeesRepository, establishmentsRepository);
+    sut = new DeleteEmployeeUseCase(
+      employeesRepository,
+      establishmentsRepository,
+    );
   });
 
   it("should soft-delete an employee and remove session features", async () => {
@@ -2163,7 +2168,9 @@ describe("Delete employee", () => {
     expect(result.isRight()).toBe(true);
     if (result.isLeft()) throw result.value;
     expect(result.value.employee.deletedAt).toBeInstanceOf(Date);
-    expect(result.value.employee.features).not.toContain("create:sessions:self");
+    expect(result.value.employee.features).not.toContain(
+      "create:sessions:self",
+    );
     expect(result.value.employee.features).not.toContain("read:sessions:self");
     expect(result.value.employee.features).toContain("update:employees:self");
   });
@@ -2324,7 +2331,10 @@ describe("List employees", () => {
     establishmentsRepository = new InMemoryEstablishmentsRepository(
       new InMemoryServicesRepository(),
     );
-    sut = new ListEmployeesUseCase(employeesRepository, establishmentsRepository);
+    sut = new ListEmployeesUseCase(
+      employeesRepository,
+      establishmentsRepository,
+    );
   });
 
   it("should list active employees by establishment and filter by name", async () => {
@@ -2357,9 +2367,9 @@ describe("List employees", () => {
 
     expect(result.isRight()).toBe(true);
     if (result.isLeft()) throw result.value;
-    expect(result.value.employees.map((employee) => employee.id.toString())).toEqual([
-      ana.id.toString(),
-    ]);
+    expect(
+      result.value.employees.map((employee) => employee.id.toString()),
+    ).toEqual([ana.id.toString()]);
   });
 
   it("should reject establishment user without establishment profile", async () => {
@@ -2512,7 +2522,11 @@ export class UpdateEmployeeUseCase {
   }): Promise<UpdateEmployeeUseCaseResponse> {
     const employee = await this.employeesRepository.findByUserId(actorUserId);
 
-    if (!employee || employee.isDeleted() || employee.id.toString() !== employeeId) {
+    if (
+      !employee ||
+      employee.isDeleted() ||
+      employee.id.toString() !== employeeId
+    ) {
       return left(new ResourceNotFoundError({ resource: "employee" }));
     }
 
@@ -2693,9 +2707,15 @@ export class GetEmployeeUseCase {
     }
 
     if (actor.role === "EMPLOYEE") {
-      const employee = await this.employeesRepository.findByUserId(actor.userId);
+      const employee = await this.employeesRepository.findByUserId(
+        actor.userId,
+      );
 
-      if (!employee || employee.isDeleted() || employee.id.toString() !== employeeId) {
+      if (
+        !employee ||
+        employee.isDeleted() ||
+        employee.id.toString() !== employeeId
+      ) {
         return left(new ResourceNotFoundError({ resource: "employee" }));
       }
 
@@ -3035,7 +3055,9 @@ export class ListEmployeesController {
   @ApiOkResponse({ type: ListEmployeesResponseDto })
   @ApiBadRequestResponse({ description: "Invalid query params." })
   @ApiUnauthorizedResponse({ description: "Missing or invalid access token." })
-  @ApiForbiddenResponse({ description: "Authenticated user is not establishment." })
+  @ApiForbiddenResponse({
+    description: "Authenticated user is not establishment.",
+  })
   @ApiNotFoundResponse({ description: "Establishment profile not found." })
   @ApiInternalServerErrorResponse({ description: "Unexpected failure." })
   async handle(
@@ -3247,7 +3269,9 @@ export class DeleteEmployeeController {
   @ApiNoContentResponse({ description: "Employee deleted successfully." })
   @ApiBadRequestResponse({ description: "Invalid employee id." })
   @ApiUnauthorizedResponse({ description: "Missing or invalid access token." })
-  @ApiForbiddenResponse({ description: "Authenticated user is not establishment." })
+  @ApiForbiddenResponse({
+    description: "Authenticated user is not establishment.",
+  })
   @ApiNotFoundResponse({ description: "Employee not found." })
   @ApiInternalServerErrorResponse({ description: "Unexpected failure." })
   async handle(
@@ -3544,9 +3568,9 @@ describe("Manage employees controller (e2e)", () => {
       ana.id,
     );
     expect(listResponse.status).toBe(200);
-    expect(listEmployeesResponseSchema.parse(listResponse.body).employees).toEqual([
-      expect.objectContaining({ id: bia.id, name: "Beatriz Souza" }),
-    ]);
+    expect(
+      listEmployeesResponseSchema.parse(listResponse.body).employees,
+    ).toEqual([expect.objectContaining({ id: bia.id, name: "Beatriz Souza" })]);
     expect(updateResponse.status).toBe(200);
     expect(employeeResponseSchema.parse(updateResponse.body).employee).toEqual(
       expect.objectContaining({
@@ -3596,9 +3620,9 @@ describe("Manage employees controller (e2e)", () => {
 
     expect(getResponse.status).toBe(200);
     expect(updateResponse.status).toBe(200);
-    expect(employeeResponseSchema.parse(updateResponse.body).employee.name).toBe(
-      "Self Updated",
-    );
+    expect(
+      employeeResponseSchema.parse(updateResponse.body).employee.name,
+    ).toBe("Self Updated");
     expect(featureUpdateResponse.status).toBe(403);
   });
 
