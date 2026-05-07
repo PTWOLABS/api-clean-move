@@ -21,6 +21,9 @@ const employeeFeatureSchema = z.enum([
   "read:appointments",
   "read:services",
   "read:customers",
+  "read:employees:self",
+  "create:sessions:self",
+  "read:sessions:self",
   "create:appointments",
   "create:services",
   "create:customers",
@@ -30,6 +33,7 @@ const employeeFeatureSchema = z.enum([
   "delete:appointments",
   "delete:services",
   "delete:customers",
+  "update:employees:self",
 ]);
 
 const employeeResponseSchema = z.object({
@@ -42,6 +46,7 @@ const employeeResponseSchema = z.object({
     cpf: z.string().nullable(),
     birthDate: z.string().nullable(),
     features: z.array(employeeFeatureSchema),
+    deletedAt: z.string().nullable(),
     createdAt: z.string().nullable(),
     updatedAt: z.string().nullable(),
   }),
@@ -120,7 +125,11 @@ describe("Register employee controller (e2e)", () => {
       "read:appointments",
       "read:services",
       "read:customers",
+      "read:employees:self",
+      "create:sessions:self",
+      "read:sessions:self",
     ]);
+    expect(body.employee.deletedAt).toBeNull();
 
     const user = await prisma.user.findUnique({
       where: {
@@ -163,9 +172,13 @@ describe("Register employee controller (e2e)", () => {
       "read:appointments",
       "read:services",
       "read:customers",
+      "read:employees:self",
+      "create:sessions:self",
+      "read:sessions:self",
       "create:appointments",
       "update:customers",
     ]);
+    expect(body.employee.deletedAt).toBeNull();
   });
 
   it("should enforce authentication and establishment role", async () => {
