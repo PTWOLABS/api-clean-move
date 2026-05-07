@@ -11,6 +11,7 @@ export class EmployeePresenter {
       cpf: employee.cpf?.toString() ?? null,
       birthDate: employee.birthDate?.toString() ?? null,
       features: employee.features,
+      deletedAt: employee.deletedAt?.toISOString() ?? null,
       createdAt: employee.createdAt?.toISOString() ?? null,
       updatedAt: employee.updatedAt?.toISOString() ?? null,
     };
