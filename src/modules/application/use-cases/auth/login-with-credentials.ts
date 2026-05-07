@@ -17,6 +17,7 @@ import { EnvService } from "../../../../infra/env/env.service";
 import { AuthService } from "../../../../infra/auth/auth.service";
 import { UniqueEntityId } from "../../../../shared/entities/unique-entity-id";
 import { TokenHasher } from "../../repositories/token-hasher";
+import { EmployeeSessionAccessService } from "../../services/employee-session-access";
 
 type LoginWithCredentialsUseCaseRequest = {
   email: string;
@@ -40,6 +41,7 @@ export class LoginWithCredentialsUseCase {
     private sessionCreationService: SessionCreationService,
     private envService: EnvService,
     private authService: AuthService,
+    private employeeSessionAccess: EmployeeSessionAccessService,
   ) {}
 
   async execute({
@@ -72,6 +74,16 @@ export class LoginWithCredentialsUseCase {
     );
 
     if (!passwordMatches) {
+      return left(new InvalidCredentialsError());
+    }
+
+    const canCreateSession =
+      await this.employeeSessionAccess.canCreateSessionFor({
+        userId: user.id.toString(),
+        role: user.role,
+      });
+
+    if (!canCreateSession) {
       return left(new InvalidCredentialsError());
     }
 
