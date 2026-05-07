@@ -165,7 +165,7 @@ describe("Employee", () => {
       "create:sessions:self",
       "read:sessions:self",
     ];
-  it("should set profile image URL", () => {
+
     const employee = Employee.create({
       establishmentId: new UniqueEntityId(),
       userId: new UniqueEntityId(),
@@ -183,6 +183,18 @@ describe("Employee", () => {
 
     expect(employee.name).toBe("Ana Silva");
     expect(employee.features).toEqual(originalFeatures);
+  });
+
+  it("should set profile image URL", () => {
+    const employee = Employee.create({
+      establishmentId: new UniqueEntityId(),
+      userId: new UniqueEntityId(),
+      name: "Ana Silva",
+    });
+
+    employee.setProfileImageUrl("  https://cdn.example.com/a.png  ");
+
+    expect(employee.profileImageUrl).toBe("https://cdn.example.com/a.png");
   });
 
   it("should soft-delete an employee and remove only session features", () => {
@@ -237,10 +249,10 @@ describe("Employee", () => {
     expect(() => employee.replaceFeatures(["update:employees:self"])).toThrow(
       EmployeeAlreadyDeletedError,
     );
+    expect(() =>
+      employee.setProfileImageUrl("https://cdn.example.com/a.png"),
+    ).toThrow(EmployeeAlreadyDeletedError);
     expect(() => employee.softDelete()).toThrow(EmployeeAlreadyDeletedError);
-    employee.setProfileImageUrl("  https://cdn.example.com/a.png  ");
-
-    expect(employee.profileImageUrl).toBe("https://cdn.example.com/a.png");
   });
 
   it("should return a defensive copy for features getter", () => {

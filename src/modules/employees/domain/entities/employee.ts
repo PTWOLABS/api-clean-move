@@ -224,7 +224,11 @@ export class Employee extends AggregateRoot<EmployeeProps> {
     if (this.isDeleted()) {
       throw new EmployeeAlreadyDeletedError();
     }
+  }
+
   setProfileImageUrl(url: string) {
+    this.ensureActive();
+
     const normalized = Employee.normalizeOptionalText(url);
     if (normalized === null) {
       throw new InvalidRegisterEmployeeInputError(
@@ -234,10 +238,6 @@ export class Employee extends AggregateRoot<EmployeeProps> {
 
     this.props.profileImageUrl = normalized;
     this.touch();
-  }
-
-  touch() {
-    this.props.updatedAt = new Date();
   }
 
   private static normalizeCpf(value: Cpf | string | null) {
