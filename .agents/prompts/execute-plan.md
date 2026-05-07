@@ -53,6 +53,10 @@ For every task, the generated prompt must instruct the executor to:
    - explicit instruction to implement only the current task;
    - explicit instruction to run the task-specific checks;
    - explicit instruction to self-review;
+   - explicit instruction to report what was implemented in enough detail for
+     review;
+   - explicit instruction to report which tests were added or changed, what each
+     relevant test covers, and why that coverage matters;
    - explicit instruction to NOT commit.
 
 3. Run spec compliance review after implementation.
@@ -86,15 +90,39 @@ For every task, the generated prompt must instruct the executor to:
 11. If `npm run check:all` modifies files, include those modifications in the
     pre-commit summary and make clear that they came from the validation command.
 
+IMPLEMENTATION AND TEST COVERAGE REPORTING:
+
+The generated prompt must require the executor to produce a task report that is
+detailed enough for human review, without becoming a full implementation diary.
+For each task, the executor must explain:
+
+- what was implemented, grouped by domain/application/infra/http/test layer when
+  applicable;
+- why the implementation was needed for the plan goal;
+- which user-visible behavior, domain rule, integration path, or regression risk
+  was addressed;
+- which tests were added or changed;
+- what each relevant test covers;
+- why each relevant test exists, especially for edge cases, error paths,
+  authorization, persistence, validation, and regressions;
+- which planned requirements are not directly covered by tests, if any, and why;
+- any coverage limitation or remaining risk.
+
+The executor must not invent coverage data. If no coverage report was generated,
+it must describe behavioral coverage from the tests that actually ran, not claim
+line, branch, or percentage coverage.
+
 HUMAN CHECKPOINT BEFORE EACH COMMIT:
 
 The generated prompt must require the executor to stop before every task commit.
 At the checkpoint, the executor must present:
 
 - task name and status;
+- detailed implementation summary;
 - files changed;
 - concise diff summary;
 - tests/checks executed and real results;
+- test coverage summary with motivation for the relevant tests;
 - `npm run check:all` result;
 - spec review result;
 - quality review result;
@@ -135,6 +163,8 @@ executor to:
 
 - run the final verification task from the plan, if one exists;
 - run final code review for the complete implementation range;
+- provide a final summary of what was delivered and the test coverage added
+  across the whole plan;
 - stop before any final commit if final verification produced new changes;
 - never invent test results.
 
