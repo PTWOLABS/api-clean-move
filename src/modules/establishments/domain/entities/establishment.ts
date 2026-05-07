@@ -12,7 +12,14 @@ export type EstablishmentProps = {
   slug: Slug;
   operatingHours: OperatingHours;
   cnpj: Cnpj;
+  profileImageUrl: string | null;
+  bannerImageUrl: string | null;
 };
+
+export type EstablishmentCreateProps = Optional<
+  EstablishmentProps,
+  "slug" | "profileImageUrl" | "bannerImageUrl"
+>;
 
 export class Establishment extends AggregateRoot<EstablishmentProps> {
   get ownerId() {
@@ -39,8 +46,32 @@ export class Establishment extends AggregateRoot<EstablishmentProps> {
     return this.props.slug;
   }
 
+  get profileImageUrl() {
+    return this.props.profileImageUrl;
+  }
+
+  get bannerImageUrl() {
+    return this.props.bannerImageUrl;
+  }
+
   set corporateName(name: string) {
     this.props.corporateName = name;
+  }
+
+  setProfileImageUrl(url: string) {
+    const normalized = Establishment.normalizeOptionalUrl(url);
+    if (normalized === null) {
+      throw new Error("profile image URL cannot be empty.");
+    }
+    this.props.profileImageUrl = normalized;
+  }
+
+  setBannerImageUrl(url: string) {
+    const normalized = Establishment.normalizeOptionalUrl(url);
+    if (normalized === null) {
+      throw new Error("banner image URL cannot be empty.");
+    }
+    this.props.bannerImageUrl = normalized;
   }
 
   isOpenDuring(startsAt: Date, endsAt: Date): boolean {
@@ -95,17 +126,44 @@ export class Establishment extends AggregateRoot<EstablishmentProps> {
       );
   }
 
-  static create(
-    props: Optional<EstablishmentProps, "slug">,
-    id?: UniqueEntityId,
-  ) {
+  static create(props: EstablishmentCreateProps, id?: UniqueEntityId) {
     const establishment = new Establishment(
       {
         ...props,
         slug: props.slug ?? Slug.createFromText(props.corporateName),
+        profileImageUrl: Establishment.normalizeOptionalUrl(
+          props.profileImageUrl,
+        ),
+        bannerImageUrl: Establishment.normalizeOptionalUrl(
+          props.bannerImageUrl,
+        ),
       },
       id,
     );
     return establishment;
+  }
+
+  static restore(props: EstablishmentProps, id?: UniqueEntityId) {
+    return new Establishment(
+      {
+        ...props,
+        profileImageUrl: Establishment.normalizeOptionalUrl(
+          props.profileImageUrl,
+        ),
+        bannerImageUrl: Establishment.normalizeOptionalUrl(
+          props.bannerImageUrl,
+        ),
+      },
+      id,
+    );
+  }
+
+  private static normalizeOptionalUrl(value: string | null | undefined) {
+    if (value === null || value === undefined) {
+      return null;
+    }
+
+    const normalized = value.trim();
+    return normalized || null;
   }
 }

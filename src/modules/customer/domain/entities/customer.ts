@@ -10,6 +10,7 @@ import { CustomerDocument } from "../value-objects/customer-document";
 
 export type CustomerProps = {
   establishmentId: UniqueEntityId;
+  profileImageUrl: string | null;
   cpfCnpj: CustomerDocument | null;
   fullName: string;
   phone: Phone;
@@ -26,7 +27,7 @@ type CustomerCreateProps = Optional<
   Omit<CustomerProps, "cpfCnpj"> & {
     cpfCnpj: CustomerDocument | string | null;
   },
-  "createdAt" | "updatedAt" | "deletedAt"
+  "createdAt" | "updatedAt" | "deletedAt" | "profileImageUrl"
 >;
 
 export class Customer extends AggregateRoot<CustomerProps> {
@@ -36,6 +37,10 @@ export class Customer extends AggregateRoot<CustomerProps> {
 
   get cpfCnpj() {
     return this.props.cpfCnpj;
+  }
+
+  get profileImageUrl() {
+    return this.props.profileImageUrl;
   }
 
   get fullName() {
@@ -78,6 +83,7 @@ export class Customer extends AggregateRoot<CustomerProps> {
     const customer = new Customer(
       {
         ...props,
+        profileImageUrl: Customer.normalizeOptionalText(props.profileImageUrl),
         cpfCnpj: Customer.normalizeCpfCnpj(props.cpfCnpj),
         fullName: Customer.normalizeRequiredText(props.fullName, "fullName"),
         nickname: Customer.normalizeOptionalText(props.nickname),
@@ -92,6 +98,7 @@ export class Customer extends AggregateRoot<CustomerProps> {
   }
 
   update(data: {
+    profileImageUrl?: string | null;
     cpfCnpj?: CustomerDocument | string | null;
     fullName?: string;
     phone?: Phone;
@@ -106,6 +113,12 @@ export class Customer extends AggregateRoot<CustomerProps> {
 
     if (data.cpfCnpj !== undefined) {
       this.props.cpfCnpj = Customer.normalizeCpfCnpj(data.cpfCnpj);
+    }
+
+    if (data.profileImageUrl !== undefined) {
+      this.props.profileImageUrl = Customer.normalizeOptionalText(
+        data.profileImageUrl,
+      );
     }
 
     if (data.fullName !== undefined) {
@@ -181,8 +194,8 @@ export class Customer extends AggregateRoot<CustomerProps> {
     return normalized;
   }
 
-  private static normalizeOptionalText(value: string | null) {
-    if (value === null) {
+  private static normalizeOptionalText(value: string | null | undefined) {
+    if (value === null || value === undefined) {
       return null;
     }
 

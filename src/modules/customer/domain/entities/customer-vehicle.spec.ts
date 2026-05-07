@@ -67,4 +67,21 @@ describe("CustomerVehicle", () => {
       }),
     ).toThrow(InvalidCustomerInputError);
   });
+
+  it("should update image URL", () => {
+    const vehicle = CustomerVehicle.create({
+      establishmentId: new UniqueEntityId("establishment-1"),
+      customerId: new UniqueEntityId("customer-1"),
+      plate: null,
+      brand: null,
+      model: null,
+      color: null,
+      year: null,
+      notes: null,
+    });
+
+    vehicle.update({ imageUrl: "  https://cdn.example.com/v.png  " });
+
+    expect(vehicle.imageUrl).toBe("https://cdn.example.com/v.png");
+  });
 });

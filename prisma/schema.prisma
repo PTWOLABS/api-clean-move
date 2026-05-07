@@ -123,6 +123,7 @@ model PasswordResetToken {
 model Customer {
   id              String    @id @default(uuid()) @db.Uuid
   establishmentId String    @map("establishment_id") @db.Uuid
+  profileImageUrl String?   @map("profile_image_url")
   cpfCnpj         String?   @map("cpf_cnpj") @db.VarChar(14)
   fullName        String    @map("full_name")
   phone           String    @db.VarChar(11)
@@ -150,6 +151,7 @@ model CustomerVehicle {
   id              String    @id @default(uuid()) @db.Uuid
   establishmentId String    @map("establishment_id") @db.Uuid
   customerId      String    @map("customer_id") @db.Uuid
+  imageUrl        String?   @map("image_url")
   plate           String?   @db.VarChar(12)
   brand           String?
   model           String?
@@ -172,10 +174,11 @@ model CustomerVehicle {
 }
 
 model Establishment {
-  id              String  @id @default(uuid()) @db.Uuid
-  ownerId         String  @unique @map("owner_id") @db.Uuid
-  profileImageUrl String? @map("profile_image_url")
-  corporateName   String  @map("corporate_name")
+  id               String  @id @default(uuid()) @db.Uuid
+  ownerId          String  @unique @map("owner_id") @db.Uuid
+  profileImageUrl  String? @map("profile_image_url")
+  bannerImageUrl   String? @map("banner_image_url")
+  corporateName    String  @map("corporate_name")
   socialReason    String  @map("social_reason")
   slug            String  @unique
   operatingHours  Json    @map("operating_hours")

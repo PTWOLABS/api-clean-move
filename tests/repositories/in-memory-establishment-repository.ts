@@ -12,6 +12,18 @@ export class InMemoryEstablishmentsRepository implements EstablishmentsRepositor
     this.items.push(data);
   }
 
+  async save(establishment: Establishment): Promise<void> {
+    const index = this.items.findIndex((item) =>
+      item.id.equals(establishment.id),
+    );
+
+    if (index === -1) {
+      throw new Error("Establishment not found.");
+    }
+
+    this.items[index] = establishment;
+  }
+
   async findByCnpj(cnpj: string): Promise<Establishment | null> {
     const establishment = this.items.find(
       (item) => item.cnpj.toString() === cnpj,

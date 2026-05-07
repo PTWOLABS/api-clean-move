@@ -17,6 +17,7 @@ export class PrismaCustomerMapper {
     return Customer.create(
       {
         establishmentId: new UniqueEntityId(raw.establishmentId),
+        profileImageUrl: raw.profileImageUrl,
         cpfCnpj: raw.cpfCnpj ? CustomerDocument.create(raw.cpfCnpj) : null,
         fullName: raw.fullName,
         phone: Phone.create(raw.phone),
@@ -36,6 +37,7 @@ export class PrismaCustomerMapper {
     return {
       id: raw.id.toString(),
       establishmentId: raw.establishmentId.toString(),
+      profileImageUrl: raw.profileImageUrl,
       cpfCnpj: raw.cpfCnpj?.toString() ?? null,
       fullName: raw.fullName,
       phone: raw.phone.toString(),
@@ -51,6 +53,7 @@ export class PrismaCustomerMapper {
 
   static toPrismaUpdate(raw: Customer): Prisma.CustomerUncheckedUpdateInput {
     return {
+      profileImageUrl: raw.profileImageUrl,
       cpfCnpj: raw.cpfCnpj?.toString() ?? null,
       fullName: raw.fullName,
       phone: raw.phone.toString(),
