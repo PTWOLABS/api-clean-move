@@ -2,15 +2,22 @@ import {
   Customer as PrismaCustomer,
   Prisma,
 } from "../../../../generated/prisma/client";
-import {
-  Address,
-  AddressProps,
-} from "../../../../modules/accounts/domain/value-objects/address";
+import { Address } from "../../../../modules/accounts/domain/value-objects/address";
 import { Email } from "../../../../modules/accounts/domain/value-objects/email";
 import { Phone } from "../../../../modules/accounts/domain/value-objects/phone";
 import { Customer } from "../../../../modules/customer/domain/entities/customer";
 import { CustomerDocument } from "../../../../modules/customer/domain/value-objects/customer-document";
 import { UniqueEntityId } from "../../../../shared/entities/unique-entity-id";
+import z from "zod";
+
+const addressJsonSchema = z.object({
+  street: z.string(),
+  country: z.string(),
+  state: z.string(),
+  zipCode: z.string(),
+  city: z.string(),
+  complement: z.string().nullable().optional(),
+});
 
 export class PrismaCustomerMapper {
   static toDomain(raw: PrismaCustomer): Customer {
@@ -79,6 +86,9 @@ export class PrismaCustomerMapper {
       state: address.state,
       zipCode: address.zipCode,
       city: address.city,
+      ...(address.complement !== null
+        ? { complement: address.complement }
+        : {}),
     };
   }
 
@@ -87,7 +97,7 @@ export class PrismaCustomerMapper {
       return null;
     }
 
-    const value = raw as Record<keyof AddressProps, string>;
+    const value = addressJsonSchema.parse(raw);
 
     return Address.create({
       street: value.street,
@@ -95,6 +105,7 @@ export class PrismaCustomerMapper {
       state: value.state,
       zipCode: value.zipCode,
       city: value.city,
+      complement: value.complement ?? null,
     });
   }
 }
