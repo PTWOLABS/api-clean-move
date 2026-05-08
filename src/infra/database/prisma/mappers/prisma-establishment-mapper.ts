@@ -16,8 +16,8 @@ export class PrismaEstablishmentMapper {
     return Establishment.restore(
       {
         ownerId: new UniqueEntityId(raw.ownerId),
-        corporateName: raw.corporateName,
-        socialReason: raw.socialReason,
+        tradeName: raw.tradeName,
+        legalBusinessName: raw.legalBusinessName,
         cnpj: Cnpj.create(raw.cnpj),
         operatingHours: OperatingHours.create(operatingHours),
         slug: Slug.create(raw.slug),
@@ -38,8 +38,8 @@ export class PrismaEstablishmentMapper {
     return {
       id: raw.id.toString(),
       ownerId: raw.ownerId.toString(),
-      corporateName: raw.corporateName,
-      socialReason: raw.socialReason,
+      tradeName: raw.tradeName,
+      legalBusinessName: raw.legalBusinessName,
       cnpj: raw.cnpj.value,
       slug: raw.slug.value,
       operatingHours,
@@ -56,8 +56,8 @@ export class PrismaEstablishmentMapper {
     } satisfies Prisma.InputJsonObject;
 
     return {
-      corporateName: raw.corporateName,
-      socialReason: raw.socialReason,
+      tradeName: raw.tradeName,
+      legalBusinessName: raw.legalBusinessName,
       cnpj: raw.cnpj.value,
       slug: raw.slug.value,
       operatingHours,
