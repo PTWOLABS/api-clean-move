@@ -102,7 +102,7 @@ export class InMemoryEstablishmentsRepository implements EstablishmentsRepositor
 
     if (filters.establishmentName) {
       establishments = establishments.filter(
-        (item) => item.corporateName === filters.establishmentName,
+        (item) => item.tradeName === filters.establishmentName,
       );
     }
 

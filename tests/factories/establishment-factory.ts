@@ -56,8 +56,8 @@ export function makeEstablishment(
     {
       ownerId: new UniqueEntityId(),
       cnpj: Cnpj.create(makeValidCnpj()),
-      socialReason: makeCompanyName(),
-      corporateName: makeUsername(),
+      legalBusinessName: makeCompanyName(),
+      tradeName: makeUsername(),
       operatingHours: OperatingHours.create({
         days: [
           {
