@@ -33,34 +33,19 @@ const validationErrorResponseSchema = z.object({
 function makeRegisterEstablishmentPayload() {
   return {
     name: "Jon Doe",
-    corporateName: "Valid Establishment",
-    socialReason: "SOCIAL REASON TEST LTDA",
+    tradeName: "Valid Establishment",
+    legalBusinessName: "SOCIAL REASON TEST LTDA",
     email: "jondoe@example.com",
     password: "jondoe@123",
     cnpj: "37.158.666/0001-82",
     phone: "11987654321",
     address: {
       street: "street-1",
+      complement: "Sala 2",
       country: "country-1",
       state: "state-1",
       zipCode: "11111-111",
       city: "city-1",
-    },
-    operatingHours: {
-      days: [
-        {
-          day: "MONDAY",
-          ranges: [{ start: "08:00", end: "18:00" }],
-        },
-        {
-          day: "SATURDAY",
-          ranges: [{ start: "08:00", end: "12:00" }],
-        },
-        {
-          day: "SUNDAY",
-          ranges: [],
-        },
-      ],
     },
   };
 }
@@ -69,8 +54,8 @@ function makeAnotherRegisterEstablishmentPayload() {
   return {
     ...makeRegisterEstablishmentPayload(),
     name: "Jane Doe",
-    corporateName: "Another Establishment",
-    socialReason: "ANOTHER SOCIAL REASON LTDA",
+    tradeName: "Another Establishment",
+    legalBusinessName: "ANOTHER SOCIAL REASON LTDA",
     cnpj: "41.437.902/0001-77",
     phone: "21987654321",
     address: {
@@ -133,8 +118,17 @@ describe("RegisterEstablishmentController (e2e)", () => {
 
     expect(createdUser).not.toBeNull();
     expect(createdUser?.role).toBe("ESTABLISHMENT");
+    expect(createdUser?.address).toMatchObject({
+      street: "street-1",
+      complement: "Sala 2",
+      country: "country-1",
+      state: "state-1",
+      zipCode: "11111-111",
+      city: "city-1",
+    });
     expect(createdEstablishment).not.toBeNull();
     expect(createdEstablishment?.slug).toBe("valid-establishment");
+    expect(createdEstablishment?.operatingHours).toEqual({ days: [] });
   });
 
   it("should return 400 when sending an invalid establishment payload", async () => {
@@ -158,7 +152,7 @@ describe("RegisterEstablishmentController (e2e)", () => {
   it("should return 400 when sending an incomplete establishment payload", async () => {
     const incompletePayload = {
       ...makeRegisterEstablishmentPayload(),
-      corporateName: undefined,
+      tradeName: undefined,
     };
 
     const response = await request(getHttpServer(app))
@@ -173,7 +167,7 @@ describe("RegisterEstablishmentController (e2e)", () => {
       expect.arrayContaining([
         expect.objectContaining({
           code: "invalid_type",
-          path: "corporateName",
+          path: "tradeName",
         }),
       ]),
     );

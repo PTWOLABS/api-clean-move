@@ -7,7 +7,7 @@ import { UniqueConstraintViolationError } from "../../../../shared/errors/unique
 import { User } from "../../../accounts/domain/entities/user";
 import {
   Address,
-  AddressProps,
+  AddressCreateInput,
   InvalidAddressError,
 } from "../../../accounts/domain/value-objects/address";
 import {
@@ -25,11 +25,7 @@ import {
   Cnpj,
   InvalidCnpjError,
 } from "../../../establishments/domain/value-objects/cnpj";
-import {
-  InvalidOperatingHoursError,
-  OperatingHours,
-  OperatingHoursProps,
-} from "../../../establishments/domain/value-objects/operating-hours";
+import { OperatingHours } from "../../../establishments/domain/value-objects/operating-hours";
 import { Slug } from "../../../establishments/domain/value-objects/slug";
 import { EstablishmentsRepository } from "../../repositories/establishment-repository";
 import { HashGenerator } from "../../repositories/hash-generator";
@@ -38,14 +34,13 @@ import { UsersRepository } from "../../repositories/users-repository";
 
 type RegisterEstablishmentUseCaseRequest = {
   name: string;
-  corporateName: string;
-  socialReason: string;
+  tradeName: string;
+  legalBusinessName: string;
   email: string;
   password: string;
   cnpj: string;
-  operatingHours: OperatingHoursProps;
   phone: string;
-  address: AddressProps;
+  address: AddressCreateInput;
   slug?: string | undefined;
 };
 
@@ -69,37 +64,34 @@ export class RegisterEstablishmentUseCase {
 
   async execute({
     name,
-    corporateName,
-    socialReason,
+    tradeName,
+    legalBusinessName,
     email: rawEmail,
     password,
     cnpj: rawCnpj,
-    operatingHours: rawOperatingHours,
     phone: rawPhone,
     address: rawAddress,
     slug: rawSlug,
   }: RegisterEstablishmentUseCaseRequest): Promise<RegisterEstablishmentUseCaseResponse> {
     const slug = rawSlug
       ? Slug.create(rawSlug)
-      : Slug.createFromText(corporateName);
+      : Slug.createFromText(tradeName);
 
     let email;
     let cnpj;
-    let operatingHours;
+    const operatingHours = OperatingHours.create({ days: [] });
     let phone;
     let address;
 
     try {
       email = new Email(rawEmail);
       cnpj = Cnpj.create(rawCnpj);
-      operatingHours = OperatingHours.create(rawOperatingHours);
       phone = Phone.create(rawPhone);
       address = Address.create(rawAddress);
     } catch (error) {
       if (
         error instanceof InvalidEmailError ||
         error instanceof InvalidCnpjError ||
-        error instanceof InvalidOperatingHoursError ||
         error instanceof InvalidPhoneError ||
         error instanceof InvalidAddressError
       ) {
@@ -159,8 +151,8 @@ export class RegisterEstablishmentUseCase {
     const establishment = Establishment.create({
       ownerId: user.id,
       cnpj,
-      corporateName,
-      socialReason,
+      tradeName,
+      legalBusinessName,
       operatingHours,
       slug,
     });

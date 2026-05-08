@@ -7,8 +7,8 @@ import { Slug } from "../value-objects/slug";
 
 export type EstablishmentProps = {
   ownerId: UniqueEntityId;
-  corporateName: string;
-  socialReason: string;
+  tradeName: string;
+  legalBusinessName: string;
   slug: Slug;
   operatingHours: OperatingHours;
   cnpj: Cnpj;
@@ -26,12 +26,12 @@ export class Establishment extends AggregateRoot<EstablishmentProps> {
     return this.props.ownerId;
   }
 
-  get corporateName() {
-    return this.props.corporateName;
+  get tradeName() {
+    return this.props.tradeName;
   }
 
-  get socialReason() {
-    return this.props.socialReason;
+  get legalBusinessName() {
+    return this.props.legalBusinessName;
   }
 
   get operatingHours() {
@@ -54,8 +54,8 @@ export class Establishment extends AggregateRoot<EstablishmentProps> {
     return this.props.bannerImageUrl;
   }
 
-  set corporateName(name: string) {
-    this.props.corporateName = name;
+  set tradeName(name: string) {
+    this.props.tradeName = name;
   }
 
   setProfileImageUrl(url: string) {
@@ -130,7 +130,7 @@ export class Establishment extends AggregateRoot<EstablishmentProps> {
     const establishment = new Establishment(
       {
         ...props,
-        slug: props.slug ?? Slug.createFromText(props.corporateName),
+        slug: props.slug ?? Slug.createFromText(props.tradeName),
         profileImageUrl: Establishment.normalizeOptionalUrl(
           props.profileImageUrl,
         ),

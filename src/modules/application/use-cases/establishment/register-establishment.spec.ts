@@ -9,7 +9,6 @@ import { InMemoryUsersRepository } from "../../../../../tests/repositories/in-me
 import { Email } from "../../../accounts/domain/value-objects/email";
 import { InvalidRegisterEstablishmentInputError } from "../../../establishments/domain/errors/invalid-register-establishment-input-error";
 import { Cnpj } from "../../../establishments/domain/value-objects/cnpj";
-import { OperatingHoursProps } from "../../../establishments/domain/value-objects/operating-hours";
 import { RegisterEstablishmentUseCase } from "./register-establishment";
 
 let inMemoryUsersRepository: InMemoryUsersRepository;
@@ -18,25 +17,6 @@ let fakeHashGenerator: FakeHashGenerator;
 let inMemoryUnitOfWork: InMemoryUnitOfWork;
 
 let sut: RegisterEstablishmentUseCase;
-
-function makeOperatingHours(): OperatingHoursProps {
-  return {
-    days: [
-      {
-        day: "MONDAY",
-        ranges: [{ start: "08:00", end: "18:00" }],
-      },
-      {
-        day: "SATURDAY",
-        ranges: [{ start: "08:00", end: "12:00" }],
-      },
-      {
-        day: "SUNDAY",
-        ranges: [],
-      },
-    ],
-  };
-}
 
 describe("Register an establishment", () => {
   beforeEach(() => {
@@ -66,10 +46,9 @@ describe("Register an establishment", () => {
         zipCode: "11111-111",
       },
       cnpj: "37.158.666/0001-82",
-      corporateName: "Valid Establishment",
-      socialReason: "SOCIAL REASON TEST LTDA",
+      tradeName: "Valid Establishment",
+      legalBusinessName: "SOCIAL REASON TEST LTDA",
       email: "jondoe@example.com",
-      operatingHours: makeOperatingHours(),
       password: "jondoe@123",
       phone: "11987654321",
     });
@@ -92,6 +71,7 @@ describe("Register an establishment", () => {
     expect(result.value.establishment.slug.value).toEqual(
       "valid-establishment",
     );
+    expect(result.value.establishment.operatingHours.days).toHaveLength(0);
   });
 
   it("not should be able to register an establishment with duplicated email", async () => {
@@ -111,10 +91,9 @@ describe("Register an establishment", () => {
         zipCode: "11111-111",
       },
       cnpj: "03823548000120",
-      corporateName: "Establishment-2",
-      socialReason: "SOCIAL REASON TEST LTDA 2",
+      tradeName: "Establishment-2",
+      legalBusinessName: "SOCIAL REASON TEST LTDA 2",
       email: "jondoe@example.com",
-      operatingHours: makeOperatingHours(),
       password: "jondoe@123",
       phone: "11987654321",
     });
@@ -138,10 +117,9 @@ describe("Register an establishment", () => {
         zipCode: "11111-111",
       },
       cnpj: "41.437.902/0001-77",
-      corporateName: "Valid Establishment",
-      socialReason: "SOCIAL REASON TEST LTDA",
+      tradeName: "Valid Establishment",
+      legalBusinessName: "SOCIAL REASON TEST LTDA",
       email: "custom-slug@example.com",
-      operatingHours: makeOperatingHours(),
       password: "jondoe@123",
       phone: "11987654321",
       slug: "custom-establishment-slug",
@@ -175,10 +153,9 @@ describe("Register an establishment", () => {
         zipCode: "11111-111",
       },
       cnpj: "41.437.902/0001-77",
-      corporateName: "Establishment-2",
-      socialReason: "SOCIAL REASON TEST LTDA",
+      tradeName: "Establishment-2",
+      legalBusinessName: "SOCIAL REASON TEST LTDA",
       email: "jondoe@example.com",
-      operatingHours: makeOperatingHours(),
       password: "jondoe@123",
       phone: "11987654321",
     });
@@ -205,10 +182,9 @@ describe("Register an establishment", () => {
         zipCode: "11111-111",
       },
       cnpj: "18472512000116",
-      corporateName: "Establishment-1",
-      socialReason: "SOCIAL REASON TEST LTDA",
+      tradeName: "Establishment-1",
+      legalBusinessName: "SOCIAL REASON TEST LTDA",
       email: "invalid-format",
-      operatingHours: makeOperatingHours(),
       password: "jondoe@123",
       phone: "11987654321",
     });
@@ -236,10 +212,9 @@ describe("Register an establishment", () => {
         zipCode: "11111-111",
       },
       cnpj: "05027115000191",
-      corporateName: "Establishment-1",
-      socialReason: "SOCIAL REASON TEST LTDA",
+      tradeName: "Establishment-1",
+      legalBusinessName: "SOCIAL REASON TEST LTDA",
       email: "validemail@example.com",
-      operatingHours: makeOperatingHours(),
       password: "jondoe@123",
       phone: "11987654321",
     });
