@@ -105,6 +105,9 @@ export class PrismaUsersRepository implements UsersRepository {
             state: user.address.state,
             zipCode: user.address.zipCode,
             city: user.address.city,
+            ...(user.address.complement !== null
+              ? { complement: user.address.complement }
+              : {}),
           } satisfies Prisma.InputJsonObject);
 
     try {

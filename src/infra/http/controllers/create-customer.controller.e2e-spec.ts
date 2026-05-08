@@ -28,6 +28,7 @@ const customerResponseSchema = z.object({
     address: z
       .object({
         street: z.string(),
+        complement: z.string().optional(),
         country: z.string(),
         state: z.string(),
         zipCode: z.string(),

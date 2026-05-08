@@ -73,7 +73,6 @@ CREATE TABLE "establishments" (
     "corporate_name" TEXT NOT NULL,
     "social_reason" TEXT NOT NULL,
     "slug" TEXT NOT NULL,
-    "operating_hours" JSONB NOT NULL,
     "cnpj" VARCHAR(14) NOT NULL,
 
     CONSTRAINT "establishments_pkey" PRIMARY KEY ("id")

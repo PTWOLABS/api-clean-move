@@ -22,12 +22,12 @@ describe("List establishments", () => {
 
   it("should be able to list all establishments without filters", async () => {
     const establishmentA = makeEstablishment({
-      corporateName: "Alpha Clean",
-      socialReason: "Alpha Clean LTDA",
+      tradeName: "Alpha Clean",
+      legalBusinessName: "Alpha Clean LTDA",
     });
     const establishmentB = makeEstablishment({
-      corporateName: "Beta Wash",
-      socialReason: "Beta Wash LTDA",
+      tradeName: "Beta Wash",
+      legalBusinessName: "Beta Wash LTDA",
     });
 
     await inMemoryEstablishmentsRepository.create(establishmentA);
@@ -50,12 +50,12 @@ describe("List establishments", () => {
 
   it("should be able to list establishments filtered by name", async () => {
     const establishmentA = makeEstablishment({
-      corporateName: "Alpha Clean",
-      socialReason: "Alpha Clean LTDA",
+      tradeName: "Alpha Clean",
+      legalBusinessName: "Alpha Clean LTDA",
     });
     const establishmentB = makeEstablishment({
-      corporateName: "Beta Wash",
-      socialReason: "Beta Wash LTDA",
+      tradeName: "Beta Wash",
+      legalBusinessName: "Beta Wash LTDA",
     });
 
     await inMemoryEstablishmentsRepository.create(establishmentA);
@@ -77,17 +77,17 @@ describe("List establishments", () => {
 
     const establishment = getFirstItem(result.value.establishments);
 
-    expect(establishment.corporateName).toBe("Alpha Clean");
+    expect(establishment.tradeName).toBe("Alpha Clean");
   });
 
   it("should be able to list establishments filtered by service category", async () => {
     const establishmentA = makeEstablishment({
-      corporateName: "Alpha Clean",
-      socialReason: "Alpha Clean LTDA",
+      tradeName: "Alpha Clean",
+      legalBusinessName: "Alpha Clean LTDA",
     });
     const establishmentB = makeEstablishment({
-      corporateName: "Beta Wash",
-      socialReason: "Beta Wash LTDA",
+      tradeName: "Beta Wash",
+      legalBusinessName: "Beta Wash LTDA",
     });
 
     await inMemoryEstablishmentsRepository.create(establishmentA);
@@ -129,21 +129,21 @@ describe("List establishments", () => {
     const establishment = getFirstItem(result.value.establishments);
 
     expect(establishment.id.toString()).toBe(establishmentA.id.toString());
-    expect(establishment.corporateName).toBe("Alpha Clean");
+    expect(establishment.tradeName).toBe("Alpha Clean");
   });
 
   it("should be able to list establishments with combined filters", async () => {
     const establishmentA = makeEstablishment({
-      corporateName: "Alpha Clean",
-      socialReason: "Alpha Clean LTDA",
+      tradeName: "Alpha Clean",
+      legalBusinessName: "Alpha Clean LTDA",
     });
     const establishmentB = makeEstablishment({
-      corporateName: "Beta Wash",
-      socialReason: "Beta Wash LTDA",
+      tradeName: "Beta Wash",
+      legalBusinessName: "Beta Wash LTDA",
     });
     const establishmentC = makeEstablishment({
-      corporateName: "Gamma Detail",
-      socialReason: "Gamma Detail LTDA",
+      tradeName: "Gamma Detail",
+      legalBusinessName: "Gamma Detail LTDA",
     });
 
     await inMemoryEstablishmentsRepository.create(establishmentA);
@@ -187,6 +187,6 @@ describe("List establishments", () => {
     const establishment = getFirstItem(result.value.establishments);
 
     expect(establishment.id.toString()).toBe(establishmentC.id.toString());
-    expect(establishment.corporateName).toBe("Gamma Detail");
+    expect(establishment.tradeName).toBe("Gamma Detail");
   });
 });

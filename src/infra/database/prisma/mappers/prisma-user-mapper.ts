@@ -16,6 +16,7 @@ const addressSchema = z.object({
   state: z.string(),
   zipCode: z.string(),
   city: z.string(),
+  complement: z.string().nullable().optional(),
 });
 
 export class PrismaUserMapper {
@@ -56,6 +57,9 @@ export class PrismaUserMapper {
             state: raw.address.state,
             zipCode: raw.address.zipCode,
             city: raw.address.city,
+            ...(raw.address.complement !== null
+              ? { complement: raw.address.complement }
+              : {}),
           } satisfies Prisma.InputJsonObject);
 
     return {

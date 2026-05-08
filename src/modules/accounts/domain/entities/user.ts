@@ -2,7 +2,7 @@ import { AggregateRoot } from "../../../../shared/entities/aggregate-root";
 import { UniqueEntityId } from "../../../../shared/entities/unique-entity-id";
 import { Optional } from "../../../../shared/types/optional";
 import { ProfileAlreadyCompleteError } from "../errors/profile-already-complete-error";
-import { Address, AddressProps } from "../value-objects/address";
+import { Address, AddressCreateInput } from "../value-objects/address";
 import { Email } from "../value-objects/email";
 import type { OAuthProvider } from "../value-objects/oauth-provider";
 import { Phone } from "../value-objects/phone";
@@ -129,7 +129,7 @@ export class User extends AggregateRoot<UserProps> {
     name?: string | undefined;
     email?: string | undefined;
     phone?: string | undefined;
-    address?: AddressProps | undefined;
+    address?: AddressCreateInput | undefined;
   }) {
     const newEmail = data.email ? new Email(data.email) : undefined;
 

@@ -146,7 +146,7 @@ export class PrismaEstablishmentRepository implements EstablishmentsRepository {
         where: {
           ...(filters?.establishmentName
             ? {
-                corporateName: filters.establishmentName,
+                tradeName: filters.establishmentName,
               }
             : {}),
           ...(filters?.serviceCategory
@@ -160,7 +160,7 @@ export class PrismaEstablishmentRepository implements EstablishmentsRepository {
             : {}),
         },
         orderBy: {
-          corporateName: "asc",
+          tradeName: "asc",
         },
       });
 

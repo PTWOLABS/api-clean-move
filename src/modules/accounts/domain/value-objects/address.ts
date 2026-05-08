@@ -6,6 +6,11 @@ export type AddressProps = {
   state: string;
   zipCode: string;
   city: string;
+  complement: string | null;
+};
+
+export type AddressCreateInput = Omit<AddressProps, "complement"> & {
+  complement?: string | null | undefined;
 };
 
 export class InvalidAddressError extends Error {
@@ -24,12 +29,17 @@ export class Address extends ValueObject<AddressProps> {
     return /^\d{5}-?\d{3}$/.test(value);
   }
 
-  public static create(props: AddressProps): Address {
+  public static create(props: AddressCreateInput): Address {
     const street = props.street.trim();
     const country = props.country.trim();
     const state = props.state.trim();
     const zipCode = props.zipCode.trim();
     const city = props.city.trim();
+    const complementRaw = props.complement;
+    const complement =
+      complementRaw === undefined || complementRaw === null
+        ? null
+        : complementRaw.trim() || null;
 
     if (!this.isValidZipCode(zipCode)) {
       throw new InvalidAddressError("Invalid zip code");
@@ -57,6 +67,7 @@ export class Address extends ValueObject<AddressProps> {
       state,
       zipCode,
       city,
+      complement,
     });
   }
 
@@ -80,7 +91,12 @@ export class Address extends ValueObject<AddressProps> {
     return this.props.city;
   }
 
+  public get complement(): string | null {
+    return this.props.complement;
+  }
+
   public toString(): string {
-    return `${this.props.street}, ${this.props.city}, ${this.props.state}, ${this.props.zipCode}, ${this.props.country}`;
+    const line = `${this.props.street}, ${this.props.city}, ${this.props.state}, ${this.props.zipCode}, ${this.props.country}`;
+    return this.props.complement ? `${line} (${this.props.complement})` : line;
   }
 }
