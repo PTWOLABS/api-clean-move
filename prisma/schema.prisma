@@ -181,7 +181,6 @@ model Establishment {
   tradeName          String
   legalBusinessName  String
   slug               String  @unique
-  operatingHours     Json    @map("operating_hours")
   cnpj               String  @unique @db.VarChar(14)
 
   owner        User              @relation("EstablishmentOwner", fields: [ownerId], references: [id], onDelete: Restrict)

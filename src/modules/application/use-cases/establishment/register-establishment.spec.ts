@@ -71,7 +71,6 @@ describe("Register an establishment", () => {
     expect(result.value.establishment.slug.value).toEqual(
       "valid-establishment",
     );
-    expect(result.value.establishment.operatingHours.days).toHaveLength(0);
   });
 
   it("not should be able to register an establishment with duplicated email", async () => {

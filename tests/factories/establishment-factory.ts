@@ -4,7 +4,6 @@ import {
 } from "../../src/modules/establishments/domain/entities/establishment";
 import { UniqueEntityId } from "../../src/shared/entities/unique-entity-id";
 import { Cnpj } from "../../src/modules/establishments/domain/value-objects/cnpj";
-import { OperatingHours } from "../../src/modules/establishments/domain/value-objects/operating-hours";
 import {
   makeCompanyName,
   makeUsername,
@@ -58,22 +57,6 @@ export function makeEstablishment(
       cnpj: Cnpj.create(makeValidCnpj()),
       legalBusinessName: makeCompanyName(),
       tradeName: makeUsername(),
-      operatingHours: OperatingHours.create({
-        days: [
-          {
-            day: "MONDAY",
-            ranges: [{ start: "08:00", end: "18:00" }],
-          },
-          {
-            day: "SATURDAY",
-            ranges: [{ start: "08:00", end: "12:00" }],
-          },
-          {
-            day: "SUNDAY",
-            ranges: [],
-          },
-        ],
-      }),
       ...override,
     },
     id,

@@ -25,7 +25,6 @@ import {
   Cnpj,
   InvalidCnpjError,
 } from "../../../establishments/domain/value-objects/cnpj";
-import { OperatingHours } from "../../../establishments/domain/value-objects/operating-hours";
 import { Slug } from "../../../establishments/domain/value-objects/slug";
 import { EstablishmentsRepository } from "../../repositories/establishment-repository";
 import { HashGenerator } from "../../repositories/hash-generator";
@@ -79,7 +78,6 @@ export class RegisterEstablishmentUseCase {
 
     let email;
     let cnpj;
-    const operatingHours = OperatingHours.create({ days: [] });
     let phone;
     let address;
 
@@ -153,7 +151,6 @@ export class RegisterEstablishmentUseCase {
       cnpj,
       tradeName,
       legalBusinessName,
-      operatingHours,
       slug,
     });
 

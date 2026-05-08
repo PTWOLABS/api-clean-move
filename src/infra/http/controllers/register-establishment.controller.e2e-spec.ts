@@ -128,7 +128,6 @@ describe("RegisterEstablishmentController (e2e)", () => {
     });
     expect(createdEstablishment).not.toBeNull();
     expect(createdEstablishment?.slug).toBe("valid-establishment");
-    expect(createdEstablishment?.operatingHours).toEqual({ days: [] });
   });
 
   it("should return 400 when sending an invalid establishment payload", async () => {

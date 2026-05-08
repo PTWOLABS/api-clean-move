@@ -27,45 +27,6 @@ export class AddressDto {
   city!: string;
 }
 
-export class TimeRangeDto {
-  @ApiProperty({ example: "08:00" })
-  start!: string;
-
-  @ApiProperty({ example: "18:00" })
-  end!: string;
-}
-
-export class OperatingHoursDayDto {
-  @ApiProperty({
-    enum: [
-      "MONDAY",
-      "TUESDAY",
-      "WEDNESDAY",
-      "THURSDAY",
-      "FRIDAY",
-      "SATURDAY",
-      "SUNDAY",
-    ],
-    example: "MONDAY",
-  })
-  day!:
-    | "MONDAY"
-    | "TUESDAY"
-    | "WEDNESDAY"
-    | "THURSDAY"
-    | "FRIDAY"
-    | "SATURDAY"
-    | "SUNDAY";
-
-  @ApiProperty({ type: TimeRangeDto, isArray: true })
-  ranges!: TimeRangeDto[];
-}
-
-export class OperatingHoursDto {
-  @ApiProperty({ type: OperatingHoursDayDto, isArray: true })
-  days!: OperatingHoursDayDto[];
-}
-
 export class RegisterEstablishmentBodyDto {
   @ApiProperty({ example: "Studio Clean Move" })
   name!: string;
