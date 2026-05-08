@@ -178,8 +178,8 @@ model Establishment {
   ownerId            String  @unique @map("owner_id") @db.Uuid
   profileImageUrl    String? @map("profile_image_url")
   bannerImageUrl     String? @map("banner_image_url")
-  tradeName          String  @map("corporate_name")
-  legalBusinessName  String  @map("social_reason")
+  tradeName          String
+  legalBusinessName  String
   slug               String  @unique
   operatingHours     Json    @map("operating_hours")
   cnpj               String  @unique @db.VarChar(14)
