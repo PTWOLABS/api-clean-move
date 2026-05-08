@@ -52,20 +52,20 @@ export const operatingHoursSchema = z.object({
 
 const registerEstablishmentBodySchema = z.object({
   name: z.string().trim().min(1),
-  corporateName: z.string().trim().min(1),
-  socialReason: z.string().trim().min(1),
+  tradeName: z.string().trim().min(1),
+  legalBusinessName: z.string().trim().min(1),
   email: z.email(),
   password: z.string().nonempty().max(72),
   cnpj: z.string().trim().min(1),
   phone: z.string().trim().min(1),
   address: z.object({
     street: z.string().trim().min(1),
+    complement: z.string().trim().optional().nullable(),
     country: z.string().trim().min(1),
     state: z.string().trim().min(1),
     zipCode: z.string().trim().min(1),
     city: z.string().trim().min(1),
   }),
-  operatingHours: operatingHoursSchema,
   slug: z.string().trim().min(1).optional(),
 });
 

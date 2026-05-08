@@ -14,6 +14,9 @@ export class CustomerPresenter {
       address: customer.address
         ? {
             street: customer.address.street,
+            ...(customer.address.complement !== null
+              ? { complement: customer.address.complement }
+              : {}),
             country: customer.address.country,
             state: customer.address.state,
             zipCode: customer.address.zipCode,

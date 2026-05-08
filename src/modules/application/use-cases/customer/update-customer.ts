@@ -6,7 +6,7 @@ import { ResourceNotFoundError } from "../../../../shared/errors/resource-not-fo
 import { UnexpectedDomainError } from "../../../../shared/errors/unexpected-domain-error";
 import {
   Address,
-  AddressProps,
+  AddressCreateInput,
 } from "../../../accounts/domain/value-objects/address";
 import { Email } from "../../../accounts/domain/value-objects/email";
 import { Phone } from "../../../accounts/domain/value-objects/phone";
@@ -22,7 +22,7 @@ type UpdateCustomerUseCaseRequest = {
   fullName?: string;
   phone?: string;
   email?: string;
-  address?: AddressProps | null;
+  address?: AddressCreateInput | null;
   birthDate?: Date | null;
   nickname?: string | null;
 };

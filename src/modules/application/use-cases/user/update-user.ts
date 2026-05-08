@@ -1,6 +1,6 @@
 import { User } from "../../../accounts/domain/entities/user";
 import {
-  AddressProps,
+  AddressCreateInput,
   InvalidAddressError,
 } from "../../../accounts/domain/value-objects/address";
 import { Either, left, right } from "../../../../shared/either";
@@ -17,7 +17,7 @@ type UpdateUserUseCaseRequest = {
   name?: string;
   email?: string;
   phone?: string;
-  address?: AddressProps;
+  address?: AddressCreateInput;
 };
 
 export class InvalidUserUpdateInputError extends Error {

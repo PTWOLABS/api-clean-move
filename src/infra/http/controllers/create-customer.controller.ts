@@ -44,6 +44,7 @@ const createCustomerBodySchema = z.object({
   address: z
     .object({
       street: z.string().trim().min(1),
+      complement: z.string().trim().optional().nullable(),
       country: z.string().trim().min(1),
       state: z.string().trim().min(1),
       zipCode: z.string().trim().min(1),

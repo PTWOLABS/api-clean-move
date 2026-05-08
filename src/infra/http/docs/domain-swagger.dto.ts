@@ -8,6 +8,12 @@ export class AddressDto {
   @ApiProperty({ example: "Rua das Flores, 123" })
   street!: string;
 
+  @ApiPropertyOptional({
+    example: "Sala 12",
+    description: "Optional address complement (e.g. apartment, suite).",
+  })
+  complement?: string | null;
+
   @ApiProperty({ example: "Brasil" })
   country!: string;
 
@@ -64,11 +70,17 @@ export class RegisterEstablishmentBodyDto {
   @ApiProperty({ example: "Studio Clean Move" })
   name!: string;
 
-  @ApiProperty({ example: "Studio Clean Move LTDA" })
-  corporateName!: string;
+  @ApiProperty({
+    example: "Studio Clean Move",
+    description: "Trade name (nome fantasia).",
+  })
+  tradeName!: string;
 
-  @ApiProperty({ example: "Studio Clean Move Servicos de Beleza" })
-  socialReason!: string;
+  @ApiProperty({
+    example: "Studio Clean Move Servicos LTDA",
+    description: "Legal business name (razão social).",
+  })
+  legalBusinessName!: string;
 
   @ApiProperty({ example: "contato@cleanmove.com" })
   email!: string;
@@ -84,9 +96,6 @@ export class RegisterEstablishmentBodyDto {
 
   @ApiProperty({ type: AddressDto })
   address!: AddressDto;
-
-  @ApiProperty({ type: OperatingHoursDto })
-  operatingHours!: OperatingHoursDto;
 
   @ApiPropertyOptional({
     example: "studio-clean-move",
