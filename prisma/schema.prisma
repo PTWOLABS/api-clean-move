@@ -174,15 +174,15 @@ model CustomerVehicle {
 }
 
 model Establishment {
-  id               String  @id @default(uuid()) @db.Uuid
-  ownerId          String  @unique @map("owner_id") @db.Uuid
-  profileImageUrl  String? @map("profile_image_url")
-  bannerImageUrl   String? @map("banner_image_url")
-  corporateName    String  @map("corporate_name")
-  socialReason    String  @map("social_reason")
-  slug            String  @unique
-  operatingHours  Json    @map("operating_hours")
-  cnpj            String  @unique @db.VarChar(14)
+  id                 String  @id @default(uuid()) @db.Uuid
+  ownerId            String  @unique @map("owner_id") @db.Uuid
+  profileImageUrl    String? @map("profile_image_url")
+  bannerImageUrl     String? @map("banner_image_url")
+  tradeName          String  @map("corporate_name")
+  legalBusinessName  String  @map("social_reason")
+  slug               String  @unique
+  operatingHours     Json    @map("operating_hours")
+  cnpj               String  @unique @db.VarChar(14)
 
   owner        User              @relation("EstablishmentOwner", fields: [ownerId], references: [id], onDelete: Restrict)
   services     Service[]
@@ -191,7 +191,7 @@ model Establishment {
   appointments Appointment[]     @relation("EstablishmentAppointments")
   employees    Employee[]
 
-  @@index([corporateName])
+  @@index([tradeName])
   @@map("establishments")
 }
 
