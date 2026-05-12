@@ -232,7 +232,7 @@ async function bootstrap(): Promise<void> {
   if (envService.get("NODE_ENV") === "development") {
     console.log(`
     
-Swagger: http://localhost:3000/api
+Swagger: http://localhost:${port}/api
     
     
     `);

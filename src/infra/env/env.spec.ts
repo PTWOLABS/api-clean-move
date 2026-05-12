@@ -6,8 +6,8 @@ function baseEnv(
   overrides: Record<string, string | undefined> = {},
 ): Record<string, string | undefined> {
   return {
-    PORT: "3000",
-    FRONTEND_URL: "http://localhost:5000",
+    PORT: "8080",
+    FRONTEND_URL: "http://localhost:3000",
     POSTGRES_HOST: "localhost",
     POSTGRES_PORT: "5432",
     POSTGRES_DB: "clean_move",

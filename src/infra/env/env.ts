@@ -46,7 +46,7 @@ const s3PublicBaseUrlSchema = z.url();
 
 export const envSchema = z
   .object({
-    PORT: z.coerce.number().int().min(1).max(65535).optional().default(3000),
+    PORT: z.coerce.number().int().min(1).max(65535).optional().default(8080),
     FRONTEND_URL: z.url(),
     POSTGRES_HOST: nonEmptyStringSchema,
     POSTGRES_PORT: z.coerce
