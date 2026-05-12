@@ -106,6 +106,7 @@ async function bootstrap(): Promise<void> {
     .addTag("appointments", "Establishment-operated appointment management")
     .addTag("service", "Service catalog management")
     .addTag("media", "Image uploads and media")
+    .addTag("user", "Authenticated user profile")
     .build();
   const documentFactory = () => SwaggerModule.createDocument(app, config);
   SwaggerModule.setup("api", app, documentFactory, {

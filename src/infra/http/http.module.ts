@@ -23,6 +23,7 @@ import { UpdateEmployeeUseCase } from "../../modules/application/use-cases/emplo
 import { RegisterEstablishmentUseCase } from "../../modules/application/use-cases/establishment/register-establishment";
 import { UploadDomainImageUseCase } from "../../modules/application/use-cases/media/upload-domain-image";
 import { CreateServiceUseCase } from "../../modules/application/use-cases/service/create-service";
+import { GetMeUseCase } from "../../modules/application/use-cases/user/get-me";
 import { SessionCreationService } from "../../modules/accounts/domain/services/session-creation-service";
 import { AuthModule } from "../auth/auth.module";
 import { DatabaseModule } from "../database/database.module";
@@ -36,6 +37,7 @@ import { DeleteCustomerController } from "./controllers/delete-customer.controll
 import { DeleteCustomerVehicleController } from "./controllers/delete-customer-vehicle.controller";
 import { DeleteEmployeeController } from "./controllers/delete-employee.controller";
 import { GetEmployeeController } from "./controllers/get-employee.controller";
+import { GetMeController } from "./controllers/get-me.controller";
 import { ListAppointmentsController } from "./controllers/list-appointments.controller";
 import { ListCustomersController } from "./controllers/list-customers.controller";
 import { ListCustomerVehiclesController } from "./controllers/list-customer-vehicles.controller";
@@ -62,6 +64,7 @@ import { UploadVehicleImageController } from "./controllers/media/upload-vehicle
     LoginWithCredentialsController,
     RefreshSessionController,
     SignOutController,
+    GetMeController,
     CreateServiceController,
     CreateCustomerController,
     ListCustomersController,
@@ -108,6 +111,7 @@ import { UploadVehicleImageController } from "./controllers/media/upload-vehicle
     LoginWithCredentialsUseCase,
     RefreshSessionUseCase,
     SignOutUseCase,
+    GetMeUseCase,
     SessionCreationService,
   ],
 })
