@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       NODE_ENV: test
-      FRONTEND_URL: http://localhost:5000
+      FRONTEND_URL: http://localhost:3000
       POSTGRES_HOST: localhost
       POSTGRES_DB: api-clean-move
       POSTGRES_USER: postgres
@@ -43,7 +43,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       NODE_ENV: test
-      FRONTEND_URL: http://localhost:5000
+      FRONTEND_URL: http://localhost:3000
       POSTGRES_HOST: localhost
       POSTGRES_DB: api-clean-move
       POSTGRES_USER: postgres
