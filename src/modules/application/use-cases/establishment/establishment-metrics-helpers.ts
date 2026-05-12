@@ -1,7 +1,9 @@
-import { AppointmentStatus } from "../../../scheduling/domain/entities/appointment";
+import {
+  Appointment,
+  AppointmentStatus,
+} from "../../../scheduling/domain/entities/appointment";
 import { ServiceCategory } from "../../../catalog/domain/value-objects/service-category";
 import { AppointmentsRepository } from "../../repositories/appointments-repository";
-import { ServicesRepository } from "../../repositories/services-repository";
 
 export type EstablishmentMetricsFilters = {
   startsAt?: Date;
@@ -12,43 +14,11 @@ export type EstablishmentMetricsFilters = {
 
 const PAGE_SIZE = 20;
 
-export async function findAllServicesByEstablishment(
-  servicesRepository: ServicesRepository,
-  establishmentId: string,
-) {
-  const allServices = [];
-  let page = 1;
-
-  while (true) {
-    const services = await servicesRepository.findManyByEstablishmentId(
-      establishmentId,
-      {
-        page,
-        size: PAGE_SIZE,
-      },
-    );
-
-    if (services.length === 0) {
-      break;
-    }
-
-    allServices.push(...services);
-
-    if (services.length < PAGE_SIZE) {
-      break;
-    }
-
-    page += 1;
-  }
-
-  return allServices;
-}
-
 export async function findAllAppointmentsByEstablishment(
   appointmentsRepository: AppointmentsRepository,
   establishmentId: string,
 ) {
-  const allAppointments = [];
+  const allAppointments: Appointment[] = [];
   let page = 1;
 
   while (true) {
@@ -76,9 +46,14 @@ export async function findAllAppointmentsByEstablishment(
   return allAppointments;
 }
 
+export function getAppointmentNetRevenueInCents(appointment: Appointment) {
+  const discountInCents = appointment.discountInCents?.amountInCents ?? 0;
+
+  return Math.max(appointment.service.priceInCents - discountInCents, 0);
+}
+
 export function filterAppointmentsByMetrics(
-  appointments: Awaited<ReturnType<typeof findAllAppointmentsByEstablishment>>,
-  servicesById: Map<string, ServiceCategory | undefined>,
+  appointments: Appointment[],
   filters?: EstablishmentMetricsFilters,
 ) {
   return appointments.filter((appointment) => {
@@ -98,9 +73,7 @@ export function filterAppointmentsByMetrics(
     }
 
     if (filters?.categories?.length) {
-      const serviceCategory = servicesById.get(
-        appointment.service.serviceId.toString(),
-      );
+      const serviceCategory = appointment.service.category;
 
       if (!serviceCategory || !filters.categories.includes(serviceCategory)) {
         return false;

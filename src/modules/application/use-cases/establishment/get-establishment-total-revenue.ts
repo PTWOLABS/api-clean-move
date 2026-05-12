@@ -1,17 +1,18 @@
+import { Injectable } from "@nestjs/common";
+
 import { Either, left, right } from "../../../../shared/either";
 import { ResourceNotFoundError } from "../../../../shared/errors/resource-not-found-error";
 import { AppointmentsRepository } from "../../repositories/appointments-repository";
 import { EstablishmentsRepository } from "../../repositories/establishment-repository";
-import { ServicesRepository } from "../../repositories/services-repository";
 import {
   EstablishmentMetricsFilters,
   filterAppointmentsByMetrics,
   findAllAppointmentsByEstablishment,
-  findAllServicesByEstablishment,
+  getAppointmentNetRevenueInCents,
 } from "./establishment-metrics-helpers";
 
 type GetEstablishmentTotalRevenueUseCaseRequest = {
-  establishmentId: string;
+  establishmentOwnerId: string;
   filters?: EstablishmentMetricsFilters;
 };
 
@@ -22,46 +23,36 @@ type GetEstablishmentTotalRevenueUseCaseResponse = Either<
   }
 >;
 
+@Injectable()
 export class GetEstablishmentTotalRevenueUseCase {
   constructor(
     private establishmentsRepository: EstablishmentsRepository,
     private appointmentsRepository: AppointmentsRepository,
-    private servicesRepository: ServicesRepository,
   ) {}
 
   async execute({
-    establishmentId,
+    establishmentOwnerId,
     filters,
   }: GetEstablishmentTotalRevenueUseCaseRequest): Promise<GetEstablishmentTotalRevenueUseCaseResponse> {
     const establishment =
-      await this.establishmentsRepository.findById(establishmentId);
+      await this.establishmentsRepository.findByOwnerId(establishmentOwnerId);
 
     if (!establishment) {
       return left(new ResourceNotFoundError({ resource: "establishment" }));
     }
 
-    const services = await findAllServicesByEstablishment(
-      this.servicesRepository,
-      establishmentId,
-    );
-
-    const servicesById = new Map(
-      services.map((service) => [service.id.toString(), service.category]),
-    );
-
     const appointments = await findAllAppointmentsByEstablishment(
       this.appointmentsRepository,
-      establishmentId,
+      establishment.id.toString(),
     );
 
     const filteredAppointments = filterAppointmentsByMetrics(
       appointments,
-      servicesById,
       filters,
     );
 
     const totalRevenueInCents = filteredAppointments.reduce(
-      (acc, appointment) => acc + appointment.service.priceInCents,
+      (acc, appointment) => acc + getAppointmentNetRevenueInCents(appointment),
       0,
     );
 
