@@ -34,6 +34,18 @@ export class PrismaAppointmentsRepository implements AppointmentsRepository {
     };
   }
 
+  private static buildStatusWhere(status?: AppointmentFilters["status"]) {
+    if (!status) {
+      return {};
+    }
+
+    if (Array.isArray(status)) {
+      return status.length > 0 ? { status: { in: status } } : {};
+    }
+
+    return { status };
+  }
+
   private static buildTextWhere(
     filters?: AppointmentFilters,
   ): Pick<Prisma.AppointmentWhereInput, "AND"> {
@@ -222,7 +234,10 @@ export class PrismaAppointmentsRepository implements AppointmentsRepository {
           ...(filters?.customerId ? { customerId: filters.customerId } : {}),
           ...(filters?.vehicleId ? { vehicleId: filters.vehicleId } : {}),
           ...(filters?.serviceId ? { bookedServiceId: filters.serviceId } : {}),
-          ...(filters?.status ? { status: filters.status } : {}),
+          ...PrismaAppointmentsRepository.buildStatusWhere(filters?.status),
+          ...(filters?.categories?.length
+            ? { bookedServiceCategory: { in: filters.categories } }
+            : {}),
           ...(filters?.startsAt || filters?.endsAt
             ? {
                 startsAt: {

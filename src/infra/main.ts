@@ -104,6 +104,7 @@ async function bootstrap(): Promise<void> {
     .addTag("customers", "Internal customer management")
     .addTag("customer vehicles", "Internal customer vehicle management")
     .addTag("appointments", "Establishment-operated appointment management")
+    .addTag("dashboard metrics", "Authenticated dashboard metric read models")
     .addTag("service", "Service catalog management")
     .addTag("media", "Image uploads and media")
     .addTag("user", "Authenticated user profile")

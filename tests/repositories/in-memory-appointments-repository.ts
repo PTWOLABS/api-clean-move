@@ -35,6 +35,23 @@ export class InMemoryAppointmentsRepository implements AppointmentsRepository {
     return value?.toLowerCase().includes(filter.toLowerCase()) ?? false;
   }
 
+  private static matchesStatusFilter(
+    appointment: Appointment,
+    filters?: AppointmentFilters,
+  ) {
+    const status = filters?.status;
+
+    if (!status) {
+      return true;
+    }
+
+    if (Array.isArray(status)) {
+      return status.length === 0 || status.includes(appointment.status);
+    }
+
+    return appointment.status === status;
+  }
+
   private getCustomerSearchData(
     customerId: string,
   ): AppointmentCustomerSearchData | undefined {
@@ -230,7 +247,17 @@ export class InMemoryAppointmentsRepository implements AppointmentsRepository {
           return false;
         }
 
-        if (filters?.status && item.status !== filters.status) {
+        if (
+          !InMemoryAppointmentsRepository.matchesStatusFilter(item, filters)
+        ) {
+          return false;
+        }
+
+        if (
+          filters?.categories?.length &&
+          (!item.service.category ||
+            !filters.categories.includes(item.service.category))
+        ) {
           return false;
         }
 

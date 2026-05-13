@@ -1,4 +1,5 @@
 import { PaginationParams } from "../../../shared/types/pagination-params";
+import { ServiceCategory } from "../../catalog/domain/value-objects/service-category";
 import {
   Appointment,
   AppointmentStatus,
@@ -15,7 +16,8 @@ export type AppointmentFilters = {
   vehicleModel?: string;
   serviceId?: string;
   serviceName?: string;
-  status?: AppointmentStatus;
+  status?: AppointmentStatus | AppointmentStatus[];
+  categories?: ServiceCategory[];
   startsAt?: Date;
   endsAt?: Date;
 } & PaginationParams;

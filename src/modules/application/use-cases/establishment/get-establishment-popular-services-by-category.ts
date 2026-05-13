@@ -1,17 +1,18 @@
+import { Injectable } from "@nestjs/common";
+
 import { Either, left, right } from "../../../../shared/either";
 import { ResourceNotFoundError } from "../../../../shared/errors/resource-not-found-error";
 import { AppointmentsRepository } from "../../repositories/appointments-repository";
 import { EstablishmentsRepository } from "../../repositories/establishment-repository";
-import { ServicesRepository } from "../../repositories/services-repository";
 import {
   EstablishmentMetricsFilters,
   filterAppointmentsByMetrics,
   findAllAppointmentsByEstablishment,
-  findAllServicesByEstablishment,
+  getAppointmentNetRevenueInCents,
 } from "./establishment-metrics-helpers";
 
 type GetEstablishmentPopularServicesByCategoryUseCaseRequest = {
-  establishmentId: string;
+  establishmentOwnerId: string;
   filters?: EstablishmentMetricsFilters;
 };
 
@@ -30,49 +31,32 @@ type GetEstablishmentPopularServicesByCategoryUseCaseResponse = Either<
   }
 >;
 
+@Injectable()
 export class GetEstablishmentPopularServicesByCategoryUseCase {
   constructor(
     private establishmentsRepository: EstablishmentsRepository,
     private appointmentsRepository: AppointmentsRepository,
-    private servicesRepository: ServicesRepository,
   ) {}
 
   async execute({
-    establishmentId,
+    establishmentOwnerId,
     filters,
   }: GetEstablishmentPopularServicesByCategoryUseCaseRequest): Promise<GetEstablishmentPopularServicesByCategoryUseCaseResponse> {
     const establishment =
-      await this.establishmentsRepository.findById(establishmentId);
+      await this.establishmentsRepository.findByOwnerId(establishmentOwnerId);
 
     if (!establishment) {
       return left(new ResourceNotFoundError({ resource: "establishment" }));
     }
 
-    const services = await findAllServicesByEstablishment(
-      this.servicesRepository,
-      establishmentId,
-    );
-
-    const servicesById = new Map(
-      services.map((service) => [
-        service.id.toString(),
-        {
-          category: service.category,
-          serviceName: service.serviceName.value,
-        },
-      ]),
-    );
-
     const appointments = await findAllAppointmentsByEstablishment(
       this.appointmentsRepository,
-      establishmentId,
+      establishment.id.toString(),
+      filters,
     );
 
     const filteredAppointments = filterAppointmentsByMetrics(
       appointments,
-      new Map(
-        services.map((service) => [service.id.toString(), service.category]),
-      ),
       filters,
     );
 
@@ -80,21 +64,16 @@ export class GetEstablishmentPopularServicesByCategoryUseCase {
 
     for (const appointment of filteredAppointments) {
       const serviceId = appointment.service.serviceId.toString();
-      const serviceMeta = servicesById.get(serviceId);
-
-      if (!serviceMeta) {
-        continue;
-      }
-
       const current = groupedByService.get(serviceId);
+      const netRevenueInCents = getAppointmentNetRevenueInCents(appointment);
 
       if (!current) {
         groupedByService.set(serviceId, {
           serviceId,
           serviceName: appointment.service.serviceName,
-          category: serviceMeta.category ?? null,
+          category: appointment.service.category ?? null,
           appointmentsCount: 1,
-          revenueInCents: appointment.service.priceInCents,
+          revenueInCents: netRevenueInCents,
         });
 
         continue;
@@ -103,8 +82,7 @@ export class GetEstablishmentPopularServicesByCategoryUseCase {
       groupedByService.set(serviceId, {
         ...current,
         appointmentsCount: current.appointmentsCount + 1,
-        revenueInCents:
-          current.revenueInCents + appointment.service.priceInCents,
+        revenueInCents: current.revenueInCents + netRevenueInCents,
       });
     }
 

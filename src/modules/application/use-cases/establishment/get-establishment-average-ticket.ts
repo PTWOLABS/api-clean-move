@@ -1,17 +1,18 @@
+import { Injectable } from "@nestjs/common";
+
 import { Either, left, right } from "../../../../shared/either";
 import { ResourceNotFoundError } from "../../../../shared/errors/resource-not-found-error";
 import { AppointmentsRepository } from "../../repositories/appointments-repository";
 import { EstablishmentsRepository } from "../../repositories/establishment-repository";
-import { ServicesRepository } from "../../repositories/services-repository";
 import {
   EstablishmentMetricsFilters,
   filterAppointmentsByMetrics,
   findAllAppointmentsByEstablishment,
-  findAllServicesByEstablishment,
+  getAppointmentNetRevenueInCents,
 } from "./establishment-metrics-helpers";
 
 type GetEstablishmentAverageTicketUseCaseRequest = {
-  establishmentId: string;
+  establishmentOwnerId: string;
   filters?: EstablishmentMetricsFilters;
 };
 
@@ -22,41 +23,32 @@ type GetEstablishmentAverageTicketUseCaseResponse = Either<
   }
 >;
 
+@Injectable()
 export class GetEstablishmentAverageTicketUseCase {
   constructor(
     private establishmentsRepository: EstablishmentsRepository,
     private appointmentsRepository: AppointmentsRepository,
-    private servicesRepository: ServicesRepository,
   ) {}
 
   async execute({
-    establishmentId,
+    establishmentOwnerId,
     filters,
   }: GetEstablishmentAverageTicketUseCaseRequest): Promise<GetEstablishmentAverageTicketUseCaseResponse> {
     const establishment =
-      await this.establishmentsRepository.findById(establishmentId);
+      await this.establishmentsRepository.findByOwnerId(establishmentOwnerId);
 
     if (!establishment) {
       return left(new ResourceNotFoundError({ resource: "establishment" }));
     }
 
-    const services = await findAllServicesByEstablishment(
-      this.servicesRepository,
-      establishmentId,
-    );
-
-    const servicesById = new Map(
-      services.map((service) => [service.id.toString(), service.category]),
-    );
-
     const appointments = await findAllAppointmentsByEstablishment(
       this.appointmentsRepository,
-      establishmentId,
+      establishment.id.toString(),
+      filters,
     );
 
     const filteredAppointments = filterAppointmentsByMetrics(
       appointments,
-      servicesById,
       filters,
     );
 
@@ -67,7 +59,7 @@ export class GetEstablishmentAverageTicketUseCase {
     }
 
     const totalRevenueInCents = filteredAppointments.reduce(
-      (acc, appointment) => acc + appointment.service.priceInCents,
+      (acc, appointment) => acc + getAppointmentNetRevenueInCents(appointment),
       0,
     );
 

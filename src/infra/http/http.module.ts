@@ -20,6 +20,11 @@ import { GetEmployeeUseCase } from "../../modules/application/use-cases/employee
 import { ListEmployeesUseCase } from "../../modules/application/use-cases/employee/list-employees";
 import { RegisterEmployeeUseCase } from "../../modules/application/use-cases/employee/register-employee";
 import { UpdateEmployeeUseCase } from "../../modules/application/use-cases/employee/update-employee";
+import { GetEstablishmentAppointmentsCountUseCase } from "../../modules/application/use-cases/establishment/get-establishment-appointments-count";
+import { GetEstablishmentCancellationRateUseCase } from "../../modules/application/use-cases/establishment/get-establishment-cancellation-rate";
+import { GetEstablishmentDashboardOverviewUseCase } from "../../modules/application/use-cases/establishment/get-establishment-dashboard-overview";
+import { GetEstablishmentPopularServicesByCategoryUseCase } from "../../modules/application/use-cases/establishment/get-establishment-popular-services-by-category";
+import { GetEstablishmentRevenueVsAppointmentsUseCase } from "../../modules/application/use-cases/establishment/get-establishment-revenue-vs-appointments";
 import { RegisterEstablishmentUseCase } from "../../modules/application/use-cases/establishment/register-establishment";
 import { UploadDomainImageUseCase } from "../../modules/application/use-cases/media/upload-domain-image";
 import { CreateServiceUseCase } from "../../modules/application/use-cases/service/create-service";
@@ -33,6 +38,10 @@ import { CreateAppointmentController } from "./controllers/create-appointment.co
 import { CreateCustomerController } from "./controllers/create-customer.controller";
 import { CreateCustomerVehicleController } from "./controllers/create-customer-vehicle.controller";
 import { CreateServiceController } from "./controllers/create-service.controller";
+import { DashboardMetricsAppointmentsController } from "./controllers/dashboard-metrics-appointments.controller";
+import { DashboardMetricsOverviewController } from "./controllers/dashboard-metrics-overview.controller";
+import { DashboardMetricsPopularServicesController } from "./controllers/dashboard-metrics-popular-services.controller";
+import { DashboardMetricsRevenueController } from "./controllers/dashboard-metrics-revenue.controller";
 import { DeleteCustomerController } from "./controllers/delete-customer.controller";
 import { DeleteCustomerVehicleController } from "./controllers/delete-customer-vehicle.controller";
 import { DeleteEmployeeController } from "./controllers/delete-employee.controller";
@@ -77,6 +86,10 @@ import { UploadVehicleImageController } from "./controllers/media/upload-vehicle
     CreateAppointmentController,
     ListAppointmentsController,
     UpdateAppointmentStatusController,
+    DashboardMetricsOverviewController,
+    DashboardMetricsRevenueController,
+    DashboardMetricsAppointmentsController,
+    DashboardMetricsPopularServicesController,
     RegisterEmployeeController,
     GetEmployeeController,
     ListEmployeesController,
@@ -102,6 +115,11 @@ import { UploadVehicleImageController } from "./controllers/media/upload-vehicle
     CreateAppointmentUseCase,
     ListAppointmentsUseCase,
     UpdateAppointmentStatusUseCase,
+    GetEstablishmentDashboardOverviewUseCase,
+    GetEstablishmentAppointmentsCountUseCase,
+    GetEstablishmentCancellationRateUseCase,
+    GetEstablishmentRevenueVsAppointmentsUseCase,
+    GetEstablishmentPopularServicesByCategoryUseCase,
     RegisterEmployeeUseCase,
     GetEmployeeUseCase,
     ListEmployeesUseCase,

@@ -16,6 +16,9 @@
     "format:check": "prettier . --check",
     "check:all": "npm run build && npm run lint && npm run format && npm run typecheck && npm run test",
     "prisma:generate": "prisma generate",
+    "prisma": {
+      "seed": "tsx prisma/seed.ts"
+    },
     "start": "node dist/infra/main.js",
     "start:dev": "node --watch -r ts-node/register src/infra/main.ts",
     "test": "vitest run --config vitest.config.mts",
@@ -52,6 +55,7 @@
     "prisma": "^7.6.0",
     "supertest": "^7.1.4",
     "ts-node": "^10.9.2",
+    "tsx": "^4.21.0",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.57.1",
     "vitest": "^4.1.0"

@@ -11,20 +11,23 @@ import {
   getAppointmentNetRevenueInCents,
 } from "./establishment-metrics-helpers";
 
-type GetEstablishmentTotalRevenueUseCaseRequest = {
+type GetEstablishmentDashboardOverviewUseCaseRequest = {
   establishmentOwnerId: string;
   filters?: EstablishmentMetricsFilters;
 };
 
-type GetEstablishmentTotalRevenueUseCaseResponse = Either<
+type GetEstablishmentDashboardOverviewUseCaseResponse = Either<
   ResourceNotFoundError,
   {
     totalRevenueInCents: number;
+    averageTicketInCents: number;
+    appointmentsCount: number;
+    cancellationRate: number;
   }
 >;
 
 @Injectable()
-export class GetEstablishmentTotalRevenueUseCase {
+export class GetEstablishmentDashboardOverviewUseCase {
   constructor(
     private establishmentsRepository: EstablishmentsRepository,
     private appointmentsRepository: AppointmentsRepository,
@@ -33,7 +36,7 @@ export class GetEstablishmentTotalRevenueUseCase {
   async execute({
     establishmentOwnerId,
     filters,
-  }: GetEstablishmentTotalRevenueUseCaseRequest): Promise<GetEstablishmentTotalRevenueUseCaseResponse> {
+  }: GetEstablishmentDashboardOverviewUseCaseRequest): Promise<GetEstablishmentDashboardOverviewUseCaseResponse> {
     const establishment =
       await this.establishmentsRepository.findByOwnerId(establishmentOwnerId);
 
@@ -52,13 +55,32 @@ export class GetEstablishmentTotalRevenueUseCase {
       filters,
     );
 
-    const totalRevenueInCents = filteredAppointments.reduce(
-      (acc, appointment) => acc + getAppointmentNetRevenueInCents(appointment),
-      0,
-    );
+    let totalRevenueInCents = 0;
+    let cancelledCount = 0;
+
+    for (const appointment of filteredAppointments) {
+      totalRevenueInCents += getAppointmentNetRevenueInCents(appointment);
+
+      if (appointment.status === "CANCELLED") {
+        cancelledCount += 1;
+      }
+    }
+
+    const appointmentsCount = filteredAppointments.length;
+    const averageTicketInCents =
+      appointmentsCount === 0
+        ? 0
+        : Math.round(totalRevenueInCents / appointmentsCount);
+    const cancellationRate =
+      appointmentsCount === 0
+        ? 0
+        : Number((cancelledCount / appointmentsCount).toFixed(4));
 
     return right({
       totalRevenueInCents,
+      averageTicketInCents,
+      appointmentsCount,
+      cancellationRate,
     });
   }
 }

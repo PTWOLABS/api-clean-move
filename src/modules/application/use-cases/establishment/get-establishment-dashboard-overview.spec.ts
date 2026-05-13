@@ -7,11 +7,8 @@ import { makeService } from "../../../../../tests/factories/service-factory";
 import { InMemoryAppointmentsRepository } from "../../../../../tests/repositories/in-memory-appointments-repository";
 import { InMemoryEstablishmentsRepository } from "../../../../../tests/repositories/in-memory-establishment-repository";
 import { InMemoryServicesRepository } from "../../../../../tests/repositories/in-memory-services-repository";
-import { GetEstablishmentAppointmentsCountUseCase } from "./get-establishment-appointments-count";
-import { GetEstablishmentAverageTicketUseCase } from "./get-establishment-average-ticket";
-import { GetEstablishmentCancellationRateUseCase } from "./get-establishment-cancellation-rate";
-import { GetEstablishmentTotalRevenueUseCase } from "./get-establishment-total-revenue";
 import { EstablishmentMetricsFilters } from "./establishment-metrics-helpers";
+import { GetEstablishmentDashboardOverviewUseCase } from "./get-establishment-dashboard-overview";
 
 function makeRepositories() {
   const servicesRepository = new InMemoryServicesRepository();
@@ -26,39 +23,28 @@ function makeRepositories() {
   };
 }
 
-function makeKpiUseCases({
+function makeSut({
   appointmentsRepository,
   establishmentsRepository,
 }: ReturnType<typeof makeRepositories>) {
-  const totalRevenueUseCase = new GetEstablishmentTotalRevenueUseCase(
+  return new GetEstablishmentDashboardOverviewUseCase(
     establishmentsRepository,
     appointmentsRepository,
   );
-  const averageTicketUseCase = new GetEstablishmentAverageTicketUseCase(
-    establishmentsRepository,
-    appointmentsRepository,
-  );
-  const appointmentsCountUseCase = new GetEstablishmentAppointmentsCountUseCase(
-    establishmentsRepository,
-    appointmentsRepository,
-  );
-  const cancellationRateUseCase = new GetEstablishmentCancellationRateUseCase(
-    establishmentsRepository,
-    appointmentsRepository,
-  );
-
-  return {
-    appointmentsCountUseCase,
-    averageTicketUseCase,
-    cancellationRateUseCase,
-    totalRevenueUseCase,
-  };
 }
 
-describe("Establishment metrics KPIs", () => {
-  it("should calculate revenue, average ticket, appointments and cancellation rate with filters", async () => {
+describe("Get establishment dashboard overview", () => {
+  it("should calculate overview KPIs with filters, discounts, and establishment isolation", async () => {
     const repositories = makeRepositories();
     const { appointmentsRepository, establishmentsRepository } = repositories;
+    const findByOwnerIdSpy = vi.spyOn(
+      establishmentsRepository,
+      "findByOwnerId",
+    );
+    const findManyByEstablishmentIdSpy = vi.spyOn(
+      appointmentsRepository,
+      "findManyByEstablishmentId",
+    );
 
     const ownerId = new UniqueEntityId("owner-1");
     const establishment = makeEstablishment(
@@ -168,48 +154,42 @@ describe("Establishment metrics KPIs", () => {
       status: ["SCHEDULED", "CANCELLED"],
     };
 
-    const {
-      appointmentsCountUseCase,
-      averageTicketUseCase,
-      cancellationRateUseCase,
-      totalRevenueUseCase,
-    } = makeKpiUseCases(repositories);
+    const sut = makeSut(repositories);
 
-    const request = {
+    const result = await sut.execute({
       establishmentOwnerId: ownerId.toString(),
       filters,
-    };
+    });
 
-    const totalRevenueResult = await totalRevenueUseCase.execute(request);
-    const averageTicketResult = await averageTicketUseCase.execute(request);
-    const appointmentsCountResult =
-      await appointmentsCountUseCase.execute(request);
-    const cancellationRateResult =
-      await cancellationRateUseCase.execute(request);
+    expect(result.isRight()).toBe(true);
 
-    expect(totalRevenueResult.isRight()).toBe(true);
-    expect(averageTicketResult.isRight()).toBe(true);
-    expect(appointmentsCountResult.isRight()).toBe(true);
-    expect(cancellationRateResult.isRight()).toBe(true);
-
-    if (
-      totalRevenueResult.isLeft() ||
-      averageTicketResult.isLeft() ||
-      appointmentsCountResult.isLeft() ||
-      cancellationRateResult.isLeft()
-    ) {
-      throw new Error("Expected metrics to be calculated successfully");
+    if (result.isLeft()) {
+      throw new Error(
+        "Expected overview metrics to be calculated successfully",
+      );
     }
 
-    expect(totalRevenueResult.value.totalRevenueInCents).toBe(19000);
-    expect(averageTicketResult.value.averageTicketInCents).toBe(9500);
-    expect(appointmentsCountResult.value.appointmentsCount).toBe(2);
-    expect(cancellationRateResult.value.cancellationRate).toBe(0.5);
+    expect(result.value).toEqual({
+      totalRevenueInCents: 19000,
+      averageTicketInCents: 9500,
+      appointmentsCount: 2,
+      cancellationRate: 0.5,
+    });
+    expect(findByOwnerIdSpy).toHaveBeenCalledTimes(1);
+    expect(findManyByEstablishmentIdSpy).toHaveBeenCalledTimes(1);
+    expect(findManyByEstablishmentIdSpy).toHaveBeenCalledWith("est-1", {
+      startsAt: filters.startsAt,
+      endsAt: filters.endsAt,
+      status: filters.status,
+      categories: filters.categories,
+      page: 1,
+      size: 20,
+    });
   });
 
-  it("should return zero KPI values when no appointments match", async () => {
+  it("should return zero overview KPI values when no appointments match", async () => {
     const repositories = makeRepositories();
-    const { establishmentsRepository } = repositories;
+    const { appointmentsRepository, establishmentsRepository } = repositories;
 
     const ownerId = new UniqueEntityId("owner-1");
     const establishment = makeEstablishment(
@@ -218,86 +198,60 @@ describe("Establishment metrics KPIs", () => {
     );
 
     await establishmentsRepository.create(establishment);
+    await appointmentsRepository.create(
+      makeAppointment({
+        establishmentId: establishment.id,
+        status: "SCHEDULED",
+      }),
+    );
 
-    const filters: EstablishmentMetricsFilters = {
-      status: ["DONE"],
-    };
+    const sut = makeSut(repositories);
 
-    const {
-      appointmentsCountUseCase,
-      averageTicketUseCase,
-      cancellationRateUseCase,
-      totalRevenueUseCase,
-    } = makeKpiUseCases(repositories);
-
-    const request = {
+    const result = await sut.execute({
       establishmentOwnerId: ownerId.toString(),
-      filters,
-    };
+      filters: {
+        status: ["DONE"],
+      },
+    });
 
-    const totalRevenueResult = await totalRevenueUseCase.execute(request);
-    const averageTicketResult = await averageTicketUseCase.execute(request);
-    const appointmentsCountResult =
-      await appointmentsCountUseCase.execute(request);
-    const cancellationRateResult =
-      await cancellationRateUseCase.execute(request);
+    expect(result.isRight()).toBe(true);
 
-    expect(totalRevenueResult.isRight()).toBe(true);
-    expect(averageTicketResult.isRight()).toBe(true);
-    expect(appointmentsCountResult.isRight()).toBe(true);
-    expect(cancellationRateResult.isRight()).toBe(true);
-
-    if (
-      totalRevenueResult.isLeft() ||
-      averageTicketResult.isLeft() ||
-      appointmentsCountResult.isLeft() ||
-      cancellationRateResult.isLeft()
-    ) {
-      throw new Error("Expected metrics to be calculated successfully");
+    if (result.isLeft()) {
+      throw new Error(
+        "Expected overview metrics to be calculated successfully",
+      );
     }
 
-    expect(totalRevenueResult.value.totalRevenueInCents).toBe(0);
-    expect(averageTicketResult.value.averageTicketInCents).toBe(0);
-    expect(appointmentsCountResult.value.appointmentsCount).toBe(0);
-    expect(cancellationRateResult.value.cancellationRate).toBe(0);
+    expect(result.value).toEqual({
+      totalRevenueInCents: 0,
+      averageTicketInCents: 0,
+      appointmentsCount: 0,
+      cancellationRate: 0,
+    });
   });
 
   it("should return ResourceNotFoundError when owner has no establishment", async () => {
-    const {
-      appointmentsCountUseCase,
-      averageTicketUseCase,
-      cancellationRateUseCase,
-      totalRevenueUseCase,
-    } = makeKpiUseCases(makeRepositories());
+    const repositories = makeRepositories();
+    const { appointmentsRepository } = repositories;
+    const findManyByEstablishmentIdSpy = vi.spyOn(
+      appointmentsRepository,
+      "findManyByEstablishmentId",
+    );
+    const sut = makeSut(repositories);
 
-    const request = {
+    const result = await sut.execute({
       establishmentOwnerId: "missing-owner",
-    };
+    });
 
-    const totalRevenueResult = await totalRevenueUseCase.execute(request);
-    const averageTicketResult = await averageTicketUseCase.execute(request);
-    const appointmentsCountResult =
-      await appointmentsCountUseCase.execute(request);
-    const cancellationRateResult =
-      await cancellationRateUseCase.execute(request);
+    expect(result.isLeft()).toBe(true);
 
-    expect(totalRevenueResult.isLeft()).toBe(true);
-    expect(averageTicketResult.isLeft()).toBe(true);
-    expect(appointmentsCountResult.isLeft()).toBe(true);
-    expect(cancellationRateResult.isLeft()).toBe(true);
-
-    if (
-      totalRevenueResult.isRight() ||
-      averageTicketResult.isRight() ||
-      appointmentsCountResult.isRight() ||
-      cancellationRateResult.isRight()
-    ) {
-      throw new Error("Expected metrics to fail with ResourceNotFoundError");
+    if (result.isRight()) {
+      throw new Error(
+        "Expected overview metrics to fail with ResourceNotFoundError",
+      );
     }
 
-    expect(totalRevenueResult.value).toBeInstanceOf(ResourceNotFoundError);
-    expect(averageTicketResult.value).toBeInstanceOf(ResourceNotFoundError);
-    expect(appointmentsCountResult.value).toBeInstanceOf(ResourceNotFoundError);
-    expect(cancellationRateResult.value).toBeInstanceOf(ResourceNotFoundError);
+    expect(result.value).toBeInstanceOf(ResourceNotFoundError);
+    expect(findManyByEstablishmentIdSpy).not.toHaveBeenCalled();
   });
 });

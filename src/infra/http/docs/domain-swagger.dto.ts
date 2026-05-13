@@ -852,3 +852,88 @@ export class CreateServiceResponseDto {
   @ApiProperty({ type: ServiceDto })
   service!: ServiceDto;
 }
+
+export class DashboardMetricsOverviewResponseDto {
+  @ApiProperty({ example: 56000 })
+  totalRevenueInCents!: number;
+
+  @ApiProperty({ example: 14000 })
+  averageTicketInCents!: number;
+
+  @ApiProperty({ example: 4 })
+  appointmentsCount!: number;
+
+  @ApiProperty({
+    example: 0.25,
+    description: "Cancelled appointments divided by filtered appointments.",
+  })
+  cancellationRate!: number;
+}
+
+export class DashboardMetricsRevenuePointDto {
+  @ApiProperty({
+    example: "2026-04-01",
+    description: "Calendar day in UTC based on appointment startsAt.",
+  })
+  period!: string;
+
+  @ApiProperty({ example: 21000 })
+  revenueInCents!: number;
+
+  @ApiProperty({ example: 2 })
+  appointmentsCount!: number;
+}
+
+export class DashboardMetricsRevenueResponseDto {
+  @ApiProperty({ type: DashboardMetricsRevenuePointDto, isArray: true })
+  points!: DashboardMetricsRevenuePointDto[];
+}
+
+export class DashboardMetricsAppointmentsResponseDto {
+  @ApiProperty({ example: 4 })
+  appointmentsCount!: number;
+
+  @ApiProperty({
+    example: 0.25,
+    description: "Cancelled appointments divided by filtered appointments.",
+  })
+  cancellationRate!: number;
+}
+
+export class DashboardMetricsPopularServiceDto {
+  @ApiProperty({ example: "11cf3860-d512-47db-b9d1-c9044be6250d" })
+  serviceId!: string;
+
+  @ApiProperty({ example: "Lavagem completa" })
+  serviceName!: string;
+
+  @ApiProperty({
+    enum: [
+      "WASH",
+      "SANITIZATION",
+      "AUTOMATIVE_DETAILING",
+      "PROTECTION",
+      "UPHOLSTERY",
+    ],
+    example: "WASH",
+    nullable: true,
+  })
+  category!:
+    | "WASH"
+    | "SANITIZATION"
+    | "AUTOMATIVE_DETAILING"
+    | "PROTECTION"
+    | "UPHOLSTERY"
+    | null;
+
+  @ApiProperty({ example: 3 })
+  appointmentsCount!: number;
+
+  @ApiProperty({ example: 31000 })
+  revenueInCents!: number;
+}
+
+export class DashboardMetricsPopularServicesResponseDto {
+  @ApiProperty({ type: DashboardMetricsPopularServiceDto, isArray: true })
+  popularServices!: DashboardMetricsPopularServiceDto[];
+}
