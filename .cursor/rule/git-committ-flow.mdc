@@ -1,0 +1,13 @@
+---
+description: Fluxo de commits — um ficheiro por vez e ordem lógica para revisão
+alwaysApply: true
+---
+
+# Fluxo ao preparar commits
+
+Complemento às convenções de mensagem em `.agents/prompts/git-commit-conventions.md`.
+
+Ao sugerir ou preparar uma série de commits:
+
+1. **Um ficheiro por commit** quando possível — evita misturar alterações não relacionadas na mesma mensagem.
+2. **Ordem que conte uma história** — sequência em que um revisor entenda o trabalho (ex.: tipos/schemas antes de API, API antes de UI que consome, refactors de base antes de features que dependem deles), não um pacote aleatório de ficheiros.
