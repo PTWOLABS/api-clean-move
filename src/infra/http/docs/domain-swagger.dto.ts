@@ -853,6 +853,75 @@ export class CreateServiceResponseDto {
   service!: ServiceDto;
 }
 
+export class UpdateServiceEstimatedDurationBodyDto {
+  @ApiProperty({
+    example: 30,
+    description: "Minimum estimated service duration in minutes.",
+  })
+  minInMinutes!: number;
+
+  @ApiPropertyOptional({
+    example: 60,
+    description: "Optional maximum estimated service duration in minutes.",
+  })
+  maxInMinutes?: number;
+}
+
+export class UpdateServiceBodyDto {
+  @ApiPropertyOptional({
+    example: "Lavagem premium",
+    description: "Service name shown to customers.",
+  })
+  serviceName?: string;
+
+  @ApiPropertyOptional({
+    example: "Lavagem externa com acabamento e brilho.",
+    description: "Optional service description.",
+  })
+  description?: string;
+
+  @ApiPropertyOptional({
+    enum: [
+      "WASH",
+      "SANITIZATION",
+      "AUTOMATIVE_DETAILING",
+      "PROTECTION",
+      "UPHOLSTERY",
+    ],
+    example: "WASH",
+    description: "Optional category used to classify the service.",
+  })
+  category?:
+    | "WASH"
+    | "SANITIZATION"
+    | "AUTOMATIVE_DETAILING"
+    | "PROTECTION"
+    | "UPHOLSTERY";
+
+  @ApiPropertyOptional({
+    type: UpdateServiceEstimatedDurationBodyDto,
+    description: "Optional estimated duration range for the service.",
+  })
+  estimatedDuration?: UpdateServiceEstimatedDurationBodyDto;
+
+  @ApiPropertyOptional({
+    example: 3000,
+    description: "Service price in cents.",
+  })
+  price?: number;
+
+  @ApiPropertyOptional({
+    example: false,
+    description: "Whether the service is available for booking.",
+  })
+  isActive?: boolean;
+}
+
+export class UpdateServiceResponseDto {
+  @ApiProperty({ type: ServiceDto })
+  service!: ServiceDto;
+}
+
 export class DashboardMetricsOverviewResponseDto {
   @ApiProperty({ example: 56000 })
   totalRevenueInCents!: number;

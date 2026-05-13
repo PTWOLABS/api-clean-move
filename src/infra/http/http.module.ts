@@ -28,6 +28,7 @@ import { GetEstablishmentRevenueVsAppointmentsUseCase } from "../../modules/appl
 import { RegisterEstablishmentUseCase } from "../../modules/application/use-cases/establishment/register-establishment";
 import { UploadDomainImageUseCase } from "../../modules/application/use-cases/media/upload-domain-image";
 import { CreateServiceUseCase } from "../../modules/application/use-cases/service/create-service";
+import { UpdateServiceUseCase } from "../../modules/application/use-cases/service/update-service";
 import { GetMeUseCase } from "../../modules/application/use-cases/user/get-me";
 import { SessionCreationService } from "../../modules/accounts/domain/services/session-creation-service";
 import { AuthModule } from "../auth/auth.module";
@@ -38,6 +39,7 @@ import { CreateAppointmentController } from "./controllers/create-appointment.co
 import { CreateCustomerController } from "./controllers/create-customer.controller";
 import { CreateCustomerVehicleController } from "./controllers/create-customer-vehicle.controller";
 import { CreateServiceController } from "./controllers/create-service.controller";
+import { UpdateServiceController } from "./controllers/update-service.controller";
 import { DashboardMetricsAppointmentsController } from "./controllers/dashboard-metrics-appointments.controller";
 import { DashboardMetricsOverviewController } from "./controllers/dashboard-metrics-overview.controller";
 import { DashboardMetricsPopularServicesController } from "./controllers/dashboard-metrics-popular-services.controller";
@@ -75,6 +77,7 @@ import { UploadVehicleImageController } from "./controllers/media/upload-vehicle
     SignOutController,
     GetMeController,
     CreateServiceController,
+    UpdateServiceController,
     CreateCustomerController,
     ListCustomersController,
     UpdateCustomerController,
@@ -104,6 +107,7 @@ import { UploadVehicleImageController } from "./controllers/media/upload-vehicle
     RegisterEstablishmentUseCase,
     AuthenticateWithOAuthUseCase,
     CreateServiceUseCase,
+    UpdateServiceUseCase,
     CreateCustomerUseCase,
     ListCustomersUseCase,
     UpdateCustomerUseCase,

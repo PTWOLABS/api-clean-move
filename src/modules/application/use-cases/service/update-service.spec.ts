@@ -47,7 +47,7 @@ describe("Update a service", () => {
     await inMemoryServicesRepository.create(service);
 
     const result = await sut.execute({
-      establishmentId: establishment.id.toString(),
+      establishmentOwnerId: establishment.ownerId.toString(),
       serviceId: service.id.toString(),
       data: {
         serviceName: "Service updated",
@@ -102,7 +102,7 @@ describe("Update a service", () => {
     await inMemoryServicesRepository.create(service);
 
     const result = await sut.execute({
-      establishmentId: establishment.id.toString(),
+      establishmentOwnerId: establishment.ownerId.toString(),
       serviceId: service.id.toString(),
       data: {
         serviceName: "Service updated",
@@ -141,7 +141,7 @@ describe("Update a service", () => {
     const originalUpdatedAt = service.updatedAt?.getTime();
 
     const result = await sut.execute({
-      establishmentId: unknownUserId.toString(),
+      establishmentOwnerId: unknownUserId.toString(),
       serviceId: service.id.toString(),
       data: {
         serviceName: "Service updated",
@@ -181,7 +181,7 @@ describe("Update a service", () => {
     const originalUpdatedAt = service.updatedAt?.getTime();
 
     const result = await sut.execute({
-      establishmentId: anotherEstablishment.id.toString(),
+      establishmentOwnerId: anotherEstablishment.ownerId.toString(),
       serviceId: service.id.toString(),
       data: {
         serviceName: "Service updated",
@@ -227,7 +227,7 @@ describe("Update a service", () => {
     await inMemoryServicesRepository.create(service);
 
     const result = await sut.execute({
-      establishmentId: establishment.id.toString(),
+      establishmentOwnerId: establishment.ownerId.toString(),
       serviceId: service.id.toString(),
       data: {
         serviceName: "Service to update with same name",
@@ -270,7 +270,7 @@ describe("Update a service", () => {
     await inMemoryServicesRepository.create(service);
 
     const result = await sut.execute({
-      establishmentId: customer.id.toString(),
+      establishmentOwnerId: customer.id.toString(),
       serviceId: service.id.toString(),
       data: {
         serviceName: "Updated service by a customer",
@@ -287,5 +287,34 @@ describe("Update a service", () => {
     expect(result.isLeft()).toBe(true);
 
     expect(result.value).toBeInstanceOf(ResourceNotFoundError);
+  });
+
+  it("should be able to update only isActive", async () => {
+    const establishment = makeEstablishment();
+
+    await inMemoryEstablishmentsRepository.create(establishment);
+
+    const service = makeService({
+      establishmentId: establishment.id,
+      serviceName: ServiceName.create("Active toggle service"),
+    });
+
+    await inMemoryServicesRepository.create(service);
+
+    expect(service.isActive).toBe(true);
+
+    const result = await sut.execute({
+      establishmentOwnerId: establishment.ownerId.toString(),
+      serviceId: service.id.toString(),
+      data: { isActive: false },
+    });
+
+    expect(result.isRight()).toBe(true);
+
+    if (result.isLeft()) {
+      throw result.value;
+    }
+
+    expect(result.value.service.isActive).toBe(false);
   });
 });

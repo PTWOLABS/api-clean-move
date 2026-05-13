@@ -65,6 +65,7 @@ export class Service extends AggregateRoot<ServiceProps> {
       maxInMinutes?: number | null | undefined;
     };
     price?: number;
+    isActive?: boolean;
   }) {
     const newEstimatedDuration =
       data.estimatedDuration !== undefined
@@ -97,6 +98,10 @@ export class Service extends AggregateRoot<ServiceProps> {
 
     if (data.category !== undefined) {
       this.changeCategory(data.category);
+    }
+
+    if (data.isActive !== undefined) {
+      this.changeIsActive(data.isActive);
     }
   }
 
