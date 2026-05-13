@@ -54,6 +54,7 @@ export class GetEstablishmentRevenueVsAppointmentsUseCase {
     const appointments = await findAllAppointmentsByEstablishment(
       this.appointmentsRepository,
       establishment.id.toString(),
+      filters,
     );
 
     const filteredAppointments = filterAppointmentsByMetrics(

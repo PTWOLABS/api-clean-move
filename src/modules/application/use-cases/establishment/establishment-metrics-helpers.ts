@@ -3,7 +3,10 @@ import {
   AppointmentStatus,
 } from "../../../scheduling/domain/entities/appointment";
 import { ServiceCategory } from "../../../catalog/domain/value-objects/service-category";
-import { AppointmentsRepository } from "../../repositories/appointments-repository";
+import {
+  AppointmentFilters,
+  AppointmentsRepository,
+} from "../../repositories/appointments-repository";
 
 export type EstablishmentMetricsFilters = {
   startsAt?: Date;
@@ -17,17 +20,24 @@ const PAGE_SIZE = 20;
 export async function findAllAppointmentsByEstablishment(
   appointmentsRepository: AppointmentsRepository,
   establishmentId: string,
+  filters?: EstablishmentMetricsFilters,
 ) {
   const allAppointments: Appointment[] = [];
   let page = 1;
 
   while (true) {
+    const appointmentFilters: AppointmentFilters = {
+      ...(filters?.startsAt ? { startsAt: filters.startsAt } : {}),
+      ...(filters?.endsAt ? { endsAt: filters.endsAt } : {}),
+      ...(filters?.status ? { status: filters.status } : {}),
+      ...(filters?.categories ? { categories: filters.categories } : {}),
+      page,
+      size: PAGE_SIZE,
+    };
+
     const appointments = await appointmentsRepository.findManyByEstablishmentId(
       establishmentId,
-      {
-        page,
-        size: PAGE_SIZE,
-      },
+      appointmentFilters,
     );
 
     if (appointments.length === 0) {

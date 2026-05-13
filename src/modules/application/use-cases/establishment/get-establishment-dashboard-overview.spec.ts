@@ -178,6 +178,10 @@ describe("Get establishment dashboard overview", () => {
     expect(findByOwnerIdSpy).toHaveBeenCalledTimes(1);
     expect(findManyByEstablishmentIdSpy).toHaveBeenCalledTimes(1);
     expect(findManyByEstablishmentIdSpy).toHaveBeenCalledWith("est-1", {
+      startsAt: filters.startsAt,
+      endsAt: filters.endsAt,
+      status: filters.status,
+      categories: filters.categories,
       page: 1,
       size: 20,
     });
