@@ -1,6 +1,12 @@
-import { ServicesRepository } from "../../src/modules/application/repositories/services-repository";
+import {
+  type ServiceFilters,
+  ServicesRepository,
+} from "../../src/modules/application/repositories/services-repository";
 import { Service } from "../../src/modules/catalog/domain/entities/services";
-import { ServiceCategory } from "../../src/modules/catalog/domain/value-objects/service-category";
+
+function nameMatchesFilter(serviceName: string, filter: string): boolean {
+  return serviceName.toLowerCase().includes(filter.trim().toLowerCase());
+}
 
 export class InMemoryServicesRepository implements ServicesRepository {
   public items: Service[] = [];
@@ -19,50 +25,62 @@ export class InMemoryServicesRepository implements ServicesRepository {
     return service;
   }
 
+  private applyServiceFilters(
+    list: Service[],
+    filters?: ServiceFilters,
+  ): Service[] {
+    return list.filter((item) => {
+      const trimmedName = filters?.serviceName?.trim();
+      if (
+        trimmedName &&
+        trimmedName.length > 0 &&
+        !nameMatchesFilter(item.serviceName.toString(), trimmedName)
+      ) {
+        return false;
+      }
+
+      if (filters?.category && item.category !== filters.category) {
+        return false;
+      }
+
+      if (
+        filters?.isActive !== undefined &&
+        item.isActive !== filters.isActive
+      ) {
+        return false;
+      }
+
+      if (
+        filters?.minPrice !== undefined &&
+        item.price.amountInCents < filters.minPrice
+      ) {
+        return false;
+      }
+
+      if (
+        filters?.maxPrice !== undefined &&
+        item.price.amountInCents > filters.maxPrice
+      ) {
+        return false;
+      }
+
+      return true;
+    });
+  }
+
   async findManyByEstablishmentId(
     establishmentId: string,
-    filters?: {
-      serviceName?: string;
-      category?: ServiceCategory;
-      minPrice?: number;
-      maxPrice?: number;
-      page?: number;
-      size?: number;
-    },
+    filters?: ServiceFilters,
   ): Promise<Service[]> {
     const page = filters?.page ?? 1;
     const size = filters?.size ?? 20;
 
-    const filteredServices = this.items
-      .filter((item) => item.establishmentId.toString() === establishmentId)
-      .filter((item) => {
-        if (
-          filters?.serviceName &&
-          item.serviceName.toString() !== filters.serviceName
-        ) {
-          return false;
-        }
-
-        if (filters?.category && item.category !== filters.category) {
-          return false;
-        }
-
-        if (
-          filters?.minPrice !== undefined &&
-          item.price.amountInCents < filters.minPrice
-        ) {
-          return false;
-        }
-
-        if (
-          filters?.maxPrice !== undefined &&
-          item.price.amountInCents > filters.maxPrice
-        ) {
-          return false;
-        }
-
-        return true;
-      });
+    const filteredServices = this.applyServiceFilters(
+      this.items.filter(
+        (item) => item.establishmentId.toString() === establishmentId,
+      ),
+      filters,
+    );
 
     const start = (page - 1) * size;
     const end = start + size;
@@ -98,9 +116,18 @@ export class InMemoryServicesRepository implements ServicesRepository {
     this.items[serviceIndex] = service;
   }
 
-  async findMany(): Promise<Service[]> {
-    const services = this.items;
+  async findMany(filters?: ServiceFilters): Promise<Service[]> {
+    if (filters === undefined) {
+      return [...this.items];
+    }
 
-    return services;
+    const page = filters.page ?? 1;
+    const size = filters.size ?? 20;
+
+    const filtered = this.applyServiceFilters(this.items, filters);
+    const start = (page - 1) * size;
+    const end = start + size;
+
+    return filtered.slice(start, end);
   }
 }
