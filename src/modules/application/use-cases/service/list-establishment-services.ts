@@ -1,21 +1,23 @@
 import { Injectable } from "@nestjs/common";
 
 import { Either, left, right } from "../../../../shared/either";
+import { NotAllowedError } from "../../../../shared/errors/not-allowed-error";
 import { ResourceNotFoundError } from "../../../../shared/errors/resource-not-found-error";
 import { Service } from "../../../catalog/domain/entities/services";
+import { EstablishmentsRepository } from "../../repositories/establishment-repository";
 import {
   type ServiceFilters,
   ServicesRepository,
 } from "../../repositories/services-repository";
-import { EstablishmentsRepository } from "../../repositories/establishment-repository";
 
-type GetServiceCatalogByEstablishmentUseCaseRequest = {
-  establishmentId: string;
+type ListEstablishmentServicesUseCaseRequest = {
+  authenticatedUserId: string;
+  pathOwnerUserId: string;
   filters?: ServiceFilters;
 };
 
-type GetServiceCatalogByEstablishmentUseCaseResponse = Either<
-  ResourceNotFoundError,
+type ListEstablishmentServicesUseCaseResponse = Either<
+  ResourceNotFoundError | NotAllowedError,
   {
     items: Service[];
     totalItems: number;
@@ -23,18 +25,23 @@ type GetServiceCatalogByEstablishmentUseCaseResponse = Either<
 >;
 
 @Injectable()
-export class GetServiceCatalogByEstablishmentUseCase {
+export class ListEstablishmentServicesUseCase {
   constructor(
     private servicesRepository: ServicesRepository,
     private establishmentsRepository: EstablishmentsRepository,
   ) {}
 
   async execute({
-    establishmentId,
+    authenticatedUserId,
+    pathOwnerUserId,
     filters,
-  }: GetServiceCatalogByEstablishmentUseCaseRequest): Promise<GetServiceCatalogByEstablishmentUseCaseResponse> {
+  }: ListEstablishmentServicesUseCaseRequest): Promise<ListEstablishmentServicesUseCaseResponse> {
+    if (authenticatedUserId !== pathOwnerUserId) {
+      return left(new NotAllowedError());
+    }
+
     const establishment =
-      await this.establishmentsRepository.findById(establishmentId);
+      await this.establishmentsRepository.findByOwnerId(pathOwnerUserId);
 
     if (!establishment) {
       return left(new ResourceNotFoundError({ resource: "establishment" }));

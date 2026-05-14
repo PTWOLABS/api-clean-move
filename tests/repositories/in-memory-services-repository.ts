@@ -1,6 +1,13 @@
-import { ServicesRepository } from "../../src/modules/application/repositories/services-repository";
+import {
+  type PaginatedServices,
+  type ServiceFilters,
+  ServicesRepository,
+} from "../../src/modules/application/repositories/services-repository";
 import { Service } from "../../src/modules/catalog/domain/entities/services";
-import { ServiceCategory } from "../../src/modules/catalog/domain/value-objects/service-category";
+
+function nameMatchesFilter(serviceName: string, filter: string): boolean {
+  return serviceName.toLowerCase().includes(filter.trim().toLowerCase());
+}
 
 export class InMemoryServicesRepository implements ServicesRepository {
   public items: Service[] = [];
@@ -12,6 +19,16 @@ export class InMemoryServicesRepository implements ServicesRepository {
   async findById(id: string): Promise<Service | null> {
     const service = this.items.find((item) => item.id.toString() === id);
 
+    if (!service || service.isDeleted()) {
+      return null;
+    }
+
+    return service;
+  }
+
+  async findByIdIncludingSoftDeleted(id: string): Promise<Service | null> {
+    const service = this.items.find((item) => item.id.toString() === id);
+
     if (!service) {
       return null;
     }
@@ -19,55 +36,75 @@ export class InMemoryServicesRepository implements ServicesRepository {
     return service;
   }
 
+  private applyServiceFilters(
+    list: Service[],
+    filters?: ServiceFilters,
+  ): Service[] {
+    return list.filter((item) => {
+      if (item.isDeleted()) {
+        return false;
+      }
+
+      const trimmedName = filters?.serviceName?.trim();
+      if (
+        trimmedName &&
+        trimmedName.length > 0 &&
+        !nameMatchesFilter(item.serviceName.toString(), trimmedName)
+      ) {
+        return false;
+      }
+
+      if (filters?.category && item.category !== filters.category) {
+        return false;
+      }
+
+      if (
+        filters?.isActive !== undefined &&
+        item.isActive !== filters.isActive
+      ) {
+        return false;
+      }
+
+      if (
+        filters?.minPrice !== undefined &&
+        item.price.amountInCents < filters.minPrice
+      ) {
+        return false;
+      }
+
+      if (
+        filters?.maxPrice !== undefined &&
+        item.price.amountInCents > filters.maxPrice
+      ) {
+        return false;
+      }
+
+      return true;
+    });
+  }
+
   async findManyByEstablishmentId(
     establishmentId: string,
-    filters?: {
-      serviceName?: string;
-      category?: ServiceCategory;
-      minPrice?: number;
-      maxPrice?: number;
-      page?: number;
-      size?: number;
-    },
-  ): Promise<Service[]> {
+    filters?: ServiceFilters,
+  ): Promise<PaginatedServices> {
     const page = filters?.page ?? 1;
     const size = filters?.size ?? 20;
 
-    const filteredServices = this.items
-      .filter((item) => item.establishmentId.toString() === establishmentId)
-      .filter((item) => {
-        if (
-          filters?.serviceName &&
-          item.serviceName.toString() !== filters.serviceName
-        ) {
-          return false;
-        }
+    const filteredServices = this.applyServiceFilters(
+      this.items.filter(
+        (item) => item.establishmentId.toString() === establishmentId,
+      ),
+      filters,
+    );
 
-        if (filters?.category && item.category !== filters.category) {
-          return false;
-        }
-
-        if (
-          filters?.minPrice !== undefined &&
-          item.price.amountInCents < filters.minPrice
-        ) {
-          return false;
-        }
-
-        if (
-          filters?.maxPrice !== undefined &&
-          item.price.amountInCents > filters.maxPrice
-        ) {
-          return false;
-        }
-
-        return true;
-      });
-
+    const totalItems = filteredServices.length;
     const start = (page - 1) * size;
     const end = start + size;
 
-    return filteredServices.slice(start, end);
+    return {
+      items: filteredServices.slice(start, end),
+      totalItems,
+    };
   }
 
   async findByServiceIdAndEstablishmentId(
@@ -98,9 +135,27 @@ export class InMemoryServicesRepository implements ServicesRepository {
     this.items[serviceIndex] = service;
   }
 
-  async findMany(): Promise<Service[]> {
-    const services = this.items;
+  async findMany(filters?: ServiceFilters): Promise<PaginatedServices> {
+    if (filters === undefined) {
+      const items = this.items.filter((item) => !item.isDeleted());
 
-    return services;
+      return {
+        items,
+        totalItems: items.length,
+      };
+    }
+
+    const page = filters.page ?? 1;
+    const size = filters.size ?? 20;
+
+    const filtered = this.applyServiceFilters(this.items, filters);
+    const totalItems = filtered.length;
+    const start = (page - 1) * size;
+    const end = start + size;
+
+    return {
+      items: filtered.slice(start, end),
+      totalItems,
+    };
   }
 }

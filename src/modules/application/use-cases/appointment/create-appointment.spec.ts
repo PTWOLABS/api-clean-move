@@ -190,6 +190,29 @@ describe("Create appointment", () => {
     expect(result.value).toBeInstanceOf(ResourceNotFoundError);
   });
 
+  it("should reject a soft-deleted service", async () => {
+    const establishment = makeEstablishment();
+    const customer = makeCustomer({ establishmentId: establishment.id });
+    const service = makeService({
+      establishmentId: establishment.id,
+      deletedAt: new Date("2026-04-27T09:00:00.000Z"),
+    });
+
+    await inMemoryEstablishmentsRepository.create(establishment);
+    await inMemoryCustomersRepository.create(customer);
+    await inMemoryServicesRepository.create(service);
+
+    const result = await sut.execute({
+      establishmentOwnerId: establishment.ownerId.toString(),
+      customerId: customer.id.toString(),
+      serviceId: service.id.toString(),
+      startsAt: new Date("2026-04-27T10:00:00.000Z"),
+    });
+
+    expect(result.isLeft()).toBe(true);
+    expect(result.value).toBeInstanceOf(ResourceNotFoundError);
+  });
+
   it("should allow two appointments at the same startsAt", async () => {
     const establishment = makeEstablishment();
     const customer = makeCustomer({ establishmentId: establishment.id });

@@ -1,3 +1,5 @@
+import { Injectable } from "@nestjs/common";
+
 import { Either, left, right } from "../../../../shared/either";
 import { ResourceNotFoundError } from "../../../../shared/errors/resource-not-found-error";
 import { NotAllowedError } from "../../../../shared/errors/not-allowed-error";
@@ -13,7 +15,7 @@ import { InvalidEstimatedDurationTransitionError } from "../../../catalog/domain
 import { UnexpectedDomainError } from "../../../../shared/errors/unexpected-domain-error";
 
 type UpdateServiceUseCaseRequest = {
-  establishmentId: string;
+  establishmentOwnerId: string;
   serviceId: string;
   data: {
     serviceName?: string;
@@ -24,6 +26,7 @@ type UpdateServiceUseCaseRequest = {
       maxInMinutes?: number | null | undefined;
     };
     price?: number;
+    isActive?: boolean;
   };
 };
 
@@ -31,7 +34,8 @@ type UpdateServiceUseCaseResponse = Either<
   | NoUpdateFieldsProvidedError
   | ResourceNotFoundError
   | NotAllowedError
-  | InvalidServiceUpdateInputError,
+  | InvalidServiceUpdateInputError
+  | UnexpectedDomainError,
   {
     service: Service;
   }
@@ -44,6 +48,7 @@ export class InvalidServiceUpdateInputError extends Error {
   }
 }
 
+@Injectable()
 export class UpdateServiceUseCase {
   constructor(
     private servicesRepository: ServicesRepository,
@@ -51,7 +56,7 @@ export class UpdateServiceUseCase {
   ) {}
 
   async execute({
-    establishmentId,
+    establishmentOwnerId,
     serviceId,
     data,
   }: UpdateServiceUseCaseRequest): Promise<UpdateServiceUseCaseResponse> {
@@ -69,7 +74,7 @@ export class UpdateServiceUseCase {
     }
 
     const establishment =
-      await this.establishmentsRepository.findById(establishmentId);
+      await this.establishmentsRepository.findByOwnerId(establishmentOwnerId);
 
     if (!establishment) {
       return left(new ResourceNotFoundError({ resource: "establishment" }));

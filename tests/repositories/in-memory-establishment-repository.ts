@@ -90,7 +90,7 @@ export class InMemoryEstablishmentsRepository implements EstablishmentsRepositor
 
     if (filters.serviceCategory) {
       const establishmentIdsWithCategory = new Set(
-        (await this.servicesRepository.findMany())
+        (await this.servicesRepository.findMany()).items
           .filter((service) => service.category === filters.serviceCategory)
           .map((service) => service.establishmentId.toString()),
       );

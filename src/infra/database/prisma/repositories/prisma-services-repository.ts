@@ -1,11 +1,45 @@
 import { Injectable } from "@nestjs/common";
-import { ServicesRepository } from "../../../../modules/application/repositories/services-repository";
-import { ServiceCategory } from "../../../../modules/catalog/domain/value-objects/service-category";
+import { Prisma } from "../../../../generated/prisma/client";
+
+import {
+  type PaginatedServices,
+  type ServiceFilters,
+  ServicesRepository,
+} from "../../../../modules/application/repositories/services-repository";
 import { Service } from "../../../../modules/catalog/domain/entities/services";
 import { PrismaServiceMapper } from "../mappers/prisma-service-mapper";
 import { rethrowPrismaRepositoryError } from "../prisma-repository-error-handler";
 import { PrismaUnitOfWork } from "../prisma-unit-of-work";
 import { PrismaService } from "../prisma.service";
+
+function buildServiceWhereWithoutEstablishment(
+  filters?: ServiceFilters,
+): Prisma.ServiceWhereInput {
+  const trimmedName = filters?.serviceName?.trim();
+  const nameClause =
+    trimmedName && trimmedName.length > 0
+      ? { contains: trimmedName, mode: "insensitive" as const }
+      : undefined;
+
+  return {
+    deletedAt: null,
+    ...(nameClause ? { serviceName: nameClause } : {}),
+    ...(filters?.category ? { category: filters.category } : {}),
+    ...(filters?.isActive !== undefined ? { isActive: filters.isActive } : {}),
+    ...(filters?.minPrice !== undefined || filters?.maxPrice !== undefined
+      ? {
+          priceInCents: {
+            ...(filters.minPrice !== undefined
+              ? { gte: filters.minPrice }
+              : {}),
+            ...(filters.maxPrice !== undefined
+              ? { lte: filters.maxPrice }
+              : {}),
+          },
+        }
+      : {}),
+  };
+}
 
 @Injectable()
 export class PrismaServicesRepository implements ServicesRepository {
@@ -25,53 +59,62 @@ export class PrismaServicesRepository implements ServicesRepository {
 
   async findManyByEstablishmentId(
     establishmentId: string,
-    filters?: {
-      serviceName?: string;
-      category?: ServiceCategory;
-      minPrice?: number;
-      maxPrice?: number;
-      page?: number;
-      size?: number;
-    },
-  ): Promise<Service[]> {
+    filters?: ServiceFilters,
+  ): Promise<PaginatedServices> {
     const page = filters?.page ?? 1;
     const size = filters?.size ?? 20;
 
-    try {
-      const services = await PrismaUnitOfWork.getClient(
-        this.prisma,
-      ).service.findMany({
-        where: {
-          establishmentId,
-          ...(filters?.serviceName ? { serviceName: filters.serviceName } : {}),
-          ...(filters?.category ? { category: filters.category } : {}),
-          ...(filters?.minPrice !== undefined || filters?.maxPrice !== undefined
-            ? {
-                priceInCents: {
-                  ...(filters.minPrice !== undefined
-                    ? { gte: filters.minPrice }
-                    : {}),
-                  ...(filters.maxPrice !== undefined
-                    ? { lte: filters.maxPrice }
-                    : {}),
-                },
-              }
-            : {}),
-        },
-        orderBy: {
-          createdAt: "asc",
-        },
-        skip: (page - 1) * size,
-        take: size,
-      });
+    const where: Prisma.ServiceWhereInput = {
+      establishmentId,
+      ...buildServiceWhereWithoutEstablishment(filters),
+    };
 
-      return services.map((service) => PrismaServiceMapper.toDomain(service));
+    try {
+      const client = PrismaUnitOfWork.getClient(this.prisma);
+
+      const [totalItems, rows] = await Promise.all([
+        client.service.count({ where }),
+        client.service.findMany({
+          where,
+          orderBy: {
+            createdAt: "asc",
+          },
+          skip: (page - 1) * size,
+          take: size,
+        }),
+      ]);
+
+      return {
+        items: rows.map((service) => PrismaServiceMapper.toDomain(service)),
+        totalItems,
+      };
     } catch (error) {
       rethrowPrismaRepositoryError(error);
     }
   }
 
   async findById(id: string): Promise<Service | null> {
+    try {
+      const service = await PrismaUnitOfWork.getClient(
+        this.prisma,
+      ).service.findFirst({
+        where: {
+          id,
+          deletedAt: null,
+        },
+      });
+
+      if (!service) {
+        return null;
+      }
+
+      return PrismaServiceMapper.toDomain(service);
+    } catch (error) {
+      rethrowPrismaRepositoryError(error);
+    }
+  }
+
+  async findByIdIncludingSoftDeleted(id: string): Promise<Service | null> {
     try {
       const service = await PrismaUnitOfWork.getClient(
         this.prisma,
@@ -130,17 +173,48 @@ export class PrismaServicesRepository implements ServicesRepository {
     }
   }
 
-  async findMany(): Promise<Service[]> {
+  async findMany(filters?: ServiceFilters): Promise<PaginatedServices> {
     try {
-      const services = await PrismaUnitOfWork.getClient(
-        this.prisma,
-      ).service.findMany({
-        orderBy: {
-          createdAt: "asc",
-        },
-      });
+      const client = PrismaUnitOfWork.getClient(this.prisma);
 
-      return services.map((service) => PrismaServiceMapper.toDomain(service));
+      if (filters === undefined) {
+        const notDeleted: Prisma.ServiceWhereInput = { deletedAt: null };
+        const [totalItems, rows] = await Promise.all([
+          client.service.count({ where: notDeleted }),
+          client.service.findMany({
+            where: notDeleted,
+            orderBy: {
+              createdAt: "asc",
+            },
+          }),
+        ]);
+
+        return {
+          items: rows.map((service) => PrismaServiceMapper.toDomain(service)),
+          totalItems,
+        };
+      }
+
+      const page = filters.page ?? 1;
+      const size = filters.size ?? 20;
+      const where = buildServiceWhereWithoutEstablishment(filters);
+
+      const [totalItems, rows] = await Promise.all([
+        client.service.count({ where }),
+        client.service.findMany({
+          where,
+          orderBy: {
+            createdAt: "asc",
+          },
+          skip: (page - 1) * size,
+          take: size,
+        }),
+      ]);
+
+      return {
+        items: rows.map((service) => PrismaServiceMapper.toDomain(service)),
+        totalItems,
+      };
     } catch (error) {
       rethrowPrismaRepositoryError(error);
     }
