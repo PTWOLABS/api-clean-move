@@ -19,7 +19,8 @@ type ListEstablishmentServicesUseCaseRequest = {
 type ListEstablishmentServicesUseCaseResponse = Either<
   ResourceNotFoundError | NotAllowedError,
   {
-    services: Service[];
+    items: Service[];
+    totalItems: number;
   }
 >;
 
@@ -46,13 +47,15 @@ export class ListEstablishmentServicesUseCase {
       return left(new NotAllowedError());
     }
 
-    const services = await this.servicesRepository.findManyByEstablishmentId(
-      establishmentId,
-      filters,
-    );
+    const { items, totalItems } =
+      await this.servicesRepository.findManyByEstablishmentId(
+        establishmentId,
+        filters,
+      );
 
     return right({
-      services,
+      items,
+      totalItems,
     });
   }
 }

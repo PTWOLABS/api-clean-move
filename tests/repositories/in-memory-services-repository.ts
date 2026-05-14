@@ -1,4 +1,5 @@
 import {
+  type PaginatedServices,
   type ServiceFilters,
   ServicesRepository,
 } from "../../src/modules/application/repositories/services-repository";
@@ -71,7 +72,7 @@ export class InMemoryServicesRepository implements ServicesRepository {
   async findManyByEstablishmentId(
     establishmentId: string,
     filters?: ServiceFilters,
-  ): Promise<Service[]> {
+  ): Promise<PaginatedServices> {
     const page = filters?.page ?? 1;
     const size = filters?.size ?? 20;
 
@@ -82,10 +83,14 @@ export class InMemoryServicesRepository implements ServicesRepository {
       filters,
     );
 
+    const totalItems = filteredServices.length;
     const start = (page - 1) * size;
     const end = start + size;
 
-    return filteredServices.slice(start, end);
+    return {
+      items: filteredServices.slice(start, end),
+      totalItems,
+    };
   }
 
   async findByServiceIdAndEstablishmentId(
@@ -116,18 +121,27 @@ export class InMemoryServicesRepository implements ServicesRepository {
     this.items[serviceIndex] = service;
   }
 
-  async findMany(filters?: ServiceFilters): Promise<Service[]> {
+  async findMany(filters?: ServiceFilters): Promise<PaginatedServices> {
     if (filters === undefined) {
-      return [...this.items];
+      const items = [...this.items];
+
+      return {
+        items,
+        totalItems: items.length,
+      };
     }
 
     const page = filters.page ?? 1;
     const size = filters.size ?? 20;
 
     const filtered = this.applyServiceFilters(this.items, filters);
+    const totalItems = filtered.length;
     const start = (page - 1) * size;
     const end = start + size;
 
-    return filtered.slice(start, end);
+    return {
+      items: filtered.slice(start, end),
+      totalItems,
+    };
   }
 }

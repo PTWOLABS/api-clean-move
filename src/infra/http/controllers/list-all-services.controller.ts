@@ -92,12 +92,13 @@ export class ListAllServicesController {
     @Query(new ZodValidationPipe(listServicesQuerySchema))
     query: ListServicesQuerySchema,
   ) {
-    const { services } = await this.listAllServices.execute({
+    const { items, totalItems } = await this.listAllServices.execute({
       filters: buildServiceFiltersFromQuery(query),
     });
 
     return {
-      services: services.map((service) => ServicePresenter.toHTTP(service)),
+      items: items.map((service) => ServicePresenter.toHTTP(service)),
+      totalItems,
     };
   }
 }

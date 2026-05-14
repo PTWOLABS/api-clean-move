@@ -2,6 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { Prisma } from "../../../../generated/prisma/client";
 
 import {
+  type PaginatedServices,
   type ServiceFilters,
   ServicesRepository,
 } from "../../../../modules/application/repositories/services-repository";
@@ -58,26 +59,34 @@ export class PrismaServicesRepository implements ServicesRepository {
   async findManyByEstablishmentId(
     establishmentId: string,
     filters?: ServiceFilters,
-  ): Promise<Service[]> {
+  ): Promise<PaginatedServices> {
     const page = filters?.page ?? 1;
     const size = filters?.size ?? 20;
 
-    try {
-      const services = await PrismaUnitOfWork.getClient(
-        this.prisma,
-      ).service.findMany({
-        where: {
-          establishmentId,
-          ...buildServiceWhereWithoutEstablishment(filters),
-        },
-        orderBy: {
-          createdAt: "asc",
-        },
-        skip: (page - 1) * size,
-        take: size,
-      });
+    const where: Prisma.ServiceWhereInput = {
+      establishmentId,
+      ...buildServiceWhereWithoutEstablishment(filters),
+    };
 
-      return services.map((service) => PrismaServiceMapper.toDomain(service));
+    try {
+      const client = PrismaUnitOfWork.getClient(this.prisma);
+
+      const [totalItems, rows] = await Promise.all([
+        client.service.count({ where }),
+        client.service.findMany({
+          where,
+          orderBy: {
+            createdAt: "asc",
+          },
+          skip: (page - 1) * size,
+          take: size,
+        }),
+      ]);
+
+      return {
+        items: rows.map((service) => PrismaServiceMapper.toDomain(service)),
+        totalItems,
+      };
     } catch (error) {
       rethrowPrismaRepositoryError(error);
     }
@@ -142,35 +151,46 @@ export class PrismaServicesRepository implements ServicesRepository {
     }
   }
 
-  async findMany(filters?: ServiceFilters): Promise<Service[]> {
+  async findMany(filters?: ServiceFilters): Promise<PaginatedServices> {
     try {
-      if (filters === undefined) {
-        const services = await PrismaUnitOfWork.getClient(
-          this.prisma,
-        ).service.findMany({
-          orderBy: {
-            createdAt: "asc",
-          },
-        });
+      const client = PrismaUnitOfWork.getClient(this.prisma);
 
-        return services.map((service) => PrismaServiceMapper.toDomain(service));
+      if (filters === undefined) {
+        const [totalItems, rows] = await Promise.all([
+          client.service.count(),
+          client.service.findMany({
+            orderBy: {
+              createdAt: "asc",
+            },
+          }),
+        ]);
+
+        return {
+          items: rows.map((service) => PrismaServiceMapper.toDomain(service)),
+          totalItems,
+        };
       }
 
       const page = filters.page ?? 1;
       const size = filters.size ?? 20;
+      const where = buildServiceWhereWithoutEstablishment(filters);
 
-      const services = await PrismaUnitOfWork.getClient(
-        this.prisma,
-      ).service.findMany({
-        where: buildServiceWhereWithoutEstablishment(filters),
-        orderBy: {
-          createdAt: "asc",
-        },
-        skip: (page - 1) * size,
-        take: size,
-      });
+      const [totalItems, rows] = await Promise.all([
+        client.service.count({ where }),
+        client.service.findMany({
+          where,
+          orderBy: {
+            createdAt: "asc",
+          },
+          skip: (page - 1) * size,
+          take: size,
+        }),
+      ]);
 
-      return services.map((service) => PrismaServiceMapper.toDomain(service));
+      return {
+        items: rows.map((service) => PrismaServiceMapper.toDomain(service)),
+        totalItems,
+      };
     } catch (error) {
       rethrowPrismaRepositoryError(error);
     }

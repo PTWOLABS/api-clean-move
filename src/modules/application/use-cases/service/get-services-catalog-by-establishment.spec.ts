@@ -50,7 +50,8 @@ describe("Get services", () => {
     }
 
     expect(inMemoryServicesRepository.items).toHaveLength(23);
-    expect(result.value.services).toHaveLength(20);
+    expect(result.value.items).toHaveLength(20);
+    expect(result.value.totalItems).toBe(23);
 
     const result2 = await sut.execute({
       establishmentId: establishment.id.toString(),
@@ -63,7 +64,8 @@ describe("Get services", () => {
       throw result2.value;
     }
 
-    expect(result2.value.services).toHaveLength(3);
+    expect(result2.value.items).toHaveLength(3);
+    expect(result2.value.totalItems).toBe(23);
   });
 
   it("should be able to get only services from the requested establishment", async () => {
@@ -97,8 +99,9 @@ describe("Get services", () => {
       throw result.value;
     }
 
-    expect(result.value.services).toHaveLength(1);
-    const firstService = getFirstItem(result.value.services);
+    expect(result.value.items).toHaveLength(1);
+    expect(result.value.totalItems).toBe(1);
+    const firstService = getFirstItem(result.value.items);
 
     expect(firstService.establishmentId.toString()).toBe(
       establishment.id.toString(),
@@ -164,8 +167,9 @@ describe("Get services", () => {
       throw result.value;
     }
 
-    expect(result.value.services).toHaveLength(1);
-    const filteredService = getFirstItem(result.value.services);
+    expect(result.value.items).toHaveLength(1);
+    expect(result.value.totalItems).toBe(1);
+    const filteredService = getFirstItem(result.value.items);
 
     expect(filteredService.serviceName.value).toBe("WashUniqueAlphaX");
 
@@ -183,7 +187,8 @@ describe("Get services", () => {
       throw result2.value;
     }
 
-    expect(result2.value.services).toHaveLength(20);
+    expect(result2.value.items).toHaveLength(20);
+    expect(result2.value.totalItems).toBe(21);
 
     const result3 = await sut.execute({
       establishmentId: establishment.id.toString(),
@@ -198,7 +203,8 @@ describe("Get services", () => {
       throw result3.value;
     }
 
-    expect(result3.value.services).toHaveLength(0);
+    expect(result3.value.items).toHaveLength(0);
+    expect(result3.value.totalItems).toBe(0);
 
     const result4 = await sut.execute({
       establishmentId: establishment.id.toString(),
@@ -213,8 +219,9 @@ describe("Get services", () => {
       throw result4.value;
     }
 
-    expect(result4.value.services).toHaveLength(1);
-    const cheaperService = getFirstItem(result4.value.services);
+    expect(result4.value.items).toHaveLength(1);
+    expect(result4.value.totalItems).toBe(1);
+    const cheaperService = getFirstItem(result4.value.items);
 
     expect(cheaperService.serviceName.value).toBe("service-0");
   });
@@ -246,7 +253,8 @@ describe("Get services", () => {
 
     expect(all.isRight()).toBe(true);
     if (all.isLeft()) throw all.value;
-    expect(all.value.services).toHaveLength(2);
+    expect(all.value.items).toHaveLength(2);
+    expect(all.value.totalItems).toBe(2);
 
     const onlyActive = await sut.execute({
       establishmentId: establishment.id.toString(),
@@ -254,8 +262,9 @@ describe("Get services", () => {
     });
     expect(onlyActive.isRight()).toBe(true);
     if (onlyActive.isLeft()) throw onlyActive.value;
-    expect(onlyActive.value.services).toHaveLength(1);
-    expect(getFirstItem(onlyActive.value.services).isActive).toBe(true);
+    expect(onlyActive.value.items).toHaveLength(1);
+    expect(onlyActive.value.totalItems).toBe(1);
+    expect(getFirstItem(onlyActive.value.items).isActive).toBe(true);
 
     const onlyInactive = await sut.execute({
       establishmentId: establishment.id.toString(),
@@ -263,8 +272,9 @@ describe("Get services", () => {
     });
     expect(onlyInactive.isRight()).toBe(true);
     if (onlyInactive.isLeft()) throw onlyInactive.value;
-    expect(onlyInactive.value.services).toHaveLength(1);
-    expect(getFirstItem(onlyInactive.value.services).isActive).toBe(false);
+    expect(onlyInactive.value.items).toHaveLength(1);
+    expect(onlyInactive.value.totalItems).toBe(1);
+    expect(getFirstItem(onlyInactive.value.items).isActive).toBe(false);
   });
 
   it("should not be able to get services from a non-existent establishment", async () => {

@@ -40,7 +40,8 @@ describe("List establishment services (owner)", () => {
 
     expect(result.isRight()).toBe(true);
     if (result.isLeft()) throw result.value;
-    expect(result.value.services).toHaveLength(1);
+    expect(result.value.items).toHaveLength(1);
+    expect(result.value.totalItems).toBe(1);
   });
 
   it("should return 404 when owner has no establishment", async () => {

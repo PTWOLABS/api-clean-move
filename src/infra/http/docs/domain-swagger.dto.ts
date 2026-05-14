@@ -924,7 +924,14 @@ export class UpdateServiceResponseDto {
 
 export class ListServicesResponseDto {
   @ApiProperty({ type: ServiceDto, isArray: true })
-  services!: ServiceDto[];
+  items!: ServiceDto[];
+
+  @ApiProperty({
+    example: 42,
+    description:
+      "Total number of services matching the current filters (across all pages).",
+  })
+  totalItems!: number;
 }
 
 export class DashboardMetricsOverviewResponseDto {

@@ -10,17 +10,22 @@ export type ServiceFilters = {
   isActive?: boolean;
 } & PaginationParams;
 
+export type PaginatedServices = {
+  items: Service[];
+  totalItems: number;
+};
+
 export abstract class ServicesRepository {
   abstract create(service: Service): Promise<void>;
   abstract findManyByEstablishmentId(
     establishmentId: string,
     filters?: ServiceFilters,
-  ): Promise<Service[]>;
+  ): Promise<PaginatedServices>;
   abstract findById(id: string): Promise<Service | null>;
   abstract findByServiceIdAndEstablishmentId(
     serviceId: string,
     establishmentId: string,
   ): Promise<Service | null>;
   abstract save(service: Service): Promise<void>;
-  abstract findMany(filters?: ServiceFilters): Promise<Service[]>;
+  abstract findMany(filters?: ServiceFilters): Promise<PaginatedServices>;
 }

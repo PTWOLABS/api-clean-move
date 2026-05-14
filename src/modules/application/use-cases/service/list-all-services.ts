@@ -14,13 +14,16 @@ type ListAllServicesUseCaseRequest = {
 export class ListAllServicesUseCase {
   constructor(private servicesRepository: ServicesRepository) {}
 
-  async execute({
-    filters,
-  }: ListAllServicesUseCaseRequest): Promise<{ services: Service[] }> {
-    const services = await this.servicesRepository.findMany(filters);
+  async execute({ filters }: ListAllServicesUseCaseRequest): Promise<{
+    items: Service[];
+    totalItems: number;
+  }> {
+    const { items, totalItems } =
+      await this.servicesRepository.findMany(filters);
 
     return {
-      services,
+      items,
+      totalItems,
     };
   }
 }

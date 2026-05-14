@@ -40,13 +40,15 @@ describe("List all services", () => {
       filters: {},
     });
 
-    expect(firstPage.services).toHaveLength(20);
+    expect(firstPage.items).toHaveLength(20);
+    expect(firstPage.totalItems).toBe(25);
 
     const secondPage = await sut.execute({
       filters: { page: 2, size: 20 },
     });
 
-    expect(secondPage.services).toHaveLength(5);
+    expect(secondPage.items).toHaveLength(5);
+    expect(secondPage.totalItems).toBe(25);
   });
 
   it("should filter by partial name case-insensitively", async () => {
@@ -67,8 +69,9 @@ describe("List all services", () => {
       filters: { serviceName: "unique marker", size: 10 },
     });
 
-    expect(result.services).toHaveLength(1);
-    expect(getFirstItem(result.services).serviceName.value).toBe(
+    expect(result.items).toHaveLength(1);
+    expect(result.totalItems).toBe(1);
+    expect(getFirstItem(result.items).serviceName.value).toBe(
       "Zeta Unique Marker",
     );
   });
@@ -90,19 +93,22 @@ describe("List all services", () => {
     );
 
     const all = await sut.execute({ filters: { size: 50 } });
-    expect(all.services).toHaveLength(2);
+    expect(all.items).toHaveLength(2);
+    expect(all.totalItems).toBe(2);
 
     const activeOnly = await sut.execute({
       filters: { isActive: true, size: 50 },
     });
-    expect(activeOnly.services).toHaveLength(1);
-    expect(getFirstItem(activeOnly.services).isActive).toBe(true);
+    expect(activeOnly.items).toHaveLength(1);
+    expect(activeOnly.totalItems).toBe(1);
+    expect(getFirstItem(activeOnly.items).isActive).toBe(true);
 
     const inactiveOnly = await sut.execute({
       filters: { isActive: false, size: 50 },
     });
-    expect(inactiveOnly.services).toHaveLength(1);
-    expect(getFirstItem(inactiveOnly.services).isActive).toBe(false);
+    expect(inactiveOnly.items).toHaveLength(1);
+    expect(inactiveOnly.totalItems).toBe(1);
+    expect(getFirstItem(inactiveOnly.items).isActive).toBe(false);
   });
 
   it("should respect min and max price filters", async () => {
@@ -126,7 +132,8 @@ describe("List all services", () => {
       filters: { minPrice: 10000, maxPrice: 20000, size: 20 },
     });
 
-    expect(result.services).toHaveLength(1);
-    expect(getFirstItem(result.services).serviceName.value).toBe("Mid");
+    expect(result.items).toHaveLength(1);
+    expect(result.totalItems).toBe(1);
+    expect(getFirstItem(result.items).serviceName.value).toBe("Mid");
   });
 });

@@ -17,7 +17,8 @@ type GetServiceCatalogByEstablishmentUseCaseRequest = {
 type GetServiceCatalogByEstablishmentUseCaseResponse = Either<
   ResourceNotFoundError,
   {
-    services: Service[];
+    items: Service[];
+    totalItems: number;
   }
 >;
 
@@ -39,13 +40,15 @@ export class GetServiceCatalogByEstablishmentUseCase {
       return left(new ResourceNotFoundError({ resource: "establishment" }));
     }
 
-    const services = await this.servicesRepository.findManyByEstablishmentId(
-      establishment.id.toString(),
-      filters,
-    );
+    const { items, totalItems } =
+      await this.servicesRepository.findManyByEstablishmentId(
+        establishment.id.toString(),
+        filters,
+      );
 
     return right({
-      services,
+      items,
+      totalItems,
     });
   }
 }

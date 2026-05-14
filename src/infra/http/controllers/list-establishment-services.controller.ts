@@ -155,9 +155,10 @@ export class ListEstablishmentServicesController {
     }
 
     return {
-      services: result.value.services.map((service) =>
+      items: result.value.items.map((service) =>
         ServicePresenter.toHTTP(service),
       ),
+      totalItems: result.value.totalItems,
     };
   }
 }
