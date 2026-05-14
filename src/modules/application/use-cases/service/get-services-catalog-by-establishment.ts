@@ -1,19 +1,17 @@
+import { Injectable } from "@nestjs/common";
+
 import { Either, left, right } from "../../../../shared/either";
 import { ResourceNotFoundError } from "../../../../shared/errors/resource-not-found-error";
-import { PaginationParams } from "../../../../shared/types/pagination-params";
 import { Service } from "../../../catalog/domain/entities/services";
-import { ServiceCategory } from "../../../catalog/domain/value-objects/service-category";
+import {
+  type ServiceFilters,
+  ServicesRepository,
+} from "../../repositories/services-repository";
 import { EstablishmentsRepository } from "../../repositories/establishment-repository";
-import { ServicesRepository } from "../../repositories/services-repository";
 
 type GetServiceCatalogByEstablishmentUseCaseRequest = {
   establishmentId: string;
-  filters?: {
-    serviceName?: string;
-    category?: ServiceCategory;
-    minPrice?: number;
-    maxPrice?: number;
-  } & PaginationParams;
+  filters?: ServiceFilters;
 };
 
 type GetServiceCatalogByEstablishmentUseCaseResponse = Either<
@@ -23,6 +21,7 @@ type GetServiceCatalogByEstablishmentUseCaseResponse = Either<
   }
 >;
 
+@Injectable()
 export class GetServiceCatalogByEstablishmentUseCase {
   constructor(
     private servicesRepository: ServicesRepository,
