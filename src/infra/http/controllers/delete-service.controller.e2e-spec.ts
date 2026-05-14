@@ -106,6 +106,9 @@ describe("DeleteServiceController (e2e)", () => {
       role: "ESTABLISHMENT",
       plainPassword: "strong-password",
     });
+    await establishmentFactory.makePrismaEstablishment({
+      ownerId: user.id,
+    });
     const establishmentLogin = await loginUser({
       app,
       prisma,
