@@ -28,6 +28,8 @@ import { GetEstablishmentRevenueVsAppointmentsUseCase } from "../../modules/appl
 import { RegisterEstablishmentUseCase } from "../../modules/application/use-cases/establishment/register-establishment";
 import { UploadDomainImageUseCase } from "../../modules/application/use-cases/media/upload-domain-image";
 import { CreateServiceUseCase } from "../../modules/application/use-cases/service/create-service";
+import { ListAllServicesUseCase } from "../../modules/application/use-cases/service/list-all-services";
+import { ListEstablishmentServicesUseCase } from "../../modules/application/use-cases/service/list-establishment-services";
 import { UpdateServiceUseCase } from "../../modules/application/use-cases/service/update-service";
 import { GetMeUseCase } from "../../modules/application/use-cases/user/get-me";
 import { SessionCreationService } from "../../modules/accounts/domain/services/session-creation-service";
@@ -39,6 +41,8 @@ import { CreateAppointmentController } from "./controllers/create-appointment.co
 import { CreateCustomerController } from "./controllers/create-customer.controller";
 import { CreateCustomerVehicleController } from "./controllers/create-customer-vehicle.controller";
 import { CreateServiceController } from "./controllers/create-service.controller";
+import { ListAllServicesController } from "./controllers/list-all-services.controller";
+import { ListEstablishmentServicesController } from "./controllers/list-establishment-services.controller";
 import { UpdateServiceController } from "./controllers/update-service.controller";
 import { DashboardMetricsAppointmentsController } from "./controllers/dashboard-metrics-appointments.controller";
 import { DashboardMetricsOverviewController } from "./controllers/dashboard-metrics-overview.controller";
@@ -76,6 +80,8 @@ import { UploadVehicleImageController } from "./controllers/media/upload-vehicle
     RefreshSessionController,
     SignOutController,
     GetMeController,
+    ListEstablishmentServicesController,
+    ListAllServicesController,
     CreateServiceController,
     UpdateServiceController,
     CreateCustomerController,
@@ -107,6 +113,8 @@ import { UploadVehicleImageController } from "./controllers/media/upload-vehicle
     RegisterEstablishmentUseCase,
     AuthenticateWithOAuthUseCase,
     CreateServiceUseCase,
+    ListAllServicesUseCase,
+    ListEstablishmentServicesUseCase,
     UpdateServiceUseCase,
     CreateCustomerUseCase,
     ListCustomersUseCase,
