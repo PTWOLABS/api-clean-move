@@ -922,6 +922,11 @@ export class UpdateServiceResponseDto {
   service!: ServiceDto;
 }
 
+export class ListServicesResponseDto {
+  @ApiProperty({ type: ServiceDto, isArray: true })
+  services!: ServiceDto[];
+}
+
 export class DashboardMetricsOverviewResponseDto {
   @ApiProperty({ example: 56000 })
   totalRevenueInCents!: number;
