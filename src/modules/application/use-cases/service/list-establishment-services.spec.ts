@@ -23,7 +23,7 @@ describe("List establishment services (owner)", () => {
     );
   });
 
-  it("should list services when path establishment matches owner", async () => {
+  it("should list services when path owner id matches authenticated user and establishment exists", async () => {
     const establishment = makeEstablishment();
     await inMemoryEstablishmentsRepository.create(establishment);
     await inMemoryServicesRepository.create(
@@ -33,9 +33,11 @@ describe("List establishment services (owner)", () => {
       }),
     );
 
+    const ownerId = establishment.ownerId.toString();
+
     const result = await sut.execute({
-      establishmentOwnerId: establishment.ownerId.toString(),
-      establishmentId: establishment.id.toString(),
+      authenticatedUserId: ownerId,
+      pathOwnerUserId: ownerId,
     });
 
     expect(result.isRight()).toBe(true);
@@ -44,28 +46,27 @@ describe("List establishment services (owner)", () => {
     expect(result.value.totalItems).toBe(1);
   });
 
-  it("should return 404 when owner has no establishment", async () => {
-    const establishment = makeEstablishment();
-    await inMemoryEstablishmentsRepository.create(establishment);
+  it("should return 404 when owner id has no establishment profile", async () => {
+    const unknownOwnerId = "00000000-0000-4000-8000-000000000099";
 
     const result = await sut.execute({
-      establishmentOwnerId: "00000000-0000-4000-8000-000000000099",
-      establishmentId: establishment.id.toString(),
+      authenticatedUserId: unknownOwnerId,
+      pathOwnerUserId: unknownOwnerId,
     });
 
     expect(result.isLeft()).toBe(true);
     expect(result.value).toBeInstanceOf(ResourceNotFoundError);
   });
 
-  it("should return not allowed when path establishment is not the owner establishment", async () => {
+  it("should return not allowed when path owner id differs from authenticated user", async () => {
     const ownerA = makeEstablishment();
     const ownerB = makeEstablishment();
     await inMemoryEstablishmentsRepository.create(ownerA);
     await inMemoryEstablishmentsRepository.create(ownerB);
 
     const result = await sut.execute({
-      establishmentOwnerId: ownerA.ownerId.toString(),
-      establishmentId: ownerB.id.toString(),
+      authenticatedUserId: ownerA.ownerId.toString(),
+      pathOwnerUserId: ownerB.ownerId.toString(),
     });
 
     expect(result.isLeft()).toBe(true);

@@ -11,8 +11,8 @@ import {
 } from "../../repositories/services-repository";
 
 type ListEstablishmentServicesUseCaseRequest = {
-  establishmentOwnerId: string;
-  establishmentId: string;
+  authenticatedUserId: string;
+  pathOwnerUserId: string;
   filters?: ServiceFilters;
 };
 
@@ -32,24 +32,24 @@ export class ListEstablishmentServicesUseCase {
   ) {}
 
   async execute({
-    establishmentOwnerId,
-    establishmentId,
+    authenticatedUserId,
+    pathOwnerUserId,
     filters,
   }: ListEstablishmentServicesUseCaseRequest): Promise<ListEstablishmentServicesUseCaseResponse> {
+    if (authenticatedUserId !== pathOwnerUserId) {
+      return left(new NotAllowedError());
+    }
+
     const establishment =
-      await this.establishmentsRepository.findByOwnerId(establishmentOwnerId);
+      await this.establishmentsRepository.findByOwnerId(pathOwnerUserId);
 
     if (!establishment) {
       return left(new ResourceNotFoundError({ resource: "establishment" }));
     }
 
-    if (establishment.id.toString() !== establishmentId) {
-      return left(new NotAllowedError());
-    }
-
     const { items, totalItems } =
       await this.servicesRepository.findManyByEstablishmentId(
-        establishmentId,
+        establishment.id.toString(),
         filters,
       );
 

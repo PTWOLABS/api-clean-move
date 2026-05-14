@@ -33,7 +33,7 @@ import { ListServicesResponseDto } from "../docs/domain-swagger.dto";
 import { ZodValidationPipe } from "../pipes/zod-validation.pipe";
 import { ServicePresenter } from "../presenters/service-presenter";
 
-const establishmentIdParamSchema = z.uuid();
+const ownerIdParamSchema = z.uuid();
 
 const listServicesQuerySchema = z.object({
   name: z.string().trim().optional(),
@@ -68,7 +68,7 @@ function buildServiceFiltersFromQuery(
 
 @ApiTags("service")
 @ApiBearerAuth("access-token")
-@Controller("/establishments/:establishmentId")
+@Controller("/establishments/:ownerId")
 @Roles(["ESTABLISHMENT"])
 export class ListEstablishmentServicesController {
   constructor(
@@ -77,11 +77,15 @@ export class ListEstablishmentServicesController {
 
   @Get()
   @ApiOperation({
-    summary: "List services for a specific establishment (owner only).",
+    summary: "List services for the establishment owned by a user id.",
     description:
-      "Returns paginated services for the establishment id in the path when it matches the authenticated establishment owner. Omit query param isActive to include active and inactive services.",
+      "The path parameter is the establishment owner's user id (UUID). It must match the authenticated user. The API resolves the establishment via findByOwnerId and returns its services. Omit query param isActive to include active and inactive services.",
   })
-  @ApiParam({ name: "establishmentId", format: "uuid" })
+  @ApiParam({
+    name: "ownerId",
+    format: "uuid",
+    description: "User id of the establishment owner (must match the access token subject).",
+  })
   @ApiQuery({
     name: "name",
     required: false,
@@ -117,25 +121,25 @@ export class ListEstablishmentServicesController {
   })
   @ApiForbiddenResponse({
     description:
-      "Authenticated user is not the owner of the establishment in the path.",
+      "Path owner id does not match the authenticated user, or access is not allowed.",
   })
   @ApiNotFoundResponse({
     description:
-      "Establishment profile for the authenticated owner was not found.",
+      "No establishment found for the given owner user id, or resource not found.",
   })
   @ApiInternalServerErrorResponse({
     description: "Unexpected failure while listing services.",
   })
   async handle(
     @CurrentUser() user: AuthenticatedUser,
-    @Param("establishmentId", new ZodValidationPipe(establishmentIdParamSchema))
-    establishmentId: string,
+    @Param("ownerId", new ZodValidationPipe(ownerIdParamSchema))
+    ownerId: string,
     @Query(new ZodValidationPipe(listServicesQuerySchema))
     query: ListServicesQuerySchema,
   ) {
     const result = await this.listEstablishmentServices.execute({
-      establishmentOwnerId: user.userId,
-      establishmentId,
+      authenticatedUserId: user.userId,
+      pathOwnerUserId: ownerId,
       filters: buildServiceFiltersFromQuery(query),
     });
 
