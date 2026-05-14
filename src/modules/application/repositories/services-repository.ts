@@ -7,6 +7,7 @@ export type ServiceFilters = {
   category?: ServiceCategory;
   minPrice?: number;
   maxPrice?: number;
+  isActive?: boolean;
 } & PaginationParams;
 
 export abstract class ServicesRepository {
@@ -21,5 +22,5 @@ export abstract class ServicesRepository {
     establishmentId: string,
   ): Promise<Service | null>;
   abstract save(service: Service): Promise<void>;
-  abstract findMany(): Promise<Service[]>;
+  abstract findMany(filters?: ServiceFilters): Promise<Service[]>;
 }
