@@ -122,7 +122,7 @@ describe("Get services", () => {
 
     await inMemoryServicesRepository.create(
       makeService({
-        serviceName: ServiceName.create("service-1"),
+        serviceName: ServiceName.create("WashUniqueAlphaX"),
         category: "WASH",
         price: Money.create(25000),
         establishmentId: establishment.id,
@@ -154,7 +154,7 @@ describe("Get services", () => {
       filters: {
         category: "WASH",
         minPrice: 20000,
-        serviceName: "service-1",
+        serviceName: "AlphaX",
       },
     });
 
@@ -167,7 +167,7 @@ describe("Get services", () => {
     expect(result.value.services).toHaveLength(1);
     const filteredService = getFirstItem(result.value.services);
 
-    expect(filteredService.serviceName.value).toBe("service-1");
+    expect(filteredService.serviceName.value).toBe("WashUniqueAlphaX");
 
     const result2 = await sut.execute({
       establishmentId: establishment.id.toString(),
@@ -217,6 +217,54 @@ describe("Get services", () => {
     const cheaperService = getFirstItem(result4.value.services);
 
     expect(cheaperService.serviceName.value).toBe("service-0");
+  });
+
+  it("should filter by isActive when provided", async () => {
+    const establishment = makeEstablishment();
+
+    await inMemoryEstablishmentsRepository.create(establishment);
+
+    await inMemoryServicesRepository.create(
+      makeService({
+        serviceName: ServiceName.create("Active svc"),
+        establishmentId: establishment.id,
+        isActive: true,
+      }),
+    );
+
+    await inMemoryServicesRepository.create(
+      makeService({
+        serviceName: ServiceName.create("Inactive svc"),
+        establishmentId: establishment.id,
+        isActive: false,
+      }),
+    );
+
+    const all = await sut.execute({
+      establishmentId: establishment.id.toString(),
+    });
+
+    expect(all.isRight()).toBe(true);
+    if (all.isLeft()) throw all.value;
+    expect(all.value.services).toHaveLength(2);
+
+    const onlyActive = await sut.execute({
+      establishmentId: establishment.id.toString(),
+      filters: { isActive: true },
+    });
+    expect(onlyActive.isRight()).toBe(true);
+    if (onlyActive.isLeft()) throw onlyActive.value;
+    expect(onlyActive.value.services).toHaveLength(1);
+    expect(getFirstItem(onlyActive.value.services).isActive).toBe(true);
+
+    const onlyInactive = await sut.execute({
+      establishmentId: establishment.id.toString(),
+      filters: { isActive: false },
+    });
+    expect(onlyInactive.isRight()).toBe(true);
+    if (onlyInactive.isLeft()) throw onlyInactive.value;
+    expect(onlyInactive.value.services).toHaveLength(1);
+    expect(getFirstItem(onlyInactive.value.services).isActive).toBe(false);
   });
 
   it("should not be able to get services from a non-existent establishment", async () => {
