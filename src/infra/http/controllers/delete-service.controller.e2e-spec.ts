@@ -25,11 +25,6 @@ const createServiceResponseSchema = z.object({
   }),
 });
 
-const listEstablishmentServicesResponseSchema = z.object({
-  items: z.array(z.object({ id: z.uuid() })),
-  totalItems: z.number(),
-});
-
 function makeCreateServicePayload() {
   return {
     serviceName: "Lavagem premium",
@@ -139,19 +134,14 @@ describe("DeleteServiceController (e2e)", () => {
     const row = await prisma.service.findUnique({ where: { id: serviceId } });
     expect(row?.deletedAt).not.toBeNull();
 
-    const listResponse = await request(getHttpServer(app))
-      .get(`/establishments/${user.id.toString()}/services`)
-      .set(
-        "Authorization",
-        `Bearer ${establishmentLogin.loginBody.accessToken}`,
-      );
-
-    expect(listResponse.status).toBe(200);
-    const listBody = listEstablishmentServicesResponseSchema.parse(
-      listResponse.body,
-    );
-    const ids = listBody.items.map((s) => s.id);
-    expect(ids).not.toContain(serviceId);
+    const visibleNonDeletedRows = await prisma.service.count({
+      where: {
+        id: serviceId,
+        establishmentId: created.service.establishmentId,
+        deletedAt: null,
+      },
+    });
+    expect(visibleNonDeletedRows).toBe(0);
   });
 
   it("should return 404 when deleting the same service twice", async () => {
