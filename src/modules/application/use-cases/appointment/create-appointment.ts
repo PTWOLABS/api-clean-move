@@ -76,6 +76,10 @@ export class CreateAppointmentUseCase {
       return left(new ResourceNotFoundError({ resource: "service" }));
     }
 
+    if (service.isDeleted()) {
+      return left(new ResourceNotFoundError({ resource: "service" }));
+    }
+
     if (!service.isActive) {
       return left(new InactiveServiceError(service.serviceName.value));
     }

@@ -37,6 +37,7 @@ export class PrismaServiceMapper {
           : undefined,
         price: Money.create(raw.priceInCents),
         isActive: raw.isActive,
+        deletedAt: raw.deletedAt ?? null,
         createdAt: raw.createdAt,
         updatedAt: raw.updatedAt,
       },
@@ -57,6 +58,7 @@ export class PrismaServiceMapper {
         raw.estimatedDuration?.maxInMinutes ?? null,
       priceInCents: raw.price.amountInCents,
       isActive: raw.isActive,
+      deletedAt: raw.deletedAt,
       ...(raw.createdAt ? { createdAt: raw.createdAt } : {}),
       ...(raw.updatedAt ? { updatedAt: raw.updatedAt } : {}),
     };
@@ -73,6 +75,7 @@ export class PrismaServiceMapper {
         raw.estimatedDuration?.maxInMinutes ?? null,
       priceInCents: raw.price.amountInCents,
       isActive: raw.isActive,
+      deletedAt: raw.deletedAt,
       ...(raw.updatedAt ? { updatedAt: raw.updatedAt } : {}),
     };
   }

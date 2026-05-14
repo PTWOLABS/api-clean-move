@@ -1,6 +1,7 @@
 import { AggregateRoot } from "../../../../shared/entities/aggregate-root";
 import { UniqueEntityId } from "../../../../shared/entities/unique-entity-id";
 import { Optional } from "../../../../shared/types/optional";
+import { ServiceAlreadyDeletedError } from "../errors/service-already-deleted-error";
 import { InvalidEstimatedDurationTransitionError } from "../errors/invalid-estimated-duration-transition-error";
 import { EstimatedDuration } from "../value-objects/estimated-duration";
 import { Money } from "../value-objects/money";
@@ -15,6 +16,7 @@ export type ServiceProps = {
   estimatedDuration: EstimatedDuration | undefined;
   price: Money;
   isActive: boolean;
+  deletedAt: Date | null;
   createdAt: Date | null;
   updatedAt: Date | null;
 };
@@ -56,6 +58,23 @@ export class Service extends AggregateRoot<ServiceProps> {
     return this.props.updatedAt;
   }
 
+  get deletedAt() {
+    return this.props.deletedAt;
+  }
+
+  isDeleted() {
+    return this.props.deletedAt !== null;
+  }
+
+  softDelete(referenceDate: Date = new Date()) {
+    if (this.isDeleted()) {
+      throw new ServiceAlreadyDeletedError();
+    }
+
+    this.props.deletedAt = referenceDate;
+    this.touch();
+  }
+
   update(data: {
     serviceName?: string;
     description?: string;
@@ -67,6 +86,10 @@ export class Service extends AggregateRoot<ServiceProps> {
     price?: number;
     isActive?: boolean;
   }) {
+    if (this.isDeleted()) {
+      throw new ServiceAlreadyDeletedError();
+    }
+
     const newEstimatedDuration =
       data.estimatedDuration !== undefined
         ? EstimatedDuration.create(data.estimatedDuration)
@@ -170,6 +193,7 @@ export class Service extends AggregateRoot<ServiceProps> {
       | "description"
       | "category"
       | "estimatedDuration"
+      | "deletedAt"
     >,
     id?: UniqueEntityId,
   ) {
@@ -180,6 +204,7 @@ export class Service extends AggregateRoot<ServiceProps> {
         category: props.category,
         estimatedDuration: props.estimatedDuration,
         isActive: props.isActive ?? true,
+        deletedAt: props.deletedAt ?? null,
         createdAt: props.createdAt ?? new Date(),
         updatedAt: props.updatedAt ?? new Date(),
       },

@@ -31,6 +31,7 @@ import { CreateServiceUseCase } from "../../modules/application/use-cases/servic
 import { ListAllServicesUseCase } from "../../modules/application/use-cases/service/list-all-services";
 import { ListEstablishmentServicesUseCase } from "../../modules/application/use-cases/service/list-establishment-services";
 import { UpdateServiceUseCase } from "../../modules/application/use-cases/service/update-service";
+import { DeleteServiceUseCase } from "../../modules/application/use-cases/service/delete-service";
 import { GetMeUseCase } from "../../modules/application/use-cases/user/get-me";
 import { SessionCreationService } from "../../modules/accounts/domain/services/session-creation-service";
 import { AuthModule } from "../auth/auth.module";
@@ -44,6 +45,7 @@ import { CreateServiceController } from "./controllers/create-service.controller
 import { ListAllServicesController } from "./controllers/list-all-services.controller";
 import { ListEstablishmentServicesController } from "./controllers/list-establishment-services.controller";
 import { UpdateServiceController } from "./controllers/update-service.controller";
+import { DeleteServiceController } from "./controllers/delete-service.controller";
 import { DashboardMetricsAppointmentsController } from "./controllers/dashboard-metrics-appointments.controller";
 import { DashboardMetricsOverviewController } from "./controllers/dashboard-metrics-overview.controller";
 import { DashboardMetricsPopularServicesController } from "./controllers/dashboard-metrics-popular-services.controller";
@@ -84,6 +86,7 @@ import { UploadVehicleImageController } from "./controllers/media/upload-vehicle
     ListAllServicesController,
     CreateServiceController,
     UpdateServiceController,
+    DeleteServiceController,
     CreateCustomerController,
     ListCustomersController,
     UpdateCustomerController,
@@ -116,6 +119,7 @@ import { UploadVehicleImageController } from "./controllers/media/upload-vehicle
     ListAllServicesUseCase,
     ListEstablishmentServicesUseCase,
     UpdateServiceUseCase,
+    DeleteServiceUseCase,
     CreateCustomerUseCase,
     ListCustomersUseCase,
     UpdateCustomerUseCase,

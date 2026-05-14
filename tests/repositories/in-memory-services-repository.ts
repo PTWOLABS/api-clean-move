@@ -19,6 +19,16 @@ export class InMemoryServicesRepository implements ServicesRepository {
   async findById(id: string): Promise<Service | null> {
     const service = this.items.find((item) => item.id.toString() === id);
 
+    if (!service || service.isDeleted()) {
+      return null;
+    }
+
+    return service;
+  }
+
+  async findByIdIncludingSoftDeleted(id: string): Promise<Service | null> {
+    const service = this.items.find((item) => item.id.toString() === id);
+
     if (!service) {
       return null;
     }
@@ -31,6 +41,10 @@ export class InMemoryServicesRepository implements ServicesRepository {
     filters?: ServiceFilters,
   ): Service[] {
     return list.filter((item) => {
+      if (item.isDeleted()) {
+        return false;
+      }
+
       const trimmedName = filters?.serviceName?.trim();
       if (
         trimmedName &&
@@ -123,7 +137,7 @@ export class InMemoryServicesRepository implements ServicesRepository {
 
   async findMany(filters?: ServiceFilters): Promise<PaginatedServices> {
     if (filters === undefined) {
-      const items = [...this.items];
+      const items = this.items.filter((item) => !item.isDeleted());
 
       return {
         items,

@@ -84,7 +84,8 @@ export class ListEstablishmentServicesController {
   @ApiParam({
     name: "ownerId",
     format: "uuid",
-    description: "User id of the establishment owner (must match the access token subject).",
+    description:
+      "User id of the establishment owner (must match the access token subject).",
   })
   @ApiQuery({
     name: "name",

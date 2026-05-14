@@ -22,6 +22,7 @@ function buildServiceWhereWithoutEstablishment(
       : undefined;
 
   return {
+    deletedAt: null,
     ...(nameClause ? { serviceName: nameClause } : {}),
     ...(filters?.category ? { category: filters.category } : {}),
     ...(filters?.isActive !== undefined ? { isActive: filters.isActive } : {}),
@@ -96,6 +97,27 @@ export class PrismaServicesRepository implements ServicesRepository {
     try {
       const service = await PrismaUnitOfWork.getClient(
         this.prisma,
+      ).service.findFirst({
+        where: {
+          id,
+          deletedAt: null,
+        },
+      });
+
+      if (!service) {
+        return null;
+      }
+
+      return PrismaServiceMapper.toDomain(service);
+    } catch (error) {
+      rethrowPrismaRepositoryError(error);
+    }
+  }
+
+  async findByIdIncludingSoftDeleted(id: string): Promise<Service | null> {
+    try {
+      const service = await PrismaUnitOfWork.getClient(
+        this.prisma,
       ).service.findUnique({
         where: {
           id,
@@ -156,9 +178,11 @@ export class PrismaServicesRepository implements ServicesRepository {
       const client = PrismaUnitOfWork.getClient(this.prisma);
 
       if (filters === undefined) {
+        const notDeleted: Prisma.ServiceWhereInput = { deletedAt: null };
         const [totalItems, rows] = await Promise.all([
-          client.service.count(),
+          client.service.count({ where: notDeleted }),
           client.service.findMany({
+            where: notDeleted,
             orderBy: {
               createdAt: "asc",
             },

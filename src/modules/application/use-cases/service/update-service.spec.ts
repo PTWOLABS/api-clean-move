@@ -165,6 +165,28 @@ describe("Update a service", () => {
       "Service to update",
     );
   });
+
+  it("should not be able to update a soft-deleted service", async () => {
+    const establishment = makeEstablishment();
+    await inMemoryEstablishmentsRepository.create(establishment);
+
+    const service = makeService({
+      establishmentId: establishment.id,
+      serviceName: ServiceName.create("Deleted service"),
+      deletedAt: new Date("2026-01-02T00:00:00.000Z"),
+    });
+    await inMemoryServicesRepository.create(service);
+
+    const result = await sut.execute({
+      establishmentOwnerId: establishment.ownerId.toString(),
+      serviceId: service.id.toString(),
+      data: { serviceName: "New name" },
+    });
+
+    expect(result.isLeft()).toBe(true);
+    expect(result.value).toBeInstanceOf(ResourceNotFoundError);
+  });
+
   it("should not be able to update a service using an establishment that is not the owner of that service", async () => {
     const establishmentOwner = makeEstablishment();
     await inMemoryEstablishmentsRepository.create(establishmentOwner);
