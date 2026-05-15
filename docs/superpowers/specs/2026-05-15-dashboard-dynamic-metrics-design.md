@@ -31,6 +31,17 @@ type DashboardMetricsQuery = {
 
 `startsAt` and `endsAt` are ISO 8601 date-time strings with offsets, matching the validation style already used by `dashboard-metrics-http.ts`.
 
+`GET /dashboard/metrics/popular-services` also accepts optional pagination query params:
+
+```ts
+type PopularServicesPaginationQuery = {
+  page?: number;
+  size?: number;
+};
+```
+
+Pagination defaults for popular services are `page=1` and `size=5`.
+
 ### Range Resolution
 
 Range precedence:
@@ -169,9 +180,12 @@ Buckets should include periods with no matching appointments so the chart can re
 Response:
 
 ```ts
-type CancellationRateData = {
-  currentPercent: number;
-  comparisonPercentPoints: number | null;
+type AppointmentsData = {
+  appointmentsCount: number;
+  cancellationRate: {
+    currentPercent: number;
+    comparisonPercentPoints: number | null;
+  };
 };
 ```
 
@@ -187,14 +201,30 @@ Example:
 
 ```ts
 {
-  currentPercent: 4.2,
-  comparisonPercentPoints: -1.6
+  appointmentsCount: 256,
+  cancellationRate: {
+    currentPercent: 4.2,
+    comparisonPercentPoints: -1.6
+  }
 }
 ```
 
 ## Popular Services Endpoint
 
 `GET /dashboard/metrics/popular-services` returns completed services for the selected period.
+
+The endpoint accepts pagination through optional query params:
+
+```txt
+?page=1&size=5
+```
+
+Pagination rules:
+
+- `page` defaults to `1`.
+- `size` defaults to `5`.
+- `page` and `size` must be positive integers.
+- Pagination is applied after grouping and sorting services by popularity.
 
 Response:
 
@@ -217,8 +247,9 @@ Rules:
 - Use only `DONE` appointments by default.
 - Group by the booked service snapshot stored on the appointment, preserving the current behavior.
 - Sort by `completedCount` descending.
-- `totalServices` is the sum of completed service appointments in the selected period.
-- `percent` is the service share over `totalServices`.
+- `popularServices` contains the requested page of grouped service rows.
+- `totalServices` is the sum of completed service appointments in the full selected period before pagination.
+- `percent` is the service share over `totalServices`, not only over the current page.
 - `percent` should be rounded to the nearest integer because the frontend mock displays whole percentages.
 - If there are no completed services, return `popularServices: []` and `totalServices: 0`.
 
@@ -246,6 +277,7 @@ Return `400` for invalid query combinations:
 - Range above 24 months.
 - Explicit granularity incompatible with the resolved range.
 - Invalid `period`, `granularity`, `categories`, or `status` values.
+- Invalid popular services `page` or `size` values.
 
 Existing auth and ownership behavior remains unchanged:
 
@@ -271,6 +303,7 @@ Update unit and e2e coverage for:
 - `null` trends when previous values are zero or not meaningful.
 - Cancellation current percent and comparison percentage points.
 - Popular services totals and percentages.
+- Popular services pagination defaults and explicit `page`/`size`.
 
 Existing e2e tests for authentication, authorization, not found, and invalid date ordering should be preserved and updated to the new response shapes.
 
