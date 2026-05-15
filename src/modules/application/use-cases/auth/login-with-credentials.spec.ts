@@ -16,7 +16,7 @@ import { InMemoryEmployeesRepository } from "../../../../../tests/repositories/i
 import { InMemorySessionsRepository } from "../../../../../tests/repositories/in-memory-sessions-repository";
 import { InMemoryUsersRepository } from "../../../../../tests/repositories/in-memory-users-repository";
 import { EmployeeSessionAccessService } from "../../services/employee-session-access";
-import { CreateAuthSessionUseCase } from "./create-auth-session";
+import { AuthSessionService } from "../../services/auth-session.service";
 import { LoginWithCredentialsUseCase } from "./login-with-credentials";
 
 const refreshTokenTtlInMs = 1_296_000_000;
@@ -34,7 +34,7 @@ let sessionCreationService: SessionCreationService;
 let envService: EnvReader;
 let authService: AuthService;
 let employeeSessionAccessService: EmployeeSessionAccessService;
-let createAuthSession: CreateAuthSessionUseCase;
+let authSessionService: AuthSessionService;
 
 let sut: LoginWithCredentialsUseCase;
 
@@ -67,7 +67,7 @@ describe("Login with credentials", () => {
       new JwtService({ secret: "test-access-secret" }),
       envService as EnvService,
     );
-    createAuthSession = new CreateAuthSessionUseCase(
+    authSessionService = new AuthSessionService(
       inMemorySessionsRepository,
       fakeTokenHasher,
       sessionCreationService,
@@ -79,7 +79,7 @@ describe("Login with credentials", () => {
     sut = new LoginWithCredentialsUseCase(
       inMemoryUsersRepository,
       fakeHashComparer,
-      createAuthSession,
+      authSessionService,
     );
   });
 

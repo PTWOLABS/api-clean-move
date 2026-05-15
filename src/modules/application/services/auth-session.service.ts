@@ -1,32 +1,32 @@
 import { Injectable } from "@nestjs/common";
-import { User } from "../../../accounts/domain/entities/user";
-import { Session } from "../../../accounts/domain/entities/session";
-import { Either, left, right } from "../../../../shared/either";
-import { InvalidCredentialsError } from "../../../../shared/errors/invalid-credentials-error";
-import { UnexpectedDomainError } from "../../../../shared/errors/unexpected-domain-error";
-import { SessionsRepository } from "../../repositories/sessions-repository";
-import { SessionCreationService } from "../../../accounts/domain/services/session-creation-service";
-import { InvalidSessionCreationError } from "../../../accounts/domain/errors/invalid-session-creation-error";
-import { EnvService } from "../../../../infra/env/env.service";
-import { AuthService } from "../../../../infra/auth/auth.service";
-import { UniqueEntityId } from "../../../../shared/entities/unique-entity-id";
-import { TokenHasher } from "../../repositories/token-hasher";
-import { EmployeeSessionAccessService } from "../../services/employee-session-access";
+import { User } from "../../accounts/domain/entities/user";
+import { Session } from "../../accounts/domain/entities/session";
+import { Either, left, right } from "../../../shared/either";
+import { InvalidCredentialsError } from "../../../shared/errors/invalid-credentials-error";
+import { UnexpectedDomainError } from "../../../shared/errors/unexpected-domain-error";
+import { SessionsRepository } from "../repositories/sessions-repository";
+import { SessionCreationService } from "../../accounts/domain/services/session-creation-service";
+import { InvalidSessionCreationError } from "../../accounts/domain/errors/invalid-session-creation-error";
+import { EnvService } from "../../../infra/env/env.service";
+import { AuthService } from "../../../infra/auth/auth.service";
+import { UniqueEntityId } from "../../../shared/entities/unique-entity-id";
+import { TokenHasher } from "../repositories/token-hasher";
+import { EmployeeSessionAccessService } from "./employee-session-access";
 
-type CreateAuthSessionUseCaseRequest = {
+type CreateAuthSessionRequest = {
   user: User;
   userAgent?: string | null | undefined;
   ipAddress?: string | null | undefined;
   referenceDate?: Date | undefined;
 };
 
-type CreateAuthSessionUseCaseResponse = Either<
+type CreateAuthSessionResponse = Either<
   InvalidCredentialsError | InvalidSessionCreationError | UnexpectedDomainError,
   { session: Session; refreshToken: string; accessToken: string }
 >;
 
 @Injectable()
-export class CreateAuthSessionUseCase {
+export class AuthSessionService {
   constructor(
     private sessionsRepository: SessionsRepository,
     private tokenHasher: TokenHasher,
@@ -36,12 +36,12 @@ export class CreateAuthSessionUseCase {
     private employeeSessionAccess: EmployeeSessionAccessService,
   ) {}
 
-  async execute({
+  async create({
     user,
     userAgent,
     ipAddress,
     referenceDate = new Date(),
-  }: CreateAuthSessionUseCaseRequest): Promise<CreateAuthSessionUseCaseResponse> {
+  }: CreateAuthSessionRequest): Promise<CreateAuthSessionResponse> {
     const canCreateSession =
       await this.employeeSessionAccess.canCreateSessionFor({
         userId: user.id.toString(),

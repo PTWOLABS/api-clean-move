@@ -1,19 +1,19 @@
 import { JwtService } from "@nestjs/jwt";
-import { AuthService } from "../../../../infra/auth/auth.service";
-import type { Env } from "../../../../infra/env/env";
-import type { EnvService } from "../../../../infra/env/env.service";
-import { UniqueEntityId } from "../../../../shared/entities/unique-entity-id";
-import { Email } from "../../../accounts/domain/value-objects/email";
-import { SessionCreationService } from "../../../accounts/domain/services/session-creation-service";
-import { InvalidCredentialsError } from "../../../../shared/errors/invalid-credentials-error";
-import { makeEmployee } from "../../../../../tests/factories/employee-factory";
-import { makeUser } from "../../../../../tests/factories/user-factory";
-import { Employee } from "../../../employees/domain/entities/employee";
-import { FakeTokenHasher } from "../../../../../tests/repositories/fake-token-hasher";
-import { InMemoryEmployeesRepository } from "../../../../../tests/repositories/in-memory-employees-repository";
-import { InMemorySessionsRepository } from "../../../../../tests/repositories/in-memory-sessions-repository";
-import { EmployeeSessionAccessService } from "../../services/employee-session-access";
-import { CreateAuthSessionUseCase } from "./create-auth-session";
+import { AuthService } from "../../../infra/auth/auth.service";
+import type { Env } from "../../../infra/env/env";
+import type { EnvService } from "../../../infra/env/env.service";
+import { UniqueEntityId } from "../../../shared/entities/unique-entity-id";
+import { Email } from "../../accounts/domain/value-objects/email";
+import { SessionCreationService } from "../../accounts/domain/services/session-creation-service";
+import { InvalidCredentialsError } from "../../../shared/errors/invalid-credentials-error";
+import { makeEmployee } from "../../../../tests/factories/employee-factory";
+import { makeUser } from "../../../../tests/factories/user-factory";
+import { Employee } from "../../employees/domain/entities/employee";
+import { FakeTokenHasher } from "../../../../tests/repositories/fake-token-hasher";
+import { InMemoryEmployeesRepository } from "../../../../tests/repositories/in-memory-employees-repository";
+import { InMemorySessionsRepository } from "../../../../tests/repositories/in-memory-sessions-repository";
+import { EmployeeSessionAccessService } from "./employee-session-access";
+import { AuthSessionService } from "./auth-session.service";
 
 const refreshTokenTtlInMs = 1_296_000_000;
 
@@ -21,7 +21,7 @@ type EnvReader = {
   get<T extends keyof Env>(key: T): Env[T];
 };
 
-describe("CreateAuthSessionUseCase", () => {
+describe("AuthSessionService", () => {
   let inMemorySessionsRepository: InMemorySessionsRepository;
   let inMemoryEmployeesRepository: InMemoryEmployeesRepository;
   let fakeTokenHasher: FakeTokenHasher;
@@ -29,7 +29,7 @@ describe("CreateAuthSessionUseCase", () => {
   let envService: EnvReader;
   let authService: AuthService;
   let employeeSessionAccessService: EmployeeSessionAccessService;
-  let sut: CreateAuthSessionUseCase;
+  let sut: AuthSessionService;
 
   beforeEach(() => {
     inMemorySessionsRepository = new InMemorySessionsRepository();
@@ -57,7 +57,7 @@ describe("CreateAuthSessionUseCase", () => {
       envService as EnvService,
     );
 
-    sut = new CreateAuthSessionUseCase(
+    sut = new AuthSessionService(
       inMemorySessionsRepository,
       fakeTokenHasher,
       sessionCreationService,
@@ -72,7 +72,7 @@ describe("CreateAuthSessionUseCase", () => {
       email: new Email("john@example.com"),
     });
 
-    const result = await sut.execute({
+    const result = await sut.create({
       user,
       userAgent: "  Mozilla/5.0  ",
       ipAddress: "  127.0.0.1  ",
@@ -113,7 +113,7 @@ describe("CreateAuthSessionUseCase", () => {
       email: new Email("john@example.com"),
     });
 
-    const result = await sut.execute({ user });
+    const result = await sut.create({ user });
 
     expect(result.isRight()).toBe(true);
 
@@ -159,7 +159,7 @@ describe("CreateAuthSessionUseCase", () => {
     });
     await inMemoryEmployeesRepository.create(employee);
 
-    const result = await sut.execute({ user });
+    const result = await sut.create({ user });
 
     expect(result.isLeft()).toBe(true);
     expect(result.value).toBeInstanceOf(InvalidCredentialsError);
@@ -177,7 +177,7 @@ describe("CreateAuthSessionUseCase", () => {
       }),
     );
 
-    const result = await sut.execute({ user });
+    const result = await sut.create({ user });
 
     expect(result.isRight()).toBe(true);
     expect(inMemorySessionsRepository.items).toHaveLength(1);
@@ -188,7 +188,7 @@ describe("CreateAuthSessionUseCase", () => {
       email: new Email("john@example.com"),
     });
 
-    const result = await sut.execute({ user });
+    const result = await sut.create({ user });
 
     expect(result.isRight()).toBe(true);
 

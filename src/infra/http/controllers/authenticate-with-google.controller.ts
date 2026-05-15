@@ -25,7 +25,7 @@ import {
   InvalidEmailError,
 } from "../../../modules/accounts/domain/value-objects/email";
 import { AuthenticateWithOAuthUseCase } from "../../../modules/application/use-cases/auth/authenticate-with-oauth";
-import { CreateAuthSessionUseCase } from "../../../modules/application/use-cases/auth/create-auth-session";
+import { AuthSessionService } from "../../../modules/application/services/auth-session.service";
 import { OAuthEmailNotVerifiedError } from "../../../shared/errors/oauth-email-not-verified-error";
 import { InvalidCredentialsError } from "../../../shared/errors/invalid-credentials-error";
 import { InvalidSessionCreationError } from "../../../modules/accounts/domain/errors/invalid-session-creation-error";
@@ -64,7 +64,7 @@ export class AuthenticateWithGoogleController {
   constructor(
     private readonly authenticateWithOAuth: AuthenticateWithOAuthUseCase,
     private readonly oauthIdTokenVerifier: OAuthIdTokenVerifier,
-    private readonly createAuthSession: CreateAuthSessionUseCase,
+    private readonly authSessionService: AuthSessionService,
     private readonly refreshTokenCookieService: RefreshTokenCookieService,
   ) {}
 
@@ -167,7 +167,7 @@ export class AuthenticateWithGoogleController {
 
     const { user } = result.value;
 
-    const sessionResult = await this.createAuthSession.execute({
+    const sessionResult = await this.authSessionService.create({
       user,
       userAgent: this.getUserAgent(req),
       ipAddress: this.getIpAddress(req),

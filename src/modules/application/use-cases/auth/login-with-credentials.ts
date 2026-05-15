@@ -11,7 +11,7 @@ import {
 import { UnexpectedDomainError } from "../../../../shared/errors/unexpected-domain-error";
 import { Session } from "../../../accounts/domain/entities/session";
 import { InvalidSessionCreationError } from "../../../accounts/domain/errors/invalid-session-creation-error";
-import { CreateAuthSessionUseCase } from "./create-auth-session";
+import { AuthSessionService } from "../../services/auth-session.service";
 
 type LoginWithCredentialsUseCaseRequest = {
   email: string;
@@ -30,7 +30,7 @@ export class LoginWithCredentialsUseCase {
   constructor(
     private usersRepository: UsersRepository,
     private hashComparer: HashComparer,
-    private createAuthSession: CreateAuthSessionUseCase,
+    private authSessionService: AuthSessionService,
   ) {}
 
   async execute({
@@ -66,7 +66,7 @@ export class LoginWithCredentialsUseCase {
       return left(new InvalidCredentialsError());
     }
 
-    const sessionResult = await this.createAuthSession.execute({
+    const sessionResult = await this.authSessionService.create({
       user,
       userAgent,
       ipAddress,
