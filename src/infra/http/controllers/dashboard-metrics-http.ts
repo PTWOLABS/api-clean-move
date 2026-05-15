@@ -27,8 +27,23 @@ export const SERVICE_CATEGORIES = [
 
 export const APPOINTMENT_STATUSES = ["SCHEDULED", "DONE", "CANCELLED"] as const;
 
+export const DASHBOARD_METRIC_PERIODS = [
+  "this-month",
+  "last-7-days",
+  "last-30-days",
+] as const;
+
+export const DASHBOARD_METRIC_GRANULARITIES = [
+  "auto",
+  "daily",
+  "weekly",
+  "monthly",
+] as const;
+
 const serviceCategorySchema = z.enum(SERVICE_CATEGORIES);
 const appointmentStatusSchema = z.enum(APPOINTMENT_STATUSES);
+const dashboardMetricPeriodSchema = z.enum(DASHBOARD_METRIC_PERIODS);
+const dashboardMetricGranularitySchema = z.enum(DASHBOARD_METRIC_GRANULARITIES);
 
 const dateTimeQuerySchema = z.iso
   .datetime({ offset: true })
@@ -68,6 +83,31 @@ function toOptionalArray(value: unknown) {
   return normalizedValues.length > 0 ? normalizedValues : undefined;
 }
 
+function validateMetricsDateRange(
+  query: { startsAt?: Date | undefined; endsAt?: Date | undefined },
+  context: z.RefinementCtx,
+) {
+  if (query.endsAt && !query.startsAt) {
+    context.addIssue({
+      code: "custom",
+      path: ["endsAt"],
+      message: "endsAt requires startsAt.",
+    });
+  }
+
+  if (
+    query.startsAt &&
+    query.endsAt &&
+    query.startsAt.getTime() > query.endsAt.getTime()
+  ) {
+    context.addIssue({
+      code: "custom",
+      path: ["endsAt"],
+      message: "endsAt must be greater than or equal to startsAt.",
+    });
+  }
+}
+
 export const dashboardMetricsQuerySchema = z
   .object({
     startsAt: dateTimeQuerySchema.optional(),
@@ -95,8 +135,42 @@ export const dashboardMetricsQuerySchema = z
     }
   });
 
+const dashboardDynamicMetricsQueryBaseSchema = z.object({
+  period: dashboardMetricPeriodSchema.optional(),
+  startsAt: dateTimeQuerySchema.optional(),
+  endsAt: dateTimeQuerySchema.optional(),
+  granularity: dashboardMetricGranularitySchema.optional(),
+  categories: z.preprocess(
+    toOptionalArray,
+    z.array(serviceCategorySchema).optional(),
+  ),
+  status: z.preprocess(
+    toOptionalArray,
+    z.array(appointmentStatusSchema).optional(),
+  ),
+});
+
+export const dashboardDynamicMetricsQuerySchema =
+  dashboardDynamicMetricsQueryBaseSchema.superRefine(validateMetricsDateRange);
+
+export const dashboardPopularServicesMetricsQuerySchema =
+  dashboardDynamicMetricsQueryBaseSchema
+    .extend({
+      page: z.coerce.number().int().positive().default(1),
+      size: z.coerce.number().int().positive().default(5),
+    })
+    .superRefine(validateMetricsDateRange);
+
 export type DashboardMetricsQuerySchema = z.infer<
   typeof dashboardMetricsQuerySchema
+>;
+
+export type DashboardDynamicMetricsQuerySchema = z.infer<
+  typeof dashboardDynamicMetricsQuerySchema
+>;
+
+export type DashboardPopularServicesMetricsQuerySchema = z.infer<
+  typeof dashboardPopularServicesMetricsQuerySchema
 >;
 
 type DashboardMetricsResult<T> = Either<ResourceNotFoundError, T>;
