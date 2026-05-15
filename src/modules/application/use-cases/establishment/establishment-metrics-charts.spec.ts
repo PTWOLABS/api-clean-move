@@ -404,6 +404,110 @@ describe("Establishment metrics charts", () => {
     });
   });
 
+  it("should calculate popular service totals and percentages within the repository page", async () => {
+    const repositories = makeRepositories();
+    const { appointmentsRepository, establishmentsRepository } = repositories;
+
+    const ownerId = new UniqueEntityId("owner-1");
+    const establishment = makeEstablishment(
+      { ownerId },
+      new UniqueEntityId("est-1"),
+    );
+
+    await establishmentsRepository.create(establishment);
+
+    const washService = makeService(
+      {
+        establishmentId: establishment.id,
+        category: "WASH",
+      },
+      new UniqueEntityId("service-1"),
+    );
+    const protectionService = makeService(
+      {
+        establishmentId: establishment.id,
+        category: "PROTECTION",
+      },
+      new UniqueEntityId("service-2"),
+    );
+
+    for (const startsAt of [
+      "2026-04-01T10:00:00.000Z",
+      "2026-04-02T10:00:00.000Z",
+    ]) {
+      await appointmentsRepository.create(
+        makeAppointment({
+          establishmentId: establishment.id,
+          status: "DONE",
+          service: {
+            serviceId: washService.id,
+            serviceName: washService.serviceName.value,
+            category: washService.category,
+            durationInMinutes: 60,
+            priceInCents: 10000,
+          },
+          startsAt: new Date(startsAt),
+          endsAt: new Date(new Date(startsAt).getTime() + 60 * 60 * 1000),
+        }),
+      );
+    }
+
+    await appointmentsRepository.create(
+      makeAppointment({
+        establishmentId: establishment.id,
+        status: "DONE",
+        service: {
+          serviceId: protectionService.id,
+          serviceName: protectionService.serviceName.value,
+          category: protectionService.category,
+          durationInMinutes: 60,
+          priceInCents: 20000,
+        },
+        startsAt: new Date("2026-04-03T10:00:00.000Z"),
+        endsAt: new Date("2026-04-03T11:00:00.000Z"),
+      }),
+    );
+
+    const { popularServicesUseCase } = makeChartUseCases(repositories);
+    const result = await popularServicesUseCase.execute({
+      establishmentOwnerId: ownerId.toString(),
+      range: makeRange(
+        "2026-04-01T00:00:00.000Z",
+        "2026-04-03T23:59:59.999Z",
+        "2026-03-29T00:00:00.000Z",
+        "2026-03-31T23:59:59.999Z",
+      ),
+      pagination: {
+        page: 1,
+        size: 5,
+      },
+    });
+
+    expect(result.isRight()).toBe(true);
+
+    if (result.isLeft()) {
+      throw new Error("Expected popular services to be calculated");
+    }
+
+    expect(result.value).toEqual({
+      popularServices: [
+        {
+          id: washService.id.toString(),
+          name: washService.serviceName.value,
+          completedCount: 2,
+          percent: 67,
+        },
+        {
+          id: protectionService.id.toString(),
+          name: protectionService.serviceName.value,
+          completedCount: 1,
+          percent: 33,
+        },
+      ],
+      totalServices: 3,
+    });
+  });
+
   it("should use DONE by default and exclude scheduled and cancelled appointments", async () => {
     const repositories = makeRepositories();
     const { appointmentsRepository, establishmentsRepository } = repositories;
@@ -821,6 +925,95 @@ describe("Establishment metrics charts", () => {
         revenueInCents: 0,
       },
     ]);
+  });
+
+  it("should return monthly bucket output", async () => {
+    const repositories = makeRepositories();
+    const { appointmentsRepository, establishmentsRepository } = repositories;
+
+    const ownerId = new UniqueEntityId("owner-1");
+    const establishment = makeEstablishment(
+      { ownerId },
+      new UniqueEntityId("est-1"),
+    );
+
+    await establishmentsRepository.create(establishment);
+
+    await appointmentsRepository.create(
+      makeAppointment({
+        establishmentId: establishment.id,
+        status: "DONE",
+        service: {
+          serviceId: new UniqueEntityId("service-1"),
+          serviceName: "Lavagem simples",
+          category: "WASH",
+          durationInMinutes: 60,
+          priceInCents: 10000,
+        },
+        startsAt: new Date("2026-01-15T10:00:00.000Z"),
+        endsAt: new Date("2026-01-15T11:00:00.000Z"),
+      }),
+    );
+    await appointmentsRepository.create(
+      makeAppointment({
+        establishmentId: establishment.id,
+        status: "DONE",
+        service: {
+          serviceId: new UniqueEntityId("service-2"),
+          serviceName: "Lavagem completa",
+          category: "WASH",
+          durationInMinutes: 60,
+          priceInCents: 20000,
+        },
+        startsAt: new Date("2026-03-10T10:00:00.000Z"),
+        endsAt: new Date("2026-03-10T11:00:00.000Z"),
+      }),
+    );
+
+    const { revenueVsAppointmentsUseCase } = makeChartUseCases(repositories);
+    const result = await revenueVsAppointmentsUseCase.execute({
+      establishmentOwnerId: ownerId.toString(),
+      range: makeRange(
+        "2026-01-01T00:00:00.000Z",
+        "2026-03-31T23:59:59.999Z",
+        "2025-10-01T00:00:00.000Z",
+        "2025-12-31T23:59:59.999Z",
+      ),
+      granularity: "monthly",
+    });
+
+    expect(result.isRight()).toBe(true);
+
+    if (result.isLeft()) {
+      throw new Error("Expected revenue metrics to be calculated successfully");
+    }
+
+    expect(result.value.points).toEqual([
+      {
+        date: "2026-01",
+        label: "Jan",
+        appointments: 1,
+        revenueInCents: 10000,
+      },
+      {
+        date: "2026-02",
+        label: "Fev",
+        appointments: 0,
+        revenueInCents: 0,
+      },
+      {
+        date: "2026-03",
+        label: "Mar",
+        appointments: 1,
+        revenueInCents: 20000,
+      },
+    ]);
+    expect(result.value.summary).toEqual({
+      revenueInCents: 30000,
+      appointments: 2,
+      revenueTrendPercent: null,
+      appointmentsTrendPercent: null,
+    });
   });
 
   it("should return null trends when previous comparison values are zero", async () => {

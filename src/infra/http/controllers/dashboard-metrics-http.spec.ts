@@ -19,6 +19,21 @@ describe("dashboard dynamic metrics query schemas", () => {
     },
   );
 
+  it("should accept a custom startsAt and endsAt range", () => {
+    const result = dashboardDynamicMetricsQuerySchema.safeParse({
+      startsAt: "2026-05-01T00:00:00.000-03:00",
+      endsAt: "2026-05-31T23:59:59.999-03:00",
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.startsAt).toEqual(
+        new Date("2026-05-01T03:00:00.000Z"),
+      );
+      expect(result.data.endsAt).toEqual(new Date("2026-06-01T02:59:59.999Z"));
+    }
+  });
+
   it.each(["auto", "daily", "weekly", "monthly"])(
     "should accept granularity=%s",
     (granularity) => {
