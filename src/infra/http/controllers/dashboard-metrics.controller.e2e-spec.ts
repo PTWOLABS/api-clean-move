@@ -1,7 +1,7 @@
 import { INestApplication } from "@nestjs/common";
 import { Test } from "@nestjs/testing";
 import request from "supertest";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import z from "zod";
 
 import { EstablishmentFactory } from "../../../../tests/factories/establishment-factory";
@@ -21,6 +21,11 @@ import { EnvService } from "../../env/env.service";
 import { AppModule } from "../../app.module";
 import { HashGenerator } from "../../../modules/application/repositories/hash-generator";
 import { Money } from "../../../modules/catalog/domain/value-objects/money";
+import { Service } from "../../../modules/catalog/domain/entities/services";
+import { UniqueEntityId } from "../../../shared/entities/unique-entity-id";
+import { AppointmentStatus } from "../../../modules/scheduling/domain/entities/appointment";
+
+const referenceDate = new Date("2026-05-15T12:00:00.000Z");
 
 const overviewResponseSchema = z
   .object({
@@ -34,7 +39,12 @@ const overviewResponseSchema = z
 const appointmentsResponseSchema = z
   .object({
     appointmentsCount: z.number(),
-    cancellationRate: z.number(),
+    cancellationRate: z
+      .object({
+        currentPercent: z.number(),
+        comparisonPercentPoints: z.number().nullable(),
+      })
+      .strict(),
   })
   .strict();
 
@@ -43,12 +53,21 @@ const revenueResponseSchema = z
     points: z.array(
       z
         .object({
-          period: z.string(),
+          date: z.string(),
+          label: z.string(),
           revenueInCents: z.number(),
-          appointmentsCount: z.number(),
+          appointments: z.number(),
         })
         .strict(),
     ),
+    summary: z
+      .object({
+        revenueInCents: z.number(),
+        appointments: z.number(),
+        revenueTrendPercent: z.number().nullable(),
+        appointmentsTrendPercent: z.number().nullable(),
+      })
+      .strict(),
   })
   .strict();
 
@@ -57,22 +76,14 @@ const popularServicesResponseSchema = z
     popularServices: z.array(
       z
         .object({
-          serviceId: z.uuid(),
-          serviceName: z.string(),
-          category: z
-            .enum([
-              "WASH",
-              "SANITIZATION",
-              "AUTOMATIVE_DETAILING",
-              "PROTECTION",
-              "UPHOLSTERY",
-            ])
-            .nullable(),
-          appointmentsCount: z.number(),
-          revenueInCents: z.number(),
+          id: z.uuid(),
+          name: z.string(),
+          completedCount: z.number(),
+          percent: z.number(),
         })
         .strict(),
     ),
+    totalServices: z.number(),
   })
   .strict();
 
@@ -93,6 +104,9 @@ describe("Dashboard metrics controller (e2e)", () => {
   let envService: EnvService;
 
   beforeAll(async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(referenceDate);
+
     const moduleRef = await Test.createTestingModule({
       imports: [AppModule],
     }).compile();
@@ -110,9 +124,10 @@ describe("Dashboard metrics controller (e2e)", () => {
 
   afterAll(async () => {
     await app.close();
+    vi.useRealTimers();
   });
 
-  it("should return dashboard metrics from real appointment data", async () => {
+  async function makeAuthContext() {
     const { accessToken, establishment } = await makeEstablishmentAccessToken({
       app,
       prisma,
@@ -123,6 +138,57 @@ describe("Dashboard metrics controller (e2e)", () => {
     const customer = await customerFactory.makePrismaCustomer({
       establishmentId: establishment.id,
     });
+
+    return { accessToken, establishment, customer };
+  }
+
+  async function createAppointment({
+    establishmentId,
+    customerId,
+    service,
+    startsAt,
+    status = "DONE",
+    priceInCents,
+    discountInCents,
+    serviceName,
+  }: {
+    establishmentId: UniqueEntityId;
+    customerId: UniqueEntityId;
+    service: Service;
+    startsAt: string;
+    status?: AppointmentStatus;
+    priceInCents: number;
+    discountInCents?: number;
+    serviceName?: string;
+  }) {
+    const start = new Date(startsAt);
+
+    await prisma.appointment.create({
+      data: PrismaAppointmentMapper.toPrisma(
+        makeAppointment({
+          establishmentId,
+          customerId,
+          status,
+          service: {
+            serviceId: service.id,
+            serviceName: serviceName ?? service.serviceName.value,
+            category: service.category,
+            durationInMinutes: service.estimatedDuration?.upperBoundInMinutes,
+            priceInCents,
+          },
+          discountInCents:
+            discountInCents !== undefined
+              ? Money.create(discountInCents)
+              : null,
+          startsAt: start,
+          endsAt: new Date(start.getTime() + 60 * 60 * 1000),
+        }),
+      ),
+    });
+  }
+
+  async function seedDashboardMetrics() {
+    const { accessToken, establishment, customer } = await makeAuthContext();
     const washService = await serviceFactory.makePrismaService({
       establishmentId: establishment.id,
       category: "WASH",
@@ -135,236 +201,383 @@ describe("Dashboard metrics controller (e2e)", () => {
       establishmentId: establishment.id,
       category: "PROTECTION",
     });
-
-    await prisma.appointment.create({
-      data: PrismaAppointmentMapper.toPrisma(
-        makeAppointment({
-          establishmentId: establishment.id,
-          customerId: customer.id,
-          status: "SCHEDULED",
-          service: {
-            serviceId: washService.id,
-            serviceName: washService.serviceName.value,
-            category: washService.category,
-            durationInMinutes:
-              washService.estimatedDuration?.upperBoundInMinutes,
-            priceInCents: 10000,
-          },
-          discountInCents: Money.create(1000),
-          startsAt: new Date("2026-04-01T10:00:00.000Z"),
-          endsAt: new Date("2026-04-01T11:00:00.000Z"),
-        }),
-      ),
-    });
-    await prisma.appointment.create({
-      data: PrismaAppointmentMapper.toPrisma(
-        makeAppointment({
-          establishmentId: establishment.id,
-          customerId: customer.id,
-          status: "SCHEDULED",
-          service: {
-            serviceId: washService.id,
-            serviceName: washService.serviceName.value,
-            category: washService.category,
-            durationInMinutes:
-              washService.estimatedDuration?.upperBoundInMinutes,
-            priceInCents: 12000,
-          },
-          startsAt: new Date("2026-04-01T14:00:00.000Z"),
-          endsAt: new Date("2026-04-01T15:00:00.000Z"),
-        }),
-      ),
-    });
-    await prisma.appointment.create({
-      data: PrismaAppointmentMapper.toPrisma(
-        makeAppointment({
-          establishmentId: establishment.id,
-          customerId: customer.id,
-          status: "SCHEDULED",
-          service: {
-            serviceId: detailsService.id,
-            serviceName: "Detalhamento snapshot",
-            category: "AUTOMATIVE_DETAILING",
-            durationInMinutes:
-              detailsService.estimatedDuration?.upperBoundInMinutes,
-            priceInCents: 30000,
-          },
-          discountInCents: Money.create(5000),
-          startsAt: new Date("2026-04-02T14:00:00.000Z"),
-          endsAt: new Date("2026-04-02T15:00:00.000Z"),
-        }),
-      ),
-    });
-    await prisma.appointment.create({
-      data: PrismaAppointmentMapper.toPrisma(
-        makeAppointment({
-          establishmentId: establishment.id,
-          customerId: customer.id,
-          status: "CANCELLED",
-          service: {
-            serviceId: washService.id,
-            serviceName: washService.serviceName.value,
-            category: washService.category,
-            durationInMinutes:
-              washService.estimatedDuration?.upperBoundInMinutes,
-            priceInCents: 15000,
-          },
-          discountInCents: Money.create(5000),
-          startsAt: new Date("2026-04-03T14:00:00.000Z"),
-          endsAt: new Date("2026-04-03T15:00:00.000Z"),
-        }),
-      ),
-    });
-    await prisma.appointment.create({
-      data: PrismaAppointmentMapper.toPrisma(
-        makeAppointment({
-          establishmentId: establishment.id,
-          customerId: customer.id,
-          status: "DONE",
-          service: {
-            serviceId: washService.id,
-            serviceName: washService.serviceName.value,
-            category: washService.category,
-            durationInMinutes:
-              washService.estimatedDuration?.upperBoundInMinutes,
-            priceInCents: 99999,
-          },
-          startsAt: new Date("2026-04-02T16:00:00.000Z"),
-          endsAt: new Date("2026-04-02T17:00:00.000Z"),
-        }),
-      ),
-    });
-    await prisma.appointment.create({
-      data: PrismaAppointmentMapper.toPrisma(
-        makeAppointment({
-          establishmentId: establishment.id,
-          customerId: customer.id,
-          status: "SCHEDULED",
-          service: {
-            serviceId: protectionService.id,
-            serviceName: protectionService.serviceName.value,
-            category: "PROTECTION",
-            durationInMinutes:
-              protectionService.estimatedDuration?.upperBoundInMinutes,
-            priceInCents: 99999,
-          },
-          startsAt: new Date("2026-04-02T18:00:00.000Z"),
-          endsAt: new Date("2026-04-02T19:00:00.000Z"),
-        }),
-      ),
-    });
-    await prisma.appointment.create({
-      data: PrismaAppointmentMapper.toPrisma(
-        makeAppointment({
-          establishmentId: establishment.id,
-          customerId: customer.id,
-          status: "SCHEDULED",
-          service: {
-            serviceId: washService.id,
-            serviceName: washService.serviceName.value,
-            category: washService.category,
-            durationInMinutes:
-              washService.estimatedDuration?.upperBoundInMinutes,
-            priceInCents: 99999,
-          },
-          startsAt: new Date("2026-04-04T14:00:00.000Z"),
-          endsAt: new Date("2026-04-04T15:00:00.000Z"),
-        }),
-      ),
-    });
-
-    const query = {
-      startsAt: "2026-04-01T00:00:00.000Z",
-      endsAt: "2026-04-03T23:59:59.999Z",
-      categories: ["WASH", "AUTOMATIVE_DETAILING"],
-      status: ["SCHEDULED", "CANCELLED"],
+    const shared = {
+      establishmentId: establishment.id,
+      customerId: customer.id,
     };
 
-    const overviewResponse = await request(getHttpServer(app))
+    await createAppointment({
+      ...shared,
+      service: washService,
+      startsAt: "2026-05-09T10:00:00.000Z",
+      priceInCents: 10000,
+    });
+    await createAppointment({
+      ...shared,
+      service: detailsService,
+      startsAt: "2026-05-10T10:00:00.000Z",
+      priceInCents: 20000,
+      discountInCents: 5000,
+      serviceName: "Detalhamento snapshot",
+    });
+    await createAppointment({
+      ...shared,
+      service: washService,
+      startsAt: "2026-05-11T10:00:00.000Z",
+      priceInCents: 10000,
+    });
+    await createAppointment({
+      ...shared,
+      service: protectionService,
+      startsAt: "2026-05-12T10:00:00.000Z",
+      priceInCents: 25000,
+    });
+    await createAppointment({
+      ...shared,
+      service: washService,
+      startsAt: "2026-05-13T10:00:00.000Z",
+      status: "CANCELLED",
+      priceInCents: 30000,
+    });
+    await createAppointment({
+      ...shared,
+      service: washService,
+      startsAt: "2026-05-03T10:00:00.000Z",
+      priceInCents: 5000,
+    });
+    await createAppointment({
+      ...shared,
+      service: detailsService,
+      startsAt: "2026-04-20T10:00:00.000Z",
+      priceInCents: 7000,
+    });
+    await createAppointment({
+      ...shared,
+      service: washService,
+      startsAt: "2026-05-02T10:00:00.000Z",
+      priceInCents: 10000,
+    });
+    await createAppointment({
+      ...shared,
+      service: detailsService,
+      startsAt: "2026-05-04T10:00:00.000Z",
+      priceInCents: 10000,
+    });
+    await createAppointment({
+      ...shared,
+      service: protectionService,
+      startsAt: "2026-05-05T10:00:00.000Z",
+      status: "CANCELLED",
+      priceInCents: 10000,
+    });
+    await createAppointment({
+      ...shared,
+      service: washService,
+      startsAt: "2026-04-10T10:00:00.000Z",
+      priceInCents: 10000,
+    });
+    await createAppointment({
+      ...shared,
+      service: detailsService,
+      startsAt: "2026-04-12T10:00:00.000Z",
+      status: "CANCELLED",
+      priceInCents: 10000,
+    });
+    await createAppointment({
+      ...shared,
+      service: protectionService,
+      startsAt: "2026-03-20T10:00:00.000Z",
+      priceInCents: 4000,
+    });
+
+    return { accessToken, washService, detailsService, protectionService };
+  }
+
+  it("should preserve overview metrics response from real appointment data", async () => {
+    const { accessToken, establishment, customer } = await makeAuthContext();
+    const washService = await serviceFactory.makePrismaService({
+      establishmentId: establishment.id,
+      category: "WASH",
+    });
+    const detailsService = await serviceFactory.makePrismaService({
+      establishmentId: establishment.id,
+      category: "AUTOMATIVE_DETAILING",
+    });
+    const shared = {
+      establishmentId: establishment.id,
+      customerId: customer.id,
+    };
+
+    await createAppointment({
+      ...shared,
+      service: washService,
+      startsAt: "2026-04-01T10:00:00.000Z",
+      status: "SCHEDULED",
+      priceInCents: 10000,
+      discountInCents: 1000,
+    });
+    await createAppointment({
+      ...shared,
+      service: washService,
+      startsAt: "2026-04-01T14:00:00.000Z",
+      status: "SCHEDULED",
+      priceInCents: 12000,
+    });
+    await createAppointment({
+      ...shared,
+      service: detailsService,
+      startsAt: "2026-04-02T14:00:00.000Z",
+      status: "SCHEDULED",
+      priceInCents: 30000,
+      discountInCents: 5000,
+    });
+    await createAppointment({
+      ...shared,
+      service: washService,
+      startsAt: "2026-04-03T14:00:00.000Z",
+      status: "CANCELLED",
+      priceInCents: 15000,
+      discountInCents: 5000,
+    });
+    await createAppointment({
+      ...shared,
+      service: washService,
+      startsAt: "2026-04-02T16:00:00.000Z",
+      priceInCents: 99999,
+    });
+
+    const response = await request(getHttpServer(app))
       .get("/dashboard/metrics/overview")
-      .query(query)
-      .set("Authorization", `Bearer ${accessToken}`);
-    const revenueResponse = await request(getHttpServer(app))
-      .get("/dashboard/metrics/revenue")
-      .query(query)
-      .set("Authorization", `Bearer ${accessToken}`);
-    const appointmentsResponse = await request(getHttpServer(app))
-      .get("/dashboard/metrics/appointments")
-      .query(query)
-      .set("Authorization", `Bearer ${accessToken}`);
-    const popularServicesResponse = await request(getHttpServer(app))
-      .get("/dashboard/metrics/popular-services")
-      .query(query)
+      .query({
+        startsAt: "2026-04-01T00:00:00.000Z",
+        endsAt: "2026-04-03T23:59:59.999Z",
+        categories: ["WASH", "AUTOMATIVE_DETAILING"],
+        status: ["SCHEDULED", "CANCELLED"],
+      })
       .set("Authorization", `Bearer ${accessToken}`);
 
-    expect(overviewResponse.status).toBe(200);
-    expect(revenueResponse.status).toBe(200);
-    expect(appointmentsResponse.status).toBe(200);
-    expect(popularServicesResponse.status).toBe(200);
-
-    expect(overviewResponseSchema.parse(overviewResponse.body)).toEqual({
+    expect(response.status).toBe(200);
+    expect(overviewResponseSchema.parse(response.body)).toEqual({
       totalRevenueInCents: 56000,
       averageTicketInCents: 14000,
       appointmentsCount: 4,
       cancellationRate: 0.25,
     });
-    expect(revenueResponseSchema.parse(revenueResponse.body)).toEqual({
-      points: [
+  });
+
+  it("should return dynamic revenue metrics for period presets with comparison trends", async () => {
+    const { accessToken } = await seedDashboardMetrics();
+
+    const lastSevenDaysResponse = await request(getHttpServer(app))
+      .get("/dashboard/metrics/revenue")
+      .query({ period: "last-7-days" })
+      .set("Authorization", `Bearer ${accessToken}`);
+    const lastThirtyDaysResponse = await request(getHttpServer(app))
+      .get("/dashboard/metrics/revenue")
+      .query({ period: "last-30-days" })
+      .set("Authorization", `Bearer ${accessToken}`);
+    const thisMonthResponse = await request(getHttpServer(app))
+      .get("/dashboard/metrics/revenue")
+      .query({ period: "this-month" })
+      .set("Authorization", `Bearer ${accessToken}`);
+
+    expect(lastSevenDaysResponse.status).toBe(200);
+    expect(lastThirtyDaysResponse.status).toBe(200);
+    expect(thisMonthResponse.status).toBe(200);
+
+    const lastSevenDays = revenueResponseSchema.parse(
+      lastSevenDaysResponse.body,
+    );
+    expect(lastSevenDays.points).toHaveLength(7);
+    expect(lastSevenDays.points).toEqual(
+      expect.arrayContaining([
         {
-          period: "2026-04-01",
-          appointmentsCount: 2,
-          revenueInCents: 21000,
-        },
-        {
-          period: "2026-04-02",
-          appointmentsCount: 1,
-          revenueInCents: 25000,
-        },
-        {
-          period: "2026-04-03",
-          appointmentsCount: 1,
+          date: "2026-05-09",
+          label: "09/05",
+          appointments: 1,
           revenueInCents: 10000,
         },
-      ],
+        {
+          date: "2026-05-10",
+          label: "10/05",
+          appointments: 1,
+          revenueInCents: 15000,
+        },
+        {
+          date: "2026-05-11",
+          label: "11/05",
+          appointments: 1,
+          revenueInCents: 10000,
+        },
+        {
+          date: "2026-05-12",
+          label: "12/05",
+          appointments: 1,
+          revenueInCents: 25000,
+        },
+      ]),
+    );
+    expect(lastSevenDays.summary).toEqual({
+      revenueInCents: 60000,
+      appointments: 4,
+      revenueTrendPercent: 140,
+      appointmentsTrendPercent: 33,
     });
-    expect(appointmentsResponseSchema.parse(appointmentsResponse.body)).toEqual(
+
+    expect(
+      revenueResponseSchema.parse(lastThirtyDaysResponse.body).summary,
+    ).toEqual({
+      revenueInCents: 92000,
+      appointments: 8,
+      revenueTrendPercent: 557,
+      appointmentsTrendPercent: 300,
+    });
+    expect(revenueResponseSchema.parse(thisMonthResponse.body).summary).toEqual(
       {
-        appointmentsCount: 4,
-        cancellationRate: 0.25,
+        revenueInCents: 85000,
+        appointments: 7,
+        revenueTrendPercent: 750,
+        appointmentsTrendPercent: 600,
+      },
+    );
+  });
+
+  it("should return appointment metrics for custom startsAt and endsAt", async () => {
+    const { accessToken } = await seedDashboardMetrics();
+
+    const response = await request(getHttpServer(app))
+      .get("/dashboard/metrics/appointments")
+      .query({
+        startsAt: "2026-05-09T00:00:00.000Z",
+        endsAt: "2026-05-15T23:59:59.999Z",
+      })
+      .set("Authorization", `Bearer ${accessToken}`);
+
+    expect(response.status).toBe(200);
+    expect(appointmentsResponseSchema.parse(response.body)).toEqual({
+      appointmentsCount: 5,
+      cancellationRate: {
+        currentPercent: 20,
+        comparisonPercentPoints: -5,
+      },
+    });
+  });
+
+  it("should return revenue metrics for startsAt without endsAt", async () => {
+    const { accessToken } = await seedDashboardMetrics();
+
+    const response = await request(getHttpServer(app))
+      .get("/dashboard/metrics/revenue")
+      .query({
+        startsAt: "2026-05-09T00:00:00.000Z",
+      })
+      .set("Authorization", `Bearer ${accessToken}`);
+
+    expect(response.status).toBe(200);
+    expect(revenueResponseSchema.parse(response.body).summary).toEqual({
+      revenueInCents: 60000,
+      appointments: 4,
+      revenueTrendPercent: 140,
+      appointmentsTrendPercent: 33,
+    });
+  });
+
+  it("should paginate popular services from appointment-level pages", async () => {
+    const { accessToken, washService, detailsService } =
+      await seedDashboardMetrics();
+
+    const firstPageResponse = await request(getHttpServer(app))
+      .get("/dashboard/metrics/popular-services")
+      .query({
+        period: "last-7-days",
+        page: 1,
+        size: 1,
+      })
+      .set("Authorization", `Bearer ${accessToken}`);
+    const secondPageResponse = await request(getHttpServer(app))
+      .get("/dashboard/metrics/popular-services")
+      .query({
+        period: "last-7-days",
+        page: 2,
+        size: 1,
+      })
+      .set("Authorization", `Bearer ${accessToken}`);
+
+    expect(firstPageResponse.status).toBe(200);
+    expect(secondPageResponse.status).toBe(200);
+    expect(popularServicesResponseSchema.parse(firstPageResponse.body)).toEqual(
+      {
+        popularServices: [
+          {
+            id: washService.id.toString(),
+            name: washService.serviceName.value,
+            completedCount: 1,
+            percent: 100,
+          },
+        ],
+        totalServices: 1,
       },
     );
     expect(
-      popularServicesResponseSchema.parse(popularServicesResponse.body),
+      popularServicesResponseSchema.parse(secondPageResponse.body),
     ).toEqual({
       popularServices: [
         {
-          serviceId: washService.id.toString(),
-          serviceName: washService.serviceName.value,
-          category: "WASH",
-          appointmentsCount: 3,
-          revenueInCents: 31000,
-        },
-        {
-          serviceId: detailsService.id.toString(),
-          serviceName: "Detalhamento snapshot",
-          category: "AUTOMATIVE_DETAILING",
-          appointmentsCount: 1,
-          revenueInCents: 25000,
+          id: detailsService.id.toString(),
+          name: "Detalhamento snapshot",
+          completedCount: 1,
+          percent: 100,
         },
       ],
+      totalServices: 1,
     });
+  });
+
+  it.each([
+    [
+      "endsAt without startsAt",
+      "/dashboard/metrics/revenue",
+      { endsAt: "2026-05-15T23:59:59.999Z" },
+    ],
+    [
+      "future startsAt",
+      "/dashboard/metrics/appointments",
+      { startsAt: "2026-05-16T00:00:00.000Z" },
+    ],
+    [
+      "range above 24 months",
+      "/dashboard/metrics/popular-services",
+      {
+        startsAt: "2024-01-01T00:00:00.000Z",
+        endsAt: "2026-05-15T23:59:59.999Z",
+      },
+    ],
+    [
+      "incompatible explicit granularity",
+      "/dashboard/metrics/revenue",
+      {
+        startsAt: "2026-04-01T00:00:00.000Z",
+        endsAt: "2026-05-15T23:59:59.999Z",
+        granularity: "daily",
+      },
+    ],
+    ["page=0", "/dashboard/metrics/popular-services", { page: 0 }],
+    ["size=0", "/dashboard/metrics/popular-services", { size: 0 }],
+  ])("should reject %s", async (_, path, query) => {
+    const { accessToken } = await makeAuthContext();
+
+    const response = await request(getHttpServer(app))
+      .get(path)
+      .query(query)
+      .set("Authorization", `Bearer ${accessToken}`);
+
+    expect(response.status).toBe(400);
   });
 
   it.each(dashboardMetricPaths)(
     "should reject invalid query dates for %s",
     async (path) => {
-      const { accessToken } = await makeEstablishmentAccessToken({
-        app,
-        prisma,
-        userFactory,
-        establishmentFactory,
-        envService,
-      });
+      const { accessToken } = await makeAuthContext();
 
       const response = await request(getHttpServer(app))
         .get(path)
