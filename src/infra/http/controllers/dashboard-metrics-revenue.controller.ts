@@ -1,4 +1,4 @@
-import { Controller, Get, Query } from "@nestjs/common";
+import { BadRequestException, Controller, Get, Query } from "@nestjs/common";
 import {
   ApiBearerAuth,
   ApiOkResponse,
@@ -7,6 +7,16 @@ import {
 } from "@nestjs/swagger";
 
 import { GetEstablishmentRevenueVsAppointmentsUseCase } from "../../../modules/application/use-cases/establishment/get-establishment-revenue-vs-appointments";
+import {
+  ResolvedDashboardMetricGranularity,
+  resolveDashboardMetricGranularity,
+} from "../../../modules/application/services/dashboard-metrics-bucket-builder";
+import {
+  DashboardMetricsRangeQuery,
+  InvalidDashboardMetricsRangeError,
+  ResolvedDashboardMetricsRange,
+  resolveDashboardMetricsRange,
+} from "../../../modules/application/services/dashboard-metrics-range-resolver";
 import { AuthenticatedUser } from "../../auth/authenticated-user";
 import { CurrentUser } from "../../auth/current-user";
 import { Roles } from "../../auth/roles";
@@ -17,8 +27,8 @@ import {
   ApiDashboardMetricsErrors,
   ApiDashboardMetricsFilterQueries,
   buildMetricsFilters,
-  DashboardMetricsQuerySchema,
-  dashboardMetricsQuerySchema,
+  DashboardDynamicMetricsQuerySchema,
+  dashboardDynamicMetricsQuerySchema,
   unwrapDashboardMetricsResult,
 } from "./dashboard-metrics-http";
 
@@ -45,15 +55,48 @@ export class DashboardMetricsRevenueController {
   @ApiDashboardMetricsErrors()
   async revenue(
     @CurrentUser() user: AuthenticatedUser,
-    @Query(new ZodValidationPipe(dashboardMetricsQuerySchema))
-    query: DashboardMetricsQuerySchema,
+    @Query(new ZodValidationPipe(dashboardDynamicMetricsQuerySchema))
+    query: DashboardDynamicMetricsQuerySchema,
   ) {
+    const referenceDate = new Date();
+    let range: ResolvedDashboardMetricsRange;
+    let granularity: ResolvedDashboardMetricGranularity;
+
+    try {
+      const rangeQuery: DashboardMetricsRangeQuery = {
+        ...(query.period !== undefined ? { period: query.period } : {}),
+        ...(query.startsAt !== undefined ? { startsAt: query.startsAt } : {}),
+        ...(query.endsAt !== undefined ? { endsAt: query.endsAt } : {}),
+        ...(query.granularity !== undefined
+          ? { granularity: query.granularity }
+          : {}),
+      };
+
+      range = resolveDashboardMetricsRange(rangeQuery, { referenceDate });
+      granularity = resolveDashboardMetricGranularity({
+        ...(query.granularity !== undefined
+          ? { requestedGranularity: query.granularity }
+          : {}),
+        ...(range.period !== undefined ? { period: range.period } : {}),
+        range: range.current,
+        referenceDate,
+      });
+    } catch (error) {
+      if (error instanceof InvalidDashboardMetricsRangeError) {
+        throw new BadRequestException(error.message);
+      }
+
+      throw error;
+    }
+
     const result = await this.getRevenueVsAppointments.execute({
       establishmentOwnerId: user.userId,
+      range,
+      granularity,
       filters: buildMetricsFilters(query),
     });
     const metrics = unwrapDashboardMetricsResult(result);
 
-    return DashboardMetricsPresenter.toRevenue(metrics.points);
+    return DashboardMetricsPresenter.toRevenue(metrics.points, metrics.summary);
   }
 }

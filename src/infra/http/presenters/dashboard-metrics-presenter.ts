@@ -6,9 +6,17 @@ type DashboardOverviewMetrics = {
 };
 
 type DashboardRevenuePoint = {
-  period: string;
+  date: string;
+  label: string;
   revenueInCents: number;
-  appointmentsCount: number;
+  appointments: number;
+};
+
+type DashboardRevenueSummary = {
+  revenueInCents: number;
+  appointments: number;
+  revenueTrendPercent: number | null;
+  appointmentsTrendPercent: number | null;
 };
 
 type DashboardAppointmentMetrics = {
@@ -29,9 +37,13 @@ export class DashboardMetricsPresenter {
     return metrics;
   }
 
-  static toRevenue(points: DashboardRevenuePoint[]) {
+  static toRevenue(
+    points: DashboardRevenuePoint[],
+    summary: DashboardRevenueSummary,
+  ) {
     return {
       points,
+      summary,
     };
   }
 
