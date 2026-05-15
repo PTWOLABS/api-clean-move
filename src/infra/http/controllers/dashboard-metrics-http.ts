@@ -227,6 +227,89 @@ export function ApiDashboardMetricsFilterQueries() {
   );
 }
 
+export function ApiDashboardDynamicMetricsFilterQueries() {
+  return applyDecorators(
+    ApiQuery({
+      name: "period",
+      required: false,
+      enum: DASHBOARD_METRIC_PERIODS,
+      description:
+        "Predefined dashboard period. Ignored when startsAt is provided.",
+      example: "this-month",
+    }),
+    ApiQuery({
+      name: "startsAt",
+      required: false,
+      type: String,
+      format: "date-time",
+      description:
+        "Filter appointments starting at or after this ISO 8601 date-time with offset.",
+      example: "2026-04-01T00:00:00.000Z",
+    }),
+    ApiQuery({
+      name: "endsAt",
+      required: false,
+      type: String,
+      format: "date-time",
+      description:
+        "Filter appointments starting at or before this ISO 8601 date-time with offset.",
+      example: "2026-04-30T23:59:59.999Z",
+    }),
+    ApiQuery({
+      name: "granularity",
+      required: false,
+      enum: DASHBOARD_METRIC_GRANULARITIES,
+      description: "Bucket granularity for dynamic dashboard metrics.",
+      example: "auto",
+    }),
+    ApiQuery({
+      name: "categories",
+      required: false,
+      enum: SERVICE_CATEGORIES,
+      isArray: true,
+      description:
+        "Filter by booked service category snapshot. Repeat the query param or send comma-separated values.",
+      example: ["WASH", "AUTOMATIVE_DETAILING"],
+    }),
+    ApiQuery({
+      name: "status",
+      required: false,
+      enum: APPOINTMENT_STATUSES,
+      isArray: true,
+      description:
+        "Filter by appointment status. Repeat the query param or send comma-separated values.",
+      example: ["SCHEDULED", "CANCELLED"],
+    }),
+  );
+}
+
+export function ApiDashboardPopularServicesPaginationQueries() {
+  return applyDecorators(
+    ApiQuery({
+      name: "page",
+      required: false,
+      schema: {
+        type: "integer",
+        minimum: 1,
+        default: 1,
+      },
+      description: "Page number for popular services results. Defaults to 1.",
+      example: 1,
+    }),
+    ApiQuery({
+      name: "size",
+      required: false,
+      schema: {
+        type: "integer",
+        minimum: 1,
+        default: 5,
+      },
+      description: "Page size for popular services results. Defaults to 5.",
+      example: 5,
+    }),
+  );
+}
+
 export function ApiDashboardMetricsErrors() {
   return applyDecorators(
     ApiBadRequestResponse({

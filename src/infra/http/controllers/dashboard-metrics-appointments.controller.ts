@@ -20,8 +20,8 @@ import { DashboardMetricsAppointmentsResponseDto } from "../docs/domain-swagger.
 import { DashboardMetricsPresenter } from "../presenters/dashboard-metrics-presenter";
 import { ZodValidationPipe } from "../pipes/zod-validation.pipe";
 import {
+  ApiDashboardDynamicMetricsFilterQueries,
   ApiDashboardMetricsErrors,
-  ApiDashboardMetricsFilterQueries,
   buildMetricsFilters,
   DashboardDynamicMetricsQuerySchema,
   dashboardDynamicMetricsQuerySchema,
@@ -43,7 +43,7 @@ export class DashboardMetricsAppointmentsController {
     description:
       "Returns appointment count and cancellation rate for the authenticated establishment.",
   })
-  @ApiDashboardMetricsFilterQueries()
+  @ApiDashboardDynamicMetricsFilterQueries()
   @ApiOkResponse({
     description: "Appointment metrics returned successfully.",
     type: DashboardMetricsAppointmentsResponseDto,

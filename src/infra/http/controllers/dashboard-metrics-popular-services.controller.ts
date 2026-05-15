@@ -20,8 +20,9 @@ import { DashboardMetricsPopularServicesResponseDto } from "../docs/domain-swagg
 import { DashboardMetricsPresenter } from "../presenters/dashboard-metrics-presenter";
 import { ZodValidationPipe } from "../pipes/zod-validation.pipe";
 import {
+  ApiDashboardDynamicMetricsFilterQueries,
   ApiDashboardMetricsErrors,
-  ApiDashboardMetricsFilterQueries,
+  ApiDashboardPopularServicesPaginationQueries,
   buildMetricsFilters,
   DashboardPopularServicesMetricsQuerySchema,
   dashboardPopularServicesMetricsQuerySchema,
@@ -43,7 +44,8 @@ export class DashboardMetricsPopularServicesController {
     description:
       "Returns services grouped by booked service snapshot and ordered by appointment count, then revenue.",
   })
-  @ApiDashboardMetricsFilterQueries()
+  @ApiDashboardDynamicMetricsFilterQueries()
+  @ApiDashboardPopularServicesPaginationQueries()
   @ApiOkResponse({
     description: "Popular service metrics returned successfully.",
     type: DashboardMetricsPopularServicesResponseDto,

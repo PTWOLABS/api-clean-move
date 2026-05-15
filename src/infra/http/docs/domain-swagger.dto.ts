@@ -954,67 +954,112 @@ export class DashboardMetricsOverviewResponseDto {
 export class DashboardMetricsRevenuePointDto {
   @ApiProperty({
     example: "2026-04-01",
-    description: "Calendar day in UTC based on appointment startsAt.",
+    description: "Bucket start date for this revenue point.",
   })
-  period!: string;
+  date!: string;
+
+  @ApiProperty({
+    example: "Apr 1",
+    description: "Display label for the revenue bucket.",
+  })
+  label!: string;
 
   @ApiProperty({ example: 21000 })
   revenueInCents!: number;
 
   @ApiProperty({ example: 2 })
-  appointmentsCount!: number;
+  appointments!: number;
+}
+
+export class DashboardMetricsRevenueSummaryDto {
+  @ApiProperty({
+    example: 56000,
+    description: "Total revenue in cents for the selected period.",
+  })
+  revenueInCents!: number;
+
+  @ApiProperty({
+    example: 4,
+    description: "Total appointments for the selected period.",
+  })
+  appointments!: number;
+
+  @ApiProperty({
+    example: 12.5,
+    nullable: true,
+    description:
+      "Revenue trend percentage compared with the previous equivalent period.",
+  })
+  revenueTrendPercent!: number | null;
+
+  @ApiProperty({
+    example: -5,
+    nullable: true,
+    description:
+      "Appointment trend percentage compared with the previous equivalent period.",
+  })
+  appointmentsTrendPercent!: number | null;
 }
 
 export class DashboardMetricsRevenueResponseDto {
   @ApiProperty({ type: DashboardMetricsRevenuePointDto, isArray: true })
   points!: DashboardMetricsRevenuePointDto[];
+
+  @ApiProperty({ type: DashboardMetricsRevenueSummaryDto })
+  summary!: DashboardMetricsRevenueSummaryDto;
+}
+
+export class DashboardMetricsCancellationRateDto {
+  @ApiProperty({
+    example: 25,
+    description: "Cancellation rate percentage for the selected period.",
+  })
+  currentPercent!: number;
+
+  @ApiProperty({
+    example: 4.5,
+    nullable: true,
+    description:
+      "Cancellation rate change in percentage points compared with the previous equivalent period.",
+  })
+  comparisonPercentPoints!: number | null;
 }
 
 export class DashboardMetricsAppointmentsResponseDto {
-  @ApiProperty({ example: 4 })
+  @ApiProperty({
+    example: 4,
+    description: "Total appointments for the selected period.",
+  })
   appointmentsCount!: number;
 
-  @ApiProperty({
-    example: 0.25,
-    description: "Cancelled appointments divided by filtered appointments.",
-  })
-  cancellationRate!: number;
+  @ApiProperty({ type: DashboardMetricsCancellationRateDto })
+  cancellationRate!: DashboardMetricsCancellationRateDto;
 }
 
 export class DashboardMetricsPopularServiceDto {
   @ApiProperty({ example: "11cf3860-d512-47db-b9d1-c9044be6250d" })
-  serviceId!: string;
+  id!: string;
 
   @ApiProperty({ example: "Lavagem completa" })
-  serviceName!: string;
-
-  @ApiProperty({
-    enum: [
-      "WASH",
-      "SANITIZATION",
-      "AUTOMATIVE_DETAILING",
-      "PROTECTION",
-      "UPHOLSTERY",
-    ],
-    example: "WASH",
-    nullable: true,
-  })
-  category!:
-    | "WASH"
-    | "SANITIZATION"
-    | "AUTOMATIVE_DETAILING"
-    | "PROTECTION"
-    | "UPHOLSTERY"
-    | null;
+  name!: string;
 
   @ApiProperty({ example: 3 })
-  appointmentsCount!: number;
+  completedCount!: number;
 
-  @ApiProperty({ example: 31000 })
-  revenueInCents!: number;
+  @ApiProperty({
+    example: 75,
+    description: "Percentage share among completed services in the result set.",
+  })
+  percent!: number;
 }
 
 export class DashboardMetricsPopularServicesResponseDto {
   @ApiProperty({ type: DashboardMetricsPopularServiceDto, isArray: true })
   popularServices!: DashboardMetricsPopularServiceDto[];
+
+  @ApiProperty({
+    example: 4,
+    description: "Total number of services matching the selected filters.",
+  })
+  totalServices!: number;
 }

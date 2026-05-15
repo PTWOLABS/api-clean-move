@@ -24,8 +24,8 @@ import { DashboardMetricsRevenueResponseDto } from "../docs/domain-swagger.dto";
 import { DashboardMetricsPresenter } from "../presenters/dashboard-metrics-presenter";
 import { ZodValidationPipe } from "../pipes/zod-validation.pipe";
 import {
+  ApiDashboardDynamicMetricsFilterQueries,
   ApiDashboardMetricsErrors,
-  ApiDashboardMetricsFilterQueries,
   buildMetricsFilters,
   DashboardDynamicMetricsQuerySchema,
   dashboardDynamicMetricsQuerySchema,
@@ -47,7 +47,7 @@ export class DashboardMetricsRevenueController {
     description:
       "Returns daily net revenue and appointment count points for the authenticated establishment.",
   })
-  @ApiDashboardMetricsFilterQueries()
+  @ApiDashboardDynamicMetricsFilterQueries()
   @ApiOkResponse({
     description: "Revenue metrics returned successfully.",
     type: DashboardMetricsRevenueResponseDto,
