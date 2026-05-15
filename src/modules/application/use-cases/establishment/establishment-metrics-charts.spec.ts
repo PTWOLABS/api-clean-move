@@ -65,7 +65,7 @@ function makeRange(
 }
 
 describe("Establishment metrics charts", () => {
-  it("should return popular services and revenue vs appointments using snapshots and filters", async () => {
+  it("should return repository-paginated popular services and revenue vs appointments using snapshots and filters", async () => {
     const repositories = makeRepositories();
     const { appointmentsRepository, establishmentsRepository } = repositories;
 
@@ -195,14 +195,71 @@ describe("Establishment metrics charts", () => {
 
     const { popularServicesUseCase, revenueVsAppointmentsUseCase } =
       makeChartUseCases(repositories);
+    const findManyByEstablishmentIdSpy = vi.spyOn(
+      appointmentsRepository,
+      "findManyByEstablishmentId",
+    );
 
     const popularServicesResult = await popularServicesUseCase.execute({
       establishmentOwnerId: ownerId.toString(),
+      range: makeRange(
+        "2026-04-01T00:00:00.000Z",
+        "2026-04-02T23:59:59.999Z",
+        "2026-03-30T00:00:00.000Z",
+        "2026-03-31T23:59:59.999Z",
+      ),
+      pagination: {
+        page: 1,
+        size: 2,
+      },
       filters: {
         categories: ["WASH", "AUTOMATIVE_DETAILING"],
         status: ["SCHEDULED"],
       },
     });
+    const secondPopularServicesPageResult =
+      await popularServicesUseCase.execute({
+        establishmentOwnerId: ownerId.toString(),
+        range: makeRange(
+          "2026-04-01T00:00:00.000Z",
+          "2026-04-02T23:59:59.999Z",
+          "2026-03-30T00:00:00.000Z",
+          "2026-03-31T23:59:59.999Z",
+        ),
+        pagination: {
+          page: 2,
+          size: 2,
+        },
+        filters: {
+          categories: ["WASH", "AUTOMATIVE_DETAILING"],
+          status: ["SCHEDULED"],
+        },
+      });
+
+    expect(findManyByEstablishmentIdSpy).toHaveBeenNthCalledWith(
+      1,
+      establishment.id.toString(),
+      {
+        startsAt: new Date("2026-04-01T00:00:00.000Z"),
+        endsAt: new Date("2026-04-02T23:59:59.999Z"),
+        categories: ["WASH", "AUTOMATIVE_DETAILING"],
+        status: ["SCHEDULED"],
+        page: 1,
+        size: 2,
+      },
+    );
+    expect(findManyByEstablishmentIdSpy).toHaveBeenNthCalledWith(
+      2,
+      establishment.id.toString(),
+      {
+        startsAt: new Date("2026-04-01T00:00:00.000Z"),
+        endsAt: new Date("2026-04-02T23:59:59.999Z"),
+        categories: ["WASH", "AUTOMATIVE_DETAILING"],
+        status: ["SCHEDULED"],
+        page: 2,
+        size: 2,
+      },
+    );
 
     const revenueVsAppointmentsResult =
       await revenueVsAppointmentsUseCase.execute({
@@ -220,10 +277,12 @@ describe("Establishment metrics charts", () => {
       });
 
     expect(popularServicesResult.isRight()).toBe(true);
+    expect(secondPopularServicesPageResult.isRight()).toBe(true);
     expect(revenueVsAppointmentsResult.isRight()).toBe(true);
 
     if (
       popularServicesResult.isLeft() ||
+      secondPopularServicesPageResult.isLeft() ||
       revenueVsAppointmentsResult.isLeft()
     ) {
       throw new Error("Expected chart metrics to be calculated successfully");
@@ -231,20 +290,22 @@ describe("Establishment metrics charts", () => {
 
     expect(popularServicesResult.value.popularServices).toEqual([
       {
-        serviceId: washService.id.toString(),
-        serviceName: washService.serviceName.value,
-        category: "WASH",
-        appointmentsCount: 2,
-        revenueInCents: 21000,
-      },
-      {
-        serviceId: detailsService.id.toString(),
-        serviceName: detailsService.serviceName.value,
-        category: "AUTOMATIVE_DETAILING",
-        appointmentsCount: 1,
-        revenueInCents: 25000,
+        id: washService.id.toString(),
+        name: washService.serviceName.value,
+        completedCount: 2,
+        percent: 100,
       },
     ]);
+    expect(popularServicesResult.value.totalServices).toBe(2);
+    expect(secondPopularServicesPageResult.value.popularServices).toEqual([
+      {
+        id: detailsService.id.toString(),
+        name: detailsService.serviceName.value,
+        completedCount: 1,
+        percent: 100,
+      },
+    ]);
+    expect(secondPopularServicesPageResult.value.totalServices).toBe(1);
 
     expect(revenueVsAppointmentsResult.value.points).toEqual([
       {
@@ -285,6 +346,16 @@ describe("Establishment metrics charts", () => {
 
     const popularServicesResult = await popularServicesUseCase.execute({
       establishmentOwnerId: ownerId.toString(),
+      range: makeRange(
+        "2026-04-01T00:00:00.000Z",
+        "2026-04-01T23:59:59.999Z",
+        "2026-03-31T00:00:00.000Z",
+        "2026-03-31T23:59:59.999Z",
+      ),
+      pagination: {
+        page: 1,
+        size: 5,
+      },
       filters: {
         categories: ["WASH"],
       },
@@ -316,6 +387,7 @@ describe("Establishment metrics charts", () => {
     }
 
     expect(popularServicesResult.value.popularServices).toEqual([]);
+    expect(popularServicesResult.value.totalServices).toBe(0);
     expect(revenueVsAppointmentsResult.value.points).toEqual([
       {
         date: "2026-04-01",
@@ -405,7 +477,33 @@ describe("Establishment metrics charts", () => {
       }),
     );
 
-    const { revenueVsAppointmentsUseCase } = makeChartUseCases(repositories);
+    const { popularServicesUseCase, revenueVsAppointmentsUseCase } =
+      makeChartUseCases(repositories);
+    const findManyByEstablishmentIdSpy = vi.spyOn(
+      appointmentsRepository,
+      "findManyByEstablishmentId",
+    );
+    const popularServicesResult = await popularServicesUseCase.execute({
+      establishmentOwnerId: ownerId.toString(),
+      range: makeRange(
+        "2026-04-01T00:00:00.000Z",
+        "2026-04-01T23:59:59.999Z",
+        "2026-03-31T00:00:00.000Z",
+        "2026-03-31T23:59:59.999Z",
+      ),
+    });
+
+    expect(findManyByEstablishmentIdSpy).toHaveBeenCalledWith(
+      establishment.id.toString(),
+      {
+        startsAt: new Date("2026-04-01T00:00:00.000Z"),
+        endsAt: new Date("2026-04-01T23:59:59.999Z"),
+        status: ["DONE"],
+        page: 1,
+        size: 5,
+      },
+    );
+
     const result = await revenueVsAppointmentsUseCase.execute({
       establishmentOwnerId: ownerId.toString(),
       range: makeRange(
@@ -417,12 +515,24 @@ describe("Establishment metrics charts", () => {
       granularity: "daily",
     });
 
+    expect(popularServicesResult.isRight()).toBe(true);
     expect(result.isRight()).toBe(true);
 
-    if (result.isLeft()) {
+    if (popularServicesResult.isLeft() || result.isLeft()) {
       throw new Error("Expected revenue metrics to be calculated successfully");
     }
 
+    expect(popularServicesResult.value).toEqual({
+      popularServices: [
+        {
+          id: "service-1",
+          name: "Lavagem simples",
+          completedCount: 1,
+          percent: 100,
+        },
+      ],
+      totalServices: 1,
+    });
     expect(result.value.points).toEqual([
       {
         date: "2026-04-01",
@@ -773,6 +883,11 @@ describe("Establishment metrics charts", () => {
 
     const popularServicesResult = await popularServicesUseCase.execute({
       establishmentOwnerId: "missing-owner",
+      range: makeRange(),
+      pagination: {
+        page: 1,
+        size: 5,
+      },
     });
     const revenueVsAppointmentsResult =
       await revenueVsAppointmentsUseCase.execute({

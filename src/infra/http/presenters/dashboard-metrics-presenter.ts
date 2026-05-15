@@ -28,11 +28,10 @@ type DashboardAppointmentMetrics = {
 };
 
 type DashboardPopularService = {
-  serviceId: string;
-  serviceName: string;
-  category: string | null;
-  appointmentsCount: number;
-  revenueInCents: number;
+  id: string;
+  name: string;
+  completedCount: number;
+  percent: number;
 };
 
 export class DashboardMetricsPresenter {
@@ -54,9 +53,13 @@ export class DashboardMetricsPresenter {
     return metrics;
   }
 
-  static toPopularServices(popularServices: DashboardPopularService[]) {
+  static toPopularServices(
+    popularServices: DashboardPopularService[],
+    totalServices: number,
+  ) {
     return {
       popularServices,
+      totalServices,
     };
   }
 }
