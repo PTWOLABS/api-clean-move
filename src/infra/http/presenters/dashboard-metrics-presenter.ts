@@ -21,7 +21,10 @@ type DashboardRevenueSummary = {
 
 type DashboardAppointmentMetrics = {
   appointmentsCount: number;
-  cancellationRate: number;
+  cancellationRate: {
+    currentPercent: number;
+    comparisonPercentPoints: number | null;
+  };
 };
 
 type DashboardPopularService = {

@@ -7,6 +7,7 @@ import { makeService } from "../../../../../tests/factories/service-factory";
 import { InMemoryAppointmentsRepository } from "../../../../../tests/repositories/in-memory-appointments-repository";
 import { InMemoryEstablishmentsRepository } from "../../../../../tests/repositories/in-memory-establishment-repository";
 import { InMemoryServicesRepository } from "../../../../../tests/repositories/in-memory-services-repository";
+import { ResolvedDashboardMetricsRange } from "../../services/dashboard-metrics-range-resolver";
 import { GetEstablishmentAppointmentsCountUseCase } from "./get-establishment-appointments-count";
 import { GetEstablishmentAverageTicketUseCase } from "./get-establishment-average-ticket";
 import { GetEstablishmentCancellationRateUseCase } from "./get-establishment-cancellation-rate";
@@ -52,6 +53,24 @@ function makeKpiUseCases({
     averageTicketUseCase,
     cancellationRateUseCase,
     totalRevenueUseCase,
+  };
+}
+
+function makeMetricsRange(
+  currentStartsAt: string,
+  currentEndsAt: string,
+  comparisonStartsAt: string,
+  comparisonEndsAt: string,
+): ResolvedDashboardMetricsRange {
+  return {
+    current: {
+      startsAt: new Date(currentStartsAt),
+      endsAt: new Date(currentEndsAt),
+    },
+    comparison: {
+      startsAt: new Date(comparisonStartsAt),
+      endsAt: new Date(comparisonEndsAt),
+    },
   };
 }
 
@@ -161,6 +180,38 @@ describe("Establishment metrics KPIs", () => {
       }),
     );
 
+    await appointmentsRepository.create(
+      makeAppointment({
+        establishmentId: establishment.id,
+        status: "SCHEDULED",
+        service: {
+          serviceId: washService.id,
+          serviceName: washService.serviceName.value,
+          category: washService.category,
+          durationInMinutes: 60,
+          priceInCents: 10000,
+        },
+        startsAt: new Date("2026-03-30T10:00:00Z"),
+        endsAt: new Date("2026-03-30T11:00:00Z"),
+      }),
+    );
+
+    await appointmentsRepository.create(
+      makeAppointment({
+        establishmentId: establishment.id,
+        status: "SCHEDULED",
+        service: {
+          serviceId: washService.id,
+          serviceName: washService.serviceName.value,
+          category: washService.category,
+          durationInMinutes: 60,
+          priceInCents: 10000,
+        },
+        startsAt: new Date("2026-03-31T10:00:00Z"),
+        endsAt: new Date("2026-03-31T11:00:00Z"),
+      }),
+    );
+
     const filters: EstablishmentMetricsFilters = {
       startsAt: new Date("2026-04-01T00:00:00Z"),
       endsAt: new Date("2026-04-02T23:59:59Z"),
@@ -184,8 +235,16 @@ describe("Establishment metrics KPIs", () => {
     const averageTicketResult = await averageTicketUseCase.execute(request);
     const appointmentsCountResult =
       await appointmentsCountUseCase.execute(request);
-    const cancellationRateResult =
-      await cancellationRateUseCase.execute(request);
+    const cancellationRateResult = await cancellationRateUseCase.execute({
+      establishmentOwnerId: ownerId.toString(),
+      range: makeMetricsRange(
+        "2026-04-01T00:00:00Z",
+        "2026-04-02T23:59:59Z",
+        "2026-03-30T00:00:00Z",
+        "2026-03-31T23:59:59Z",
+      ),
+      filters,
+    });
 
     expect(totalRevenueResult.isRight()).toBe(true);
     expect(averageTicketResult.isRight()).toBe(true);
@@ -204,7 +263,189 @@ describe("Establishment metrics KPIs", () => {
     expect(totalRevenueResult.value.totalRevenueInCents).toBe(19000);
     expect(averageTicketResult.value.averageTicketInCents).toBe(9500);
     expect(appointmentsCountResult.value.appointmentsCount).toBe(2);
-    expect(cancellationRateResult.value.cancellationRate).toBe(0.5);
+    expect(typeof cancellationRateResult.value.appointmentsCount).toBe(
+      "number",
+    );
+    expect(cancellationRateResult.value.appointmentsCount).toBe(2);
+    expect(cancellationRateResult.value.cancellationRate).toEqual({
+      currentPercent: 50,
+      comparisonPercentPoints: 50,
+    });
+  });
+
+  it("should calculate cancellation rate percentages from current and comparison ranges", async () => {
+    const repositories = makeRepositories();
+    const { appointmentsRepository, establishmentsRepository } = repositories;
+
+    const ownerId = new UniqueEntityId("owner-1");
+    const establishment = makeEstablishment(
+      { ownerId },
+      new UniqueEntityId("est-1"),
+    );
+
+    await establishmentsRepository.create(establishment);
+
+    const washService = makeService({
+      establishmentId: establishment.id,
+      category: "WASH",
+    });
+    const protectionService = makeService({
+      establishmentId: establishment.id,
+      category: "PROTECTION",
+    });
+
+    const createAppointment = async ({
+      status,
+      startsAt,
+      category = "WASH",
+    }: {
+      status: "SCHEDULED" | "DONE" | "CANCELLED";
+      startsAt: string;
+      category?: "WASH" | "PROTECTION";
+    }) => {
+      const service = category === "WASH" ? washService : protectionService;
+
+      await appointmentsRepository.create(
+        makeAppointment({
+          establishmentId: establishment.id,
+          status,
+          service: {
+            serviceId: service.id,
+            serviceName: service.serviceName.value,
+            category: service.category,
+            durationInMinutes: 60,
+            priceInCents: 10000,
+          },
+          startsAt: new Date(startsAt),
+          endsAt: new Date(new Date(startsAt).getTime() + 60 * 60 * 1000),
+        }),
+      );
+    };
+
+    await createAppointment({
+      status: "CANCELLED",
+      startsAt: "2026-04-01T10:00:00Z",
+    });
+    await createAppointment({
+      status: "SCHEDULED",
+      startsAt: "2026-04-02T10:00:00Z",
+    });
+    await createAppointment({
+      status: "DONE",
+      startsAt: "2026-04-03T10:00:00Z",
+    });
+    await createAppointment({
+      status: "CANCELLED",
+      startsAt: "2026-04-01T12:00:00Z",
+      category: "PROTECTION",
+    });
+    await createAppointment({
+      status: "CANCELLED",
+      startsAt: "2026-03-28T10:00:00Z",
+    });
+    await createAppointment({
+      status: "SCHEDULED",
+      startsAt: "2026-03-29T10:00:00Z",
+    });
+    await createAppointment({
+      status: "SCHEDULED",
+      startsAt: "2026-03-30T10:00:00Z",
+    });
+    await createAppointment({
+      status: "DONE",
+      startsAt: "2026-03-31T10:00:00Z",
+    });
+    await createAppointment({
+      status: "CANCELLED",
+      startsAt: "2026-03-29T12:00:00Z",
+      category: "PROTECTION",
+    });
+
+    const { cancellationRateUseCase } = makeKpiUseCases(repositories);
+
+    const result = await cancellationRateUseCase.execute({
+      establishmentOwnerId: ownerId.toString(),
+      range: makeMetricsRange(
+        "2026-04-01T00:00:00Z",
+        "2026-04-03T23:59:59Z",
+        "2026-03-28T00:00:00Z",
+        "2026-03-31T23:59:59Z",
+      ),
+      filters: {
+        categories: ["WASH"],
+        status: ["DONE"],
+      },
+    });
+
+    expect(result.isRight()).toBe(true);
+
+    if (result.isLeft()) {
+      throw new Error("Expected cancellation rate to be calculated");
+    }
+
+    expect(typeof result.value.appointmentsCount).toBe("number");
+    expect(result.value.appointmentsCount).toBe(3);
+    expect(result.value.cancellationRate).toEqual({
+      currentPercent: 33.3,
+      comparisonPercentPoints: 8.3,
+    });
+  });
+
+  it("should return null comparison percent points when comparison has no appointments", async () => {
+    const repositories = makeRepositories();
+    const { appointmentsRepository, establishmentsRepository } = repositories;
+
+    const ownerId = new UniqueEntityId("owner-1");
+    const establishment = makeEstablishment(
+      { ownerId },
+      new UniqueEntityId("est-1"),
+    );
+
+    await establishmentsRepository.create(establishment);
+
+    const washService = makeService({
+      establishmentId: establishment.id,
+      category: "WASH",
+    });
+
+    await appointmentsRepository.create(
+      makeAppointment({
+        establishmentId: establishment.id,
+        status: "CANCELLED",
+        service: {
+          serviceId: washService.id,
+          serviceName: washService.serviceName.value,
+          category: washService.category,
+          durationInMinutes: 60,
+          priceInCents: 10000,
+        },
+        startsAt: new Date("2026-04-01T10:00:00Z"),
+        endsAt: new Date("2026-04-01T11:00:00Z"),
+      }),
+    );
+
+    const { cancellationRateUseCase } = makeKpiUseCases(repositories);
+
+    const result = await cancellationRateUseCase.execute({
+      establishmentOwnerId: ownerId.toString(),
+      range: makeMetricsRange(
+        "2026-04-01T00:00:00Z",
+        "2026-04-01T23:59:59Z",
+        "2026-03-31T00:00:00Z",
+        "2026-03-31T23:59:59Z",
+      ),
+    });
+
+    expect(result.isRight()).toBe(true);
+
+    if (result.isLeft()) {
+      throw new Error("Expected cancellation rate to be calculated");
+    }
+
+    expect(result.value.cancellationRate).toEqual({
+      currentPercent: 100,
+      comparisonPercentPoints: null,
+    });
   });
 
   it("should return zero KPI values when no appointments match", async () => {
@@ -239,8 +480,16 @@ describe("Establishment metrics KPIs", () => {
     const averageTicketResult = await averageTicketUseCase.execute(request);
     const appointmentsCountResult =
       await appointmentsCountUseCase.execute(request);
-    const cancellationRateResult =
-      await cancellationRateUseCase.execute(request);
+    const cancellationRateResult = await cancellationRateUseCase.execute({
+      establishmentOwnerId: ownerId.toString(),
+      range: makeMetricsRange(
+        "2026-04-01T00:00:00Z",
+        "2026-04-01T23:59:59Z",
+        "2026-03-31T00:00:00Z",
+        "2026-03-31T23:59:59Z",
+      ),
+      filters,
+    });
 
     expect(totalRevenueResult.isRight()).toBe(true);
     expect(averageTicketResult.isRight()).toBe(true);
@@ -259,7 +508,16 @@ describe("Establishment metrics KPIs", () => {
     expect(totalRevenueResult.value.totalRevenueInCents).toBe(0);
     expect(averageTicketResult.value.averageTicketInCents).toBe(0);
     expect(appointmentsCountResult.value.appointmentsCount).toBe(0);
-    expect(cancellationRateResult.value.cancellationRate).toBe(0);
+    expect(typeof cancellationRateResult.value.appointmentsCount).toBe(
+      "number",
+    );
+    expect(cancellationRateResult.value).toEqual({
+      appointmentsCount: 0,
+      cancellationRate: {
+        currentPercent: 0,
+        comparisonPercentPoints: null,
+      },
+    });
   });
 
   it("should return ResourceNotFoundError when owner has no establishment", async () => {
@@ -278,8 +536,15 @@ describe("Establishment metrics KPIs", () => {
     const averageTicketResult = await averageTicketUseCase.execute(request);
     const appointmentsCountResult =
       await appointmentsCountUseCase.execute(request);
-    const cancellationRateResult =
-      await cancellationRateUseCase.execute(request);
+    const cancellationRateResult = await cancellationRateUseCase.execute({
+      establishmentOwnerId: "missing-owner",
+      range: makeMetricsRange(
+        "2026-04-01T00:00:00Z",
+        "2026-04-01T23:59:59Z",
+        "2026-03-31T00:00:00Z",
+        "2026-03-31T23:59:59Z",
+      ),
+    });
 
     expect(totalRevenueResult.isLeft()).toBe(true);
     expect(averageTicketResult.isLeft()).toBe(true);
