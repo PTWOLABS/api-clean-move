@@ -4,6 +4,7 @@ import { CreateAppointmentUseCase } from "../../modules/application/use-cases/ap
 import { ListAppointmentsUseCase } from "../../modules/application/use-cases/appointment/list-appointments";
 import { UpdateAppointmentStatusUseCase } from "../../modules/application/use-cases/appointment/update-appointment-status";
 import { AuthenticateWithOAuthUseCase } from "../../modules/application/use-cases/auth/authenticate-with-oauth";
+import { CreateAuthSessionUseCase } from "../../modules/application/use-cases/auth/create-auth-session";
 import { LoginWithCredentialsUseCase } from "../../modules/application/use-cases/auth/login-with-credentials";
 import { RefreshSessionUseCase } from "../../modules/application/use-cases/auth/refresh-session";
 import { SignOutUseCase } from "../../modules/application/use-cases/auth/sign-out";
@@ -142,6 +143,7 @@ import { UploadVehicleImageController } from "./controllers/media/upload-vehicle
     UpdateEmployeeUseCase,
     DeleteEmployeeUseCase,
     UploadDomainImageUseCase,
+    CreateAuthSessionUseCase,
     LoginWithCredentialsUseCase,
     RefreshSessionUseCase,
     SignOutUseCase,
