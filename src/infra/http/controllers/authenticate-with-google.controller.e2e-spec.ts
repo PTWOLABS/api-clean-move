@@ -11,6 +11,12 @@ import {
   OAuthUserClaims,
 } from "../../../modules/application/services/oauth-id-token-verifier";
 import { GoogleIdTokenVerifier } from "../../auth/google-id-token-verifier";
+import {
+  authResponseSchema,
+  extractRefreshTokenCookie,
+  extractRefreshTokenValue,
+  makeRefreshTokenCookieHeader,
+} from "../../../../tests/helpers/auth-session.e2e-helpers";
 
 const authenticateWithGoogleResponseSchema = z.object({
   accessToken: z.string().min(1),
@@ -162,6 +168,61 @@ describe("AuthenticateWithGoogleController (e2e)", () => {
     expect(linkedSession).not.toBeNull();
     expect(linkedSession?.userAgent).toBe("Mozilla/5.0 OAuth Browser");
     expect(linkedSession?.ipAddress).toBe("198.51.100.20");
+  });
+
+  it("should refresh the session after Google authentication", async () => {
+    await prisma.user.create({
+      data: {
+        name: "Refresh After Google",
+        email: "refresh-google@example.com",
+        hashedPassword: null,
+        role: "CUSTOMER",
+        phone: null,
+        address: Prisma.JsonNull,
+        socialAccounts: {
+          create: {
+            provider: "GOOGLE",
+            subjectId: "google-sub-refresh",
+          },
+        },
+      },
+    });
+
+    mockedClaimsByToken.set("refresh-after-google-token", {
+      provider: "GOOGLE",
+      subjectId: "google-sub-refresh",
+      email: "refresh-google@example.com",
+      emailVerified: true,
+      name: "Refresh After Google",
+    });
+
+    const loginResponse = await request(getHttpServer(app))
+      .post("/auth/google")
+      .send({ idToken: "refresh-after-google-token" });
+
+    expect(loginResponse.status).toBe(200);
+
+    const loginSetCookie = z
+      .array(z.string())
+      .parse(loginResponse.headers["set-cookie"]);
+    const refreshToken = extractRefreshTokenValue(
+      extractRefreshTokenCookie(loginSetCookie),
+    );
+
+    const refreshResponse = await request(getHttpServer(app))
+      .post("/auth/refresh")
+      .set("Cookie", makeRefreshTokenCookieHeader(refreshToken));
+
+    const refreshBody = authResponseSchema.parse(refreshResponse.body);
+    const refreshSetCookie = z
+      .array(z.string())
+      .parse(refreshResponse.headers["set-cookie"]);
+
+    expect(refreshResponse.status).toBe(200);
+    expect(refreshBody.accessToken).toEqual(expect.any(String));
+    expect(
+      extractRefreshTokenValue(extractRefreshTokenCookie(refreshSetCookie)),
+    ).not.toBe(refreshToken);
   });
 
   it("should link social account when email already exists", async () => {
