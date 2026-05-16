@@ -8,7 +8,7 @@ import { InMemoryAppointmentsRepository } from "../../../../../tests/repositorie
 import { InMemoryEstablishmentsRepository } from "../../../../../tests/repositories/in-memory-establishment-repository";
 import { InMemoryServicesRepository } from "../../../../../tests/repositories/in-memory-services-repository";
 import { ResolvedDashboardMetricsRange } from "../../services/dashboard-metrics-range-resolver";
-import { GetEstablishmentPopularServicesByCategoryUseCase } from "./get-establishment-popular-services-by-category";
+import { GetEstablishmentPopularServicesUseCase } from "./get-establishment-popular-services";
 import { GetEstablishmentRevenueVsAppointmentsUseCase } from "./get-establishment-revenue-vs-appointments";
 
 function makeRepositories() {
@@ -28,11 +28,10 @@ function makeChartUseCases({
   appointmentsRepository,
   establishmentsRepository,
 }: ReturnType<typeof makeRepositories>) {
-  const popularServicesUseCase =
-    new GetEstablishmentPopularServicesByCategoryUseCase(
-      establishmentsRepository,
-      appointmentsRepository,
-    );
+  const popularServicesUseCase = new GetEstablishmentPopularServicesUseCase(
+    establishmentsRepository,
+    appointmentsRepository,
+  );
 
   const revenueVsAppointmentsUseCase =
     new GetEstablishmentRevenueVsAppointmentsUseCase(
@@ -65,7 +64,7 @@ function makeRange(
 }
 
 describe("Establishment metrics charts", () => {
-  it("should return repository-paginated popular services and revenue vs appointments using snapshots and filters", async () => {
+  it("should return repository-paginated popular service usage metrics and revenue vs appointments using snapshots and filters", async () => {
     const repositories = makeRepositories();
     const { appointmentsRepository, establishmentsRepository } = repositories;
 
@@ -195,9 +194,9 @@ describe("Establishment metrics charts", () => {
 
     const { popularServicesUseCase, revenueVsAppointmentsUseCase } =
       makeChartUseCases(repositories);
-    const findManyByEstablishmentIdSpy = vi.spyOn(
+    const findPopularServiceUsagesByEstablishmentIdSpy = vi.spyOn(
       appointmentsRepository,
-      "findManyByEstablishmentId",
+      "findPopularServiceUsagesByEstablishmentId",
     );
 
     const popularServicesResult = await popularServicesUseCase.execute({
@@ -236,30 +235,26 @@ describe("Establishment metrics charts", () => {
         },
       });
 
-    expect(findManyByEstablishmentIdSpy).toHaveBeenNthCalledWith(
-      1,
-      establishment.id.toString(),
-      {
-        startsAt: new Date("2026-04-01T00:00:00.000Z"),
-        endsAt: new Date("2026-04-02T23:59:59.999Z"),
-        categories: ["WASH", "AUTOMATIVE_DETAILING"],
-        status: ["SCHEDULED"],
-        page: 1,
-        size: 2,
-      },
-    );
-    expect(findManyByEstablishmentIdSpy).toHaveBeenNthCalledWith(
-      2,
-      establishment.id.toString(),
-      {
-        startsAt: new Date("2026-04-01T00:00:00.000Z"),
-        endsAt: new Date("2026-04-02T23:59:59.999Z"),
-        categories: ["WASH", "AUTOMATIVE_DETAILING"],
-        status: ["SCHEDULED"],
-        page: 2,
-        size: 2,
-      },
-    );
+    expect(
+      findPopularServiceUsagesByEstablishmentIdSpy,
+    ).toHaveBeenNthCalledWith(1, establishment.id.toString(), {
+      startsAt: new Date("2026-04-01T00:00:00.000Z"),
+      endsAt: new Date("2026-04-02T23:59:59.999Z"),
+      categories: ["WASH", "AUTOMATIVE_DETAILING"],
+      status: ["SCHEDULED"],
+      page: 1,
+      size: 2,
+    });
+    expect(
+      findPopularServiceUsagesByEstablishmentIdSpy,
+    ).toHaveBeenNthCalledWith(2, establishment.id.toString(), {
+      startsAt: new Date("2026-04-01T00:00:00.000Z"),
+      endsAt: new Date("2026-04-02T23:59:59.999Z"),
+      categories: ["WASH", "AUTOMATIVE_DETAILING"],
+      status: ["SCHEDULED"],
+      page: 2,
+      size: 2,
+    });
 
     const revenueVsAppointmentsResult =
       await revenueVsAppointmentsUseCase.execute({
@@ -293,19 +288,18 @@ describe("Establishment metrics charts", () => {
         id: washService.id.toString(),
         name: washService.serviceName.value,
         completedCount: 2,
-        percent: 100,
+        percent: 67,
       },
-    ]);
-    expect(popularServicesResult.value.totalServices).toBe(2);
-    expect(secondPopularServicesPageResult.value.popularServices).toEqual([
       {
         id: detailsService.id.toString(),
         name: detailsService.serviceName.value,
         completedCount: 1,
-        percent: 100,
+        percent: 33,
       },
     ]);
-    expect(secondPopularServicesPageResult.value.totalServices).toBe(1);
+    expect(popularServicesResult.value.totalServices).toBe(3);
+    expect(secondPopularServicesPageResult.value.popularServices).toEqual([]);
+    expect(secondPopularServicesPageResult.value.totalServices).toBe(3);
 
     expect(revenueVsAppointmentsResult.value.points).toEqual([
       {
@@ -404,7 +398,7 @@ describe("Establishment metrics charts", () => {
     });
   });
 
-  it("should calculate popular service totals and percentages within the repository page", async () => {
+  it("should calculate popular service totals and percentages within all matching usages", async () => {
     const repositories = makeRepositories();
     const { appointmentsRepository, establishmentsRepository } = repositories;
 
@@ -508,7 +502,7 @@ describe("Establishment metrics charts", () => {
     });
   });
 
-  it("should use DONE by default and exclude scheduled and cancelled appointments", async () => {
+  it("should use scheduled and done by default and exclude cancelled appointments", async () => {
     const repositories = makeRepositories();
     const { appointmentsRepository, establishmentsRepository } = repositories;
 
@@ -583,9 +577,9 @@ describe("Establishment metrics charts", () => {
 
     const { popularServicesUseCase, revenueVsAppointmentsUseCase } =
       makeChartUseCases(repositories);
-    const findManyByEstablishmentIdSpy = vi.spyOn(
+    const findPopularServiceUsagesByEstablishmentIdSpy = vi.spyOn(
       appointmentsRepository,
-      "findManyByEstablishmentId",
+      "findPopularServiceUsagesByEstablishmentId",
     );
     const popularServicesResult = await popularServicesUseCase.execute({
       establishmentOwnerId: ownerId.toString(),
@@ -597,12 +591,12 @@ describe("Establishment metrics charts", () => {
       ),
     });
 
-    expect(findManyByEstablishmentIdSpy).toHaveBeenCalledWith(
+    expect(findPopularServiceUsagesByEstablishmentIdSpy).toHaveBeenCalledWith(
       establishment.id.toString(),
       {
         startsAt: new Date("2026-04-01T00:00:00.000Z"),
         endsAt: new Date("2026-04-01T23:59:59.999Z"),
-        status: ["DONE"],
+        status: ["SCHEDULED", "DONE"],
         page: 1,
         size: 5,
       },
@@ -632,10 +626,16 @@ describe("Establishment metrics charts", () => {
           id: "service-1",
           name: "Lavagem simples",
           completedCount: 1,
-          percent: 100,
+          percent: 50,
+        },
+        {
+          id: "service-2",
+          name: "Lavagem simples",
+          completedCount: 1,
+          percent: 50,
         },
       ],
-      totalServices: 1,
+      totalServices: 2,
     });
     expect(result.value.points).toEqual([
       {
