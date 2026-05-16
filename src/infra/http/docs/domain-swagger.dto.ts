@@ -1043,12 +1043,16 @@ export class DashboardMetricsPopularServiceDto {
   @ApiProperty({ example: "Lavagem completa" })
   name!: string;
 
-  @ApiProperty({ example: 3 })
+  @ApiProperty({
+    example: 3,
+    description:
+      "Number of matching appointment service usages for this service.",
+  })
   completedCount!: number;
 
   @ApiProperty({
     example: 75,
-    description: "Percentage share among completed services in the result set.",
+    description: "Percentage share among matching service usages.",
   })
   percent!: number;
 }
@@ -1059,7 +1063,8 @@ export class DashboardMetricsPopularServicesResponseDto {
 
   @ApiProperty({
     example: 4,
-    description: "Total number of services matching the selected filters.",
+    description:
+      "Total number of service usages matching the selected filters.",
   })
   totalServices!: number;
 }

@@ -6,7 +6,7 @@ import {
   ApiTags,
 } from "@nestjs/swagger";
 
-import { GetEstablishmentPopularServicesByCategoryUseCase } from "../../../modules/application/use-cases/establishment/get-establishment-popular-services-by-category";
+import { GetEstablishmentPopularServicesUseCase } from "../../../modules/application/use-cases/establishment/get-establishment-popular-services";
 import {
   DashboardMetricsRangeQuery,
   InvalidDashboardMetricsRangeError,
@@ -35,14 +35,14 @@ import {
 @Roles(["ESTABLISHMENT"])
 export class DashboardMetricsPopularServicesController {
   constructor(
-    private readonly getPopularServices: GetEstablishmentPopularServicesByCategoryUseCase,
+    private readonly getPopularServices: GetEstablishmentPopularServicesUseCase,
   ) {}
 
   @Get("popular-services")
   @ApiOperation({
     summary: "Get popular service dashboard metrics.",
     description:
-      "Returns services grouped by booked service snapshot and ordered by appointment count, then revenue.",
+      "Returns booked service usage metrics grouped by service snapshot, ordered by usage count. Defaults to scheduled and done appointments when status is not provided.",
   })
   @ApiDashboardDynamicMetricsFilterQueries()
   @ApiDashboardPopularServicesPaginationQueries()

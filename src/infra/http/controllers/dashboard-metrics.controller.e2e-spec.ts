@@ -482,7 +482,7 @@ describe("Dashboard metrics controller (e2e)", () => {
     });
   });
 
-  it("should paginate popular services from appointment-level pages", async () => {
+  it("should paginate popular services from aggregated service usage pages", async () => {
     const { accessToken, washService, detailsService } =
       await seedDashboardMetrics();
 
@@ -511,11 +511,11 @@ describe("Dashboard metrics controller (e2e)", () => {
           {
             id: washService.id.toString(),
             name: washService.serviceName.value,
-            completedCount: 1,
-            percent: 100,
+            completedCount: 2,
+            percent: 50,
           },
         ],
-        totalServices: 1,
+        totalServices: 4,
       },
     );
     expect(
@@ -526,10 +526,10 @@ describe("Dashboard metrics controller (e2e)", () => {
           id: detailsService.id.toString(),
           name: "Detalhamento snapshot",
           completedCount: 1,
-          percent: 100,
+          percent: 25,
         },
       ],
-      totalServices: 1,
+      totalServices: 4,
     });
   });
 
