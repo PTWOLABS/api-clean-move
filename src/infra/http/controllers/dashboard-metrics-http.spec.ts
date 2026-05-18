@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   dashboardDynamicMetricsQuerySchema,
-  dashboardMetricsQuerySchema,
+  dashboardOverviewMetricsQuerySchema,
   dashboardPopularServicesMetricsQuerySchema,
 } from "./dashboard-metrics-http";
 
@@ -163,9 +163,31 @@ describe("dashboard dynamic metrics query schemas", () => {
     }
   });
 
-  it("should keep the overview query schema compatible with endsAt-only filters", () => {
-    const result = dashboardMetricsQuerySchema.safeParse({
-      endsAt: "2026-05-31T23:59:59.999-03:00",
+  it("should reject granularity for the overview query schema", () => {
+    const result = dashboardOverviewMetricsQuerySchema.safeParse({
+      period: "last-7-days",
+      granularity: "daily",
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            path: ["granularity"],
+            message:
+              "granularity is not supported for overview metrics and is resolved automatically.",
+          }),
+        ]),
+      );
+    }
+  });
+
+  it("should accept period filters for the overview query schema", () => {
+    const result = dashboardOverviewMetricsQuerySchema.safeParse({
+      period: "last-30-days",
+      categories: "WASH",
+      status: "DONE,CANCELLED",
     });
 
     expect(result.success).toBe(true);

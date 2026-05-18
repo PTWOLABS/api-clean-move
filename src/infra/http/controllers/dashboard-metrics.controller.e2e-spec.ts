@@ -29,10 +29,66 @@ const referenceDate = new Date("2026-05-15T12:00:00.000Z");
 
 const overviewResponseSchema = z
   .object({
-    totalRevenueInCents: z.number(),
-    averageTicketInCents: z.number(),
-    appointmentsCount: z.number(),
-    cancellationRate: z.number(),
+    appointments: z
+      .object({
+        value: z.number(),
+        variationPercentage: z.number().nullable(),
+        points: z.array(
+          z
+            .object({
+              date: z.string(),
+              label: z.string(),
+              value: z.number(),
+            })
+            .strict(),
+        ),
+      })
+      .strict(),
+    averageTicket: z
+      .object({
+        valueInCents: z.number(),
+        variationPercentage: z.number().nullable(),
+        points: z.array(
+          z
+            .object({
+              date: z.string(),
+              label: z.string(),
+              valueInCents: z.number(),
+            })
+            .strict(),
+        ),
+      })
+      .strict(),
+    cancellationRate: z
+      .object({
+        value: z.number(),
+        variationInPercentagePoints: z.number().nullable(),
+        points: z.array(
+          z
+            .object({
+              date: z.string(),
+              label: z.string(),
+              value: z.number(),
+            })
+            .strict(),
+        ),
+      })
+      .strict(),
+    totalRevenue: z
+      .object({
+        valueInCents: z.number(),
+        variationPercentage: z.number().nullable(),
+        points: z.array(
+          z
+            .object({
+              date: z.string(),
+              label: z.string(),
+              valueInCents: z.number(),
+            })
+            .strict(),
+        ),
+      })
+      .strict(),
   })
   .strict();
 
@@ -293,7 +349,7 @@ describe("Dashboard metrics controller (e2e)", () => {
     return { accessToken, washService, detailsService, protectionService };
   }
 
-  it("should preserve overview metrics response from real appointment data", async () => {
+  it("should return overview card metrics with comparison values and daily points", async () => {
     const { accessToken, establishment, customer } = await makeAuthContext();
     const washService = await serviceFactory.makePrismaService({
       establishmentId: establishment.id,
@@ -358,11 +414,168 @@ describe("Dashboard metrics controller (e2e)", () => {
 
     expect(response.status).toBe(200);
     expect(overviewResponseSchema.parse(response.body)).toEqual({
-      totalRevenueInCents: 56000,
-      averageTicketInCents: 14000,
-      appointmentsCount: 4,
-      cancellationRate: 0.25,
+      appointments: {
+        value: 4,
+        variationPercentage: null,
+        points: [
+          {
+            date: "2026-04-01",
+            label: "01/04",
+            value: 2,
+          },
+          {
+            date: "2026-04-02",
+            label: "02/04",
+            value: 1,
+          },
+          {
+            date: "2026-04-03",
+            label: "03/04",
+            value: 1,
+          },
+        ],
+      },
+      averageTicket: {
+        valueInCents: 14000,
+        variationPercentage: null,
+        points: [
+          {
+            date: "2026-04-01",
+            label: "01/04",
+            valueInCents: 10500,
+          },
+          {
+            date: "2026-04-02",
+            label: "02/04",
+            valueInCents: 25000,
+          },
+          {
+            date: "2026-04-03",
+            label: "03/04",
+            valueInCents: 10000,
+          },
+        ],
+      },
+      cancellationRate: {
+        value: 25,
+        variationInPercentagePoints: null,
+        points: [
+          {
+            date: "2026-04-01",
+            label: "01/04",
+            value: 0,
+          },
+          {
+            date: "2026-04-02",
+            label: "02/04",
+            value: 0,
+          },
+          {
+            date: "2026-04-03",
+            label: "03/04",
+            value: 100,
+          },
+        ],
+      },
+      totalRevenue: {
+        valueInCents: 56000,
+        variationPercentage: null,
+        points: [
+          {
+            date: "2026-04-01",
+            label: "01/04",
+            valueInCents: 21000,
+          },
+          {
+            date: "2026-04-02",
+            label: "02/04",
+            valueInCents: 25000,
+          },
+          {
+            date: "2026-04-03",
+            label: "03/04",
+            valueInCents: 10000,
+          },
+        ],
+      },
     });
+  });
+
+  it("should resolve weekly overview points automatically for ranges above seven days", async () => {
+    const { accessToken } = await seedDashboardMetrics();
+
+    const response = await request(getHttpServer(app))
+      .get("/dashboard/metrics/overview")
+      .query({
+        startsAt: "2026-04-01T00:00:00.000Z",
+        endsAt: "2026-05-15T23:59:59.999Z",
+      })
+      .set("Authorization", `Bearer ${accessToken}`);
+
+    expect(response.status).toBe(200);
+
+    const overview = overviewResponseSchema.parse(response.body);
+
+    expect(overview.appointments.points).toHaveLength(7);
+    expect(overview.appointments.points[0]).toEqual({
+      date: "2026-03-30",
+      label: "30/03",
+      value: 0,
+    });
+    expect(overview.appointments.points[6]).toEqual({
+      date: "2026-05-11",
+      label: "11/05",
+      value: 3,
+    });
+    expect(overview.totalRevenue.points[3]).toEqual({
+      date: "2026-04-20",
+      label: "20/04",
+      valueInCents: 7000,
+    });
+  });
+
+  it("should resolve monthly overview points automatically for ranges above seven weeks", async () => {
+    const { accessToken } = await seedDashboardMetrics();
+
+    const response = await request(getHttpServer(app))
+      .get("/dashboard/metrics/overview")
+      .query({
+        startsAt: "2026-01-01T00:00:00.000Z",
+        endsAt: "2026-05-15T23:59:59.999Z",
+      })
+      .set("Authorization", `Bearer ${accessToken}`);
+
+    expect(response.status).toBe(200);
+
+    const overview = overviewResponseSchema.parse(response.body);
+
+    expect(overview.totalRevenue.points).toEqual([
+      {
+        date: "2026-01",
+        label: "Jan",
+        valueInCents: 0,
+      },
+      {
+        date: "2026-02",
+        label: "Fev",
+        valueInCents: 0,
+      },
+      {
+        date: "2026-03",
+        label: "Mar",
+        valueInCents: 4000,
+      },
+      {
+        date: "2026-04",
+        label: "Abr",
+        valueInCents: 27000,
+      },
+      {
+        date: "2026-05",
+        label: "Mai",
+        valueInCents: 125000,
+      },
+    ]);
   });
 
   it("should return dynamic revenue metrics for period presets with comparison trends", async () => {
@@ -534,6 +747,14 @@ describe("Dashboard metrics controller (e2e)", () => {
   });
 
   it.each([
+    [
+      "granularity on overview",
+      "/dashboard/metrics/overview",
+      {
+        period: "last-7-days",
+        granularity: "daily",
+      },
+    ],
     [
       "endsAt without startsAt",
       "/dashboard/metrics/revenue",

@@ -1,8 +1,40 @@
 type DashboardOverviewMetrics = {
-  totalRevenueInCents: number;
-  averageTicketInCents: number;
-  appointmentsCount: number;
-  cancellationRate: number;
+  appointments: {
+    value: number;
+    variationPercentage: number | null;
+    points: Array<{
+      date: string;
+      label: string;
+      value: number;
+    }>;
+  };
+  averageTicket: {
+    valueInCents: number;
+    variationPercentage: number | null;
+    points: Array<{
+      date: string;
+      label: string;
+      valueInCents: number;
+    }>;
+  };
+  cancellationRate: {
+    value: number;
+    variationInPercentagePoints: number | null;
+    points: Array<{
+      date: string;
+      label: string;
+      value: number;
+    }>;
+  };
+  totalRevenue: {
+    valueInCents: number;
+    variationPercentage: number | null;
+    points: Array<{
+      date: string;
+      label: string;
+      valueInCents: number;
+    }>;
+  };
 };
 
 type DashboardRevenuePoint = {

@@ -934,21 +934,121 @@ export class ListServicesResponseDto {
   totalItems!: number;
 }
 
-export class DashboardMetricsOverviewResponseDto {
-  @ApiProperty({ example: 56000 })
-  totalRevenueInCents!: number;
-
-  @ApiProperty({ example: 14000 })
-  averageTicketInCents!: number;
-
-  @ApiProperty({ example: 4 })
-  appointmentsCount!: number;
+export class DashboardMetricsOverviewPointDto {
+  @ApiProperty({
+    example: "2026-05-12",
+    description: "Bucket start date for this overview point.",
+  })
+  date!: string;
 
   @ApiProperty({
-    example: 0.25,
-    description: "Cancelled appointments divided by filtered appointments.",
+    example: "12/05",
+    description: "Display label for the overview point bucket.",
   })
-  cancellationRate!: number;
+  label!: string;
+}
+
+export class DashboardMetricsOverviewCountPointDto extends DashboardMetricsOverviewPointDto {
+  @ApiProperty({ example: 12 })
+  value!: number;
+}
+
+export class DashboardMetricsOverviewMoneyPointDto extends DashboardMetricsOverviewPointDto {
+  @ApiProperty({ example: 18650 })
+  valueInCents!: number;
+}
+
+export class DashboardMetricsOverviewAppointmentsDto {
+  @ApiProperty({ example: 256 })
+  value!: number;
+
+  @ApiProperty({
+    example: 18,
+    nullable: true,
+    description:
+      "Percentage change compared with the previous equivalent period.",
+  })
+  variationPercentage!: number | null;
+
+  @ApiProperty({
+    type: DashboardMetricsOverviewCountPointDto,
+    isArray: true,
+  })
+  points!: DashboardMetricsOverviewCountPointDto[];
+}
+
+export class DashboardMetricsOverviewAverageTicketDto {
+  @ApiProperty({ example: 18650 })
+  valueInCents!: number;
+
+  @ApiProperty({
+    example: 9,
+    nullable: true,
+    description:
+      "Percentage change compared with the previous equivalent period.",
+  })
+  variationPercentage!: number | null;
+
+  @ApiProperty({
+    type: DashboardMetricsOverviewMoneyPointDto,
+    isArray: true,
+  })
+  points!: DashboardMetricsOverviewMoneyPointDto[];
+}
+
+export class DashboardMetricsOverviewCancellationRateDto {
+  @ApiProperty({
+    example: 4.2,
+    description: "Cancellation rate percentage for the selected period.",
+  })
+  value!: number;
+
+  @ApiProperty({
+    example: -1.6,
+    nullable: true,
+    description:
+      "Cancellation rate change in percentage points compared with the previous equivalent period.",
+  })
+  variationInPercentagePoints!: number | null;
+
+  @ApiProperty({
+    type: DashboardMetricsOverviewCountPointDto,
+    isArray: true,
+  })
+  points!: DashboardMetricsOverviewCountPointDto[];
+}
+
+export class DashboardMetricsOverviewTotalRevenueDto {
+  @ApiProperty({ example: 4738900 })
+  valueInCents!: number;
+
+  @ApiProperty({
+    example: 21,
+    nullable: true,
+    description:
+      "Percentage change compared with the previous equivalent period.",
+  })
+  variationPercentage!: number | null;
+
+  @ApiProperty({
+    type: DashboardMetricsOverviewMoneyPointDto,
+    isArray: true,
+  })
+  points!: DashboardMetricsOverviewMoneyPointDto[];
+}
+
+export class DashboardMetricsOverviewResponseDto {
+  @ApiProperty({ type: DashboardMetricsOverviewAppointmentsDto })
+  appointments!: DashboardMetricsOverviewAppointmentsDto;
+
+  @ApiProperty({ type: DashboardMetricsOverviewAverageTicketDto })
+  averageTicket!: DashboardMetricsOverviewAverageTicketDto;
+
+  @ApiProperty({ type: DashboardMetricsOverviewCancellationRateDto })
+  cancellationRate!: DashboardMetricsOverviewCancellationRateDto;
+
+  @ApiProperty({ type: DashboardMetricsOverviewTotalRevenueDto })
+  totalRevenue!: DashboardMetricsOverviewTotalRevenueDto;
 }
 
 export class DashboardMetricsRevenuePointDto {
