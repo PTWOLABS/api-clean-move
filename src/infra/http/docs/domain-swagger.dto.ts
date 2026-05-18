@@ -1102,6 +1102,14 @@ export class DashboardMetricsRevenueSummaryDto {
 }
 
 export class DashboardMetricsRevenueResponseDto {
+  @ApiProperty({
+    example: "daily",
+    enum: ["daily", "weekly", "monthly"],
+    description:
+      "Resolved bucket granularity used to build the revenue points.",
+  })
+  granularity!: "daily" | "weekly" | "monthly";
+
   @ApiProperty({ type: DashboardMetricsRevenuePointDto, isArray: true })
   points!: DashboardMetricsRevenuePointDto[];
 

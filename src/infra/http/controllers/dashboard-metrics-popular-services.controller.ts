@@ -20,8 +20,8 @@ import { DashboardMetricsPopularServicesResponseDto } from "../docs/domain-swagg
 import { DashboardMetricsPresenter } from "../presenters/dashboard-metrics-presenter";
 import { ZodValidationPipe } from "../pipes/zod-validation.pipe";
 import {
-  ApiDashboardDynamicMetricsFilterQueries,
   ApiDashboardMetricsErrors,
+  ApiDashboardPeriodMetricsFilterQueries,
   ApiDashboardPopularServicesPaginationQueries,
   buildMetricsFilters,
   DashboardPopularServicesMetricsQuerySchema,
@@ -44,7 +44,7 @@ export class DashboardMetricsPopularServicesController {
     description:
       "Returns booked service usage metrics grouped by service snapshot, ordered by usage count. Defaults to scheduled and done appointments when status is not provided.",
   })
-  @ApiDashboardDynamicMetricsFilterQueries()
+  @ApiDashboardPeriodMetricsFilterQueries()
   @ApiDashboardPopularServicesPaginationQueries()
   @ApiOkResponse({
     description: "Popular service metrics returned successfully.",
@@ -64,9 +64,6 @@ export class DashboardMetricsPopularServicesController {
         ...(query.period !== undefined ? { period: query.period } : {}),
         ...(query.startsAt !== undefined ? { startsAt: query.startsAt } : {}),
         ...(query.endsAt !== undefined ? { endsAt: query.endsAt } : {}),
-        ...(query.granularity !== undefined
-          ? { granularity: query.granularity }
-          : {}),
       };
 
       range = resolveDashboardMetricsRange(rangeQuery, { referenceDate });

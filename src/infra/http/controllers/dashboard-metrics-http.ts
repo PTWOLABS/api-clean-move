@@ -108,6 +108,20 @@ function validateMetricsDateRange(
   }
 }
 
+function addUnsupportedGranularityIssue(
+  query: { granularity?: string | undefined },
+  context: z.RefinementCtx,
+  message: string,
+) {
+  if (query.granularity !== undefined) {
+    context.addIssue({
+      code: "custom",
+      path: ["granularity"],
+      message,
+    });
+  }
+}
+
 export const dashboardMetricsQuerySchema = z
   .object({
     startsAt: dateTimeQuerySchema.optional(),
@@ -157,14 +171,11 @@ export const dashboardOverviewMetricsQuerySchema =
     .superRefine((query, context) => {
       validateMetricsDateRange(query, context);
 
-      if (query.granularity !== undefined) {
-        context.addIssue({
-          code: "custom",
-          path: ["granularity"],
-          message:
-            "granularity is not supported for overview metrics and is resolved automatically.",
-        });
-      }
+      addUnsupportedGranularityIssue(
+        query,
+        context,
+        "granularity is not supported for overview metrics and is resolved automatically.",
+      );
     });
 
 export const dashboardDynamicMetricsQuerySchema =
@@ -174,14 +185,35 @@ export const dashboardDynamicMetricsQuerySchema =
     })
     .superRefine(validateMetricsDateRange);
 
+export const dashboardPeriodMetricsQuerySchema =
+  dashboardDynamicMetricsQueryBaseSchema
+    .extend({
+      granularity: z.string().optional(),
+    })
+    .superRefine((query, context) => {
+      validateMetricsDateRange(query, context);
+      addUnsupportedGranularityIssue(
+        query,
+        context,
+        "granularity is only supported for revenue metrics.",
+      );
+    });
+
 export const dashboardPopularServicesMetricsQuerySchema =
   dashboardDynamicMetricsQueryBaseSchema
     .extend({
-      granularity: dashboardMetricGranularitySchema.optional(),
+      granularity: z.string().optional(),
       page: z.coerce.number().int().positive().default(1),
       size: z.coerce.number().int().positive().default(5),
     })
-    .superRefine(validateMetricsDateRange);
+    .superRefine((query, context) => {
+      validateMetricsDateRange(query, context);
+      addUnsupportedGranularityIssue(
+        query,
+        context,
+        "granularity is only supported for revenue metrics.",
+      );
+    });
 
 export type DashboardMetricsQuerySchema = z.infer<
   typeof dashboardMetricsQuerySchema
@@ -189,6 +221,10 @@ export type DashboardMetricsQuerySchema = z.infer<
 
 export type DashboardDynamicMetricsQuerySchema = z.infer<
   typeof dashboardDynamicMetricsQuerySchema
+>;
+
+export type DashboardPeriodMetricsQuerySchema = z.infer<
+  typeof dashboardPeriodMetricsQuerySchema
 >;
 
 export type DashboardOverviewMetricsQuerySchema = z.infer<
@@ -260,7 +296,7 @@ export function ApiDashboardMetricsFilterQueries() {
   );
 }
 
-export function ApiDashboardDynamicMetricsFilterQueries() {
+export function ApiDashboardPeriodMetricsFilterQueries() {
   return applyDecorators(
     ApiQuery({
       name: "period",
@@ -287,13 +323,6 @@ export function ApiDashboardDynamicMetricsFilterQueries() {
       description:
         "Filter appointments starting at or before this ISO 8601 date-time with offset.",
       example: "2026-04-30T23:59:59.999Z",
-    }),
-    ApiQuery({
-      name: "granularity",
-      required: false,
-      enum: DASHBOARD_METRIC_GRANULARITIES,
-      description: "Bucket granularity for dynamic dashboard metrics.",
-      example: "auto",
     }),
     ApiQuery({
       name: "categories",
@@ -316,53 +345,21 @@ export function ApiDashboardDynamicMetricsFilterQueries() {
   );
 }
 
-export function ApiDashboardOverviewMetricsFilterQueries() {
+export function ApiDashboardDynamicMetricsFilterQueries() {
   return applyDecorators(
+    ApiDashboardPeriodMetricsFilterQueries(),
     ApiQuery({
-      name: "period",
+      name: "granularity",
       required: false,
-      enum: DASHBOARD_METRIC_PERIODS,
-      description:
-        "Predefined dashboard period. Ignored when startsAt is provided.",
-      example: "this-month",
-    }),
-    ApiQuery({
-      name: "startsAt",
-      required: false,
-      type: String,
-      format: "date-time",
-      description:
-        "Filter appointments starting at or after this ISO 8601 date-time with offset.",
-      example: "2026-04-01T00:00:00.000Z",
-    }),
-    ApiQuery({
-      name: "endsAt",
-      required: false,
-      type: String,
-      format: "date-time",
-      description:
-        "Filter appointments starting at or before this ISO 8601 date-time with offset.",
-      example: "2026-04-30T23:59:59.999Z",
-    }),
-    ApiQuery({
-      name: "categories",
-      required: false,
-      enum: SERVICE_CATEGORIES,
-      isArray: true,
-      description:
-        "Filter by booked service category snapshot. Repeat the query param or send comma-separated values.",
-      example: ["WASH", "AUTOMATIVE_DETAILING"],
-    }),
-    ApiQuery({
-      name: "status",
-      required: false,
-      enum: APPOINTMENT_STATUSES,
-      isArray: true,
-      description:
-        "Filter by appointment status. Repeat the query param or send comma-separated values.",
-      example: ["SCHEDULED", "CANCELLED"],
+      enum: DASHBOARD_METRIC_GRANULARITIES,
+      description: "Bucket granularity for dynamic dashboard metrics.",
+      example: "auto",
     }),
   );
+}
+
+export function ApiDashboardOverviewMetricsFilterQueries() {
+  return ApiDashboardPeriodMetricsFilterQueries();
 }
 
 export function ApiDashboardPopularServicesPaginationQueries() {

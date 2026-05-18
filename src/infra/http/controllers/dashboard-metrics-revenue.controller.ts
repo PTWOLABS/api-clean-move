@@ -97,6 +97,10 @@ export class DashboardMetricsRevenueController {
     });
     const metrics = unwrapDashboardMetricsResult(result);
 
-    return DashboardMetricsPresenter.toRevenue(metrics.points, metrics.summary);
+    return DashboardMetricsPresenter.toRevenue(
+      metrics.points,
+      metrics.summary,
+      granularity,
+    );
   }
 }

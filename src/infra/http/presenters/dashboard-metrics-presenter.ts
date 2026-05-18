@@ -1,3 +1,5 @@
+import { ResolvedDashboardMetricGranularity } from "../../../modules/application/services/dashboard-metrics-bucket-builder";
+
 type DashboardOverviewMetrics = {
   appointments: {
     value: number;
@@ -74,8 +76,10 @@ export class DashboardMetricsPresenter {
   static toRevenue(
     points: DashboardRevenuePoint[],
     summary: DashboardRevenueSummary,
+    granularity: ResolvedDashboardMetricGranularity,
   ) {
     return {
+      granularity,
       points,
       summary,
     };
