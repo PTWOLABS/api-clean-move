@@ -1,8 +1,10 @@
 import { InvalidDashboardMetricsRangeError } from "./dashboard-metrics-range-resolver";
 import {
+  buildDashboardOverviewBuckets,
   buildDashboardMetricBuckets,
   calculatePercentPointDifference,
   calculateTrendPercent,
+  resolveDashboardOverviewGranularity,
   getDashboardMetricBucketKey,
   resolveDashboardMetricGranularity,
 } from "./dashboard-metrics-bucket-builder";
@@ -248,6 +250,65 @@ describe("buildDashboardMetricBuckets", () => {
         buckets,
       ),
     ).toBeNull();
+  });
+});
+
+describe("dashboard overview buckets", () => {
+  it("should resolve overview granularity automatically from the range length", () => {
+    expect(
+      resolveDashboardOverviewGranularity(
+        range("2026-05-09T00:00:00.000Z", "2026-05-15T23:59:59.999Z"),
+      ),
+    ).toBe("daily");
+
+    expect(
+      resolveDashboardOverviewGranularity(
+        range("2026-05-01T00:00:00.000Z", "2026-06-12T23:59:59.999Z"),
+      ),
+    ).toBe("weekly");
+
+    expect(
+      resolveDashboardOverviewGranularity(
+        range("2026-01-01T00:00:00.000Z", "2026-08-31T23:59:59.999Z"),
+      ),
+    ).toBe("monthly");
+  });
+
+  it("should compact overview buckets to at most seven points while preserving order", () => {
+    const weeklyBuckets = buildDashboardOverviewBuckets(
+      range("2026-01-01T00:00:00.000Z", "2026-02-18T23:59:59.999Z"),
+    );
+    const monthlyBuckets = buildDashboardOverviewBuckets(
+      range("2025-01-01T00:00:00.000Z", "2025-10-31T23:59:59.999Z"),
+    );
+
+    expect(weeklyBuckets).toHaveLength(7);
+    expect(weeklyBuckets[0]).toEqual({
+      date: "2025-12-29",
+      label: "29/12",
+      startsAt: new Date("2026-01-01T00:00:00.000Z"),
+      endsAt: new Date("2026-01-11T23:59:59.999Z"),
+    });
+    expect(weeklyBuckets[6]).toEqual({
+      date: "2026-02-16",
+      label: "16/02",
+      startsAt: new Date("2026-02-16T00:00:00.000Z"),
+      endsAt: new Date("2026-02-18T23:59:59.999Z"),
+    });
+
+    expect(monthlyBuckets).toHaveLength(7);
+    expect(monthlyBuckets[0]).toEqual({
+      date: "2025-01",
+      label: "Jan",
+      startsAt: new Date("2025-01-01T00:00:00.000Z"),
+      endsAt: new Date("2025-02-28T23:59:59.999Z"),
+    });
+    expect(monthlyBuckets[6]).toEqual({
+      date: "2025-10",
+      label: "Out",
+      startsAt: new Date("2025-10-01T00:00:00.000Z"),
+      endsAt: new Date("2025-10-31T23:59:59.999Z"),
+    });
   });
 });
 

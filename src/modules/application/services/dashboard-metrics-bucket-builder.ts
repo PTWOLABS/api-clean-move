@@ -29,6 +29,8 @@ export type DashboardMetricBucket = {
   endsAt: Date;
 };
 
+export const DASHBOARD_OVERVIEW_MAX_POINTS = 7;
+
 const PORTUGUESE_MONTH_LABELS = [
   "Jan",
   "Fev",
@@ -102,6 +104,38 @@ export function buildDashboardMetricBuckets(
   }
 
   return buckets;
+}
+
+export function resolveDashboardOverviewGranularity(
+  range: DashboardMetricDateRange,
+): ResolvedDashboardMetricGranularity {
+  const calendarDayCount = getCalendarDayCount(range);
+
+  if (calendarDayCount <= 7) {
+    return "daily";
+  }
+
+  if (calendarDayCount <= 49) {
+    return "weekly";
+  }
+
+  return "monthly";
+}
+
+export function buildDashboardOverviewBuckets(
+  range: DashboardMetricDateRange,
+  maxPoints = DASHBOARD_OVERVIEW_MAX_POINTS,
+): DashboardMetricBucket[] {
+  const buckets = buildDashboardMetricBuckets(
+    range,
+    resolveDashboardOverviewGranularity(range),
+  );
+
+  if (buckets.length <= maxPoints) {
+    return buckets;
+  }
+
+  return compactDashboardMetricBuckets(buckets, maxPoints);
 }
 
 export function getDashboardMetricBucketKey(
@@ -224,6 +258,36 @@ function getNextBucketStart(
 
 function getDaysSinceMonday(date: dayjs.Dayjs) {
   return (date.day() + 6) % 7;
+}
+
+function compactDashboardMetricBuckets(
+  buckets: DashboardMetricBucket[],
+  maxPoints: number,
+) {
+  const compactedBuckets: DashboardMetricBucket[] = [];
+  const baseGroupSize = Math.floor(buckets.length / maxPoints);
+  const remainder = buckets.length % maxPoints;
+  let index = 0;
+
+  for (let groupIndex = 0; groupIndex < maxPoints; groupIndex += 1) {
+    const groupSize = baseGroupSize + (groupIndex < remainder ? 1 : 0);
+    const bucketGroup = buckets.slice(index, index + groupSize);
+
+    if (bucketGroup.length === 0) {
+      continue;
+    }
+
+    compactedBuckets.push({
+      date: bucketGroup[0]!.date,
+      label: bucketGroup[0]!.label,
+      startsAt: bucketGroup[0]!.startsAt,
+      endsAt: bucketGroup[bucketGroup.length - 1]!.endsAt,
+    });
+
+    index += groupSize;
+  }
+
+  return compactedBuckets;
 }
 
 function formatBucketDate(
