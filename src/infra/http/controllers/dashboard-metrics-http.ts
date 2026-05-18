@@ -27,8 +27,23 @@ export const SERVICE_CATEGORIES = [
 
 export const APPOINTMENT_STATUSES = ["SCHEDULED", "DONE", "CANCELLED"] as const;
 
+export const DASHBOARD_METRIC_PERIODS = [
+  "this-month",
+  "last-7-days",
+  "last-30-days",
+] as const;
+
+export const DASHBOARD_METRIC_GRANULARITIES = [
+  "auto",
+  "daily",
+  "weekly",
+  "monthly",
+] as const;
+
 const serviceCategorySchema = z.enum(SERVICE_CATEGORIES);
 const appointmentStatusSchema = z.enum(APPOINTMENT_STATUSES);
+const dashboardMetricPeriodSchema = z.enum(DASHBOARD_METRIC_PERIODS);
+const dashboardMetricGranularitySchema = z.enum(DASHBOARD_METRIC_GRANULARITIES);
 
 const dateTimeQuerySchema = z.iso
   .datetime({ offset: true })
@@ -68,6 +83,31 @@ function toOptionalArray(value: unknown) {
   return normalizedValues.length > 0 ? normalizedValues : undefined;
 }
 
+function validateMetricsDateRange(
+  query: { startsAt?: Date | undefined; endsAt?: Date | undefined },
+  context: z.RefinementCtx,
+) {
+  if (query.endsAt && !query.startsAt) {
+    context.addIssue({
+      code: "custom",
+      path: ["endsAt"],
+      message: "endsAt requires startsAt.",
+    });
+  }
+
+  if (
+    query.startsAt &&
+    query.endsAt &&
+    query.startsAt.getTime() > query.endsAt.getTime()
+  ) {
+    context.addIssue({
+      code: "custom",
+      path: ["endsAt"],
+      message: "endsAt must be greater than or equal to startsAt.",
+    });
+  }
+}
+
 export const dashboardMetricsQuerySchema = z
   .object({
     startsAt: dateTimeQuerySchema.optional(),
@@ -95,14 +135,81 @@ export const dashboardMetricsQuerySchema = z
     }
   });
 
+const dashboardDynamicMetricsQueryBaseSchema = z.object({
+  period: dashboardMetricPeriodSchema.optional(),
+  startsAt: dateTimeQuerySchema.optional(),
+  endsAt: dateTimeQuerySchema.optional(),
+  categories: z.preprocess(
+    toOptionalArray,
+    z.array(serviceCategorySchema).optional(),
+  ),
+  status: z.preprocess(
+    toOptionalArray,
+    z.array(appointmentStatusSchema).optional(),
+  ),
+});
+
+export const dashboardOverviewMetricsQuerySchema =
+  dashboardDynamicMetricsQueryBaseSchema
+    .extend({
+      granularity: z.string().optional(),
+    })
+    .superRefine((query, context) => {
+      validateMetricsDateRange(query, context);
+
+      if (query.granularity !== undefined) {
+        context.addIssue({
+          code: "custom",
+          path: ["granularity"],
+          message:
+            "granularity is not supported for overview metrics and is resolved automatically.",
+        });
+      }
+    });
+
+export const dashboardDynamicMetricsQuerySchema =
+  dashboardDynamicMetricsQueryBaseSchema
+    .extend({
+      granularity: dashboardMetricGranularitySchema.optional(),
+    })
+    .superRefine(validateMetricsDateRange);
+
+export const dashboardPopularServicesMetricsQuerySchema =
+  dashboardDynamicMetricsQueryBaseSchema
+    .extend({
+      granularity: dashboardMetricGranularitySchema.optional(),
+      page: z.coerce.number().int().positive().default(1),
+      size: z.coerce.number().int().positive().default(5),
+    })
+    .superRefine(validateMetricsDateRange);
+
 export type DashboardMetricsQuerySchema = z.infer<
   typeof dashboardMetricsQuerySchema
 >;
 
+export type DashboardDynamicMetricsQuerySchema = z.infer<
+  typeof dashboardDynamicMetricsQuerySchema
+>;
+
+export type DashboardOverviewMetricsQuerySchema = z.infer<
+  typeof dashboardOverviewMetricsQuerySchema
+>;
+
+export type DashboardPopularServicesMetricsQuerySchema = z.infer<
+  typeof dashboardPopularServicesMetricsQuerySchema
+>;
+
+type DashboardMetricsFiltersQuery = {
+  startsAt?: Date | undefined;
+  endsAt?: Date | undefined;
+  categories?: EstablishmentMetricsFilters["categories"] | undefined;
+  status?: EstablishmentMetricsFilters["status"] | undefined;
+};
+
 type DashboardMetricsResult<T> = Either<ResourceNotFoundError, T>;
 
 export function buildMetricsFilters(
-  query: DashboardMetricsQuerySchema,
+  query: DashboardMetricsFiltersQuery,
 ): EstablishmentMetricsFilters {
   return {
     ...(query.startsAt !== undefined ? { startsAt: query.startsAt } : {}),
@@ -149,6 +256,138 @@ export function ApiDashboardMetricsFilterQueries() {
       description:
         "Filter by appointment status. Repeat the query param or send comma-separated values.",
       example: ["SCHEDULED", "CANCELLED"],
+    }),
+  );
+}
+
+export function ApiDashboardDynamicMetricsFilterQueries() {
+  return applyDecorators(
+    ApiQuery({
+      name: "period",
+      required: false,
+      enum: DASHBOARD_METRIC_PERIODS,
+      description:
+        "Predefined dashboard period. Ignored when startsAt is provided.",
+      example: "this-month",
+    }),
+    ApiQuery({
+      name: "startsAt",
+      required: false,
+      type: String,
+      format: "date-time",
+      description:
+        "Filter appointments starting at or after this ISO 8601 date-time with offset.",
+      example: "2026-04-01T00:00:00.000Z",
+    }),
+    ApiQuery({
+      name: "endsAt",
+      required: false,
+      type: String,
+      format: "date-time",
+      description:
+        "Filter appointments starting at or before this ISO 8601 date-time with offset.",
+      example: "2026-04-30T23:59:59.999Z",
+    }),
+    ApiQuery({
+      name: "granularity",
+      required: false,
+      enum: DASHBOARD_METRIC_GRANULARITIES,
+      description: "Bucket granularity for dynamic dashboard metrics.",
+      example: "auto",
+    }),
+    ApiQuery({
+      name: "categories",
+      required: false,
+      enum: SERVICE_CATEGORIES,
+      isArray: true,
+      description:
+        "Filter by booked service category snapshot. Repeat the query param or send comma-separated values.",
+      example: ["WASH", "AUTOMATIVE_DETAILING"],
+    }),
+    ApiQuery({
+      name: "status",
+      required: false,
+      enum: APPOINTMENT_STATUSES,
+      isArray: true,
+      description:
+        "Filter by appointment status. Repeat the query param or send comma-separated values.",
+      example: ["SCHEDULED", "CANCELLED"],
+    }),
+  );
+}
+
+export function ApiDashboardOverviewMetricsFilterQueries() {
+  return applyDecorators(
+    ApiQuery({
+      name: "period",
+      required: false,
+      enum: DASHBOARD_METRIC_PERIODS,
+      description:
+        "Predefined dashboard period. Ignored when startsAt is provided.",
+      example: "this-month",
+    }),
+    ApiQuery({
+      name: "startsAt",
+      required: false,
+      type: String,
+      format: "date-time",
+      description:
+        "Filter appointments starting at or after this ISO 8601 date-time with offset.",
+      example: "2026-04-01T00:00:00.000Z",
+    }),
+    ApiQuery({
+      name: "endsAt",
+      required: false,
+      type: String,
+      format: "date-time",
+      description:
+        "Filter appointments starting at or before this ISO 8601 date-time with offset.",
+      example: "2026-04-30T23:59:59.999Z",
+    }),
+    ApiQuery({
+      name: "categories",
+      required: false,
+      enum: SERVICE_CATEGORIES,
+      isArray: true,
+      description:
+        "Filter by booked service category snapshot. Repeat the query param or send comma-separated values.",
+      example: ["WASH", "AUTOMATIVE_DETAILING"],
+    }),
+    ApiQuery({
+      name: "status",
+      required: false,
+      enum: APPOINTMENT_STATUSES,
+      isArray: true,
+      description:
+        "Filter by appointment status. Repeat the query param or send comma-separated values.",
+      example: ["SCHEDULED", "CANCELLED"],
+    }),
+  );
+}
+
+export function ApiDashboardPopularServicesPaginationQueries() {
+  return applyDecorators(
+    ApiQuery({
+      name: "page",
+      required: false,
+      schema: {
+        type: "integer",
+        minimum: 1,
+        default: 1,
+      },
+      description: "Page number for popular services results. Defaults to 1.",
+      example: 1,
+    }),
+    ApiQuery({
+      name: "size",
+      required: false,
+      schema: {
+        type: "integer",
+        minimum: 1,
+        default: 5,
+      },
+      description: "Page size for popular services results. Defaults to 5.",
+      example: 5,
     }),
   );
 }

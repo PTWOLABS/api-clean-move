@@ -1,6 +1,7 @@
 import {
   AppointmentFilters,
   AppointmentsRepository,
+  PopularServiceUsageMetrics,
 } from "../../src/modules/application/repositories/appointments-repository";
 import { Customer } from "../../src/modules/customer/domain/entities/customer";
 import { Appointment } from "../../src/modules/scheduling/domain/entities/appointment";
@@ -183,45 +184,11 @@ export class InMemoryAppointmentsRepository implements AppointmentsRepository {
     );
   }
 
-  async create(appointment: Appointment): Promise<void> {
-    this.items.push(appointment);
-  }
-
-  async findById(id: string): Promise<Appointment | null> {
-    const appointment = this.items.find((item) => item.id.toString() === id);
-
-    if (!appointment) {
-      return null;
-    }
-
-    return appointment;
-  }
-
-  async findByIdAndEstablishmentId(
-    id: string,
-    establishmentId: string,
-  ): Promise<Appointment | null> {
-    const appointment = this.items.find(
-      (item) =>
-        item.id.toString() === id &&
-        item.establishmentId.toString() === establishmentId,
-    );
-
-    if (!appointment) {
-      return null;
-    }
-
-    return appointment;
-  }
-
-  async findManyByEstablishmentId(
+  private filterByEstablishmentId(
     establishmentId: string,
     filters?: AppointmentFilters,
-  ): Promise<Appointment[]> {
-    const page = filters?.page ?? 1;
-    const size = filters?.size ?? 20;
-
-    const filteredAppointments = this.items
+  ) {
+    return this.items
       .slice()
       .sort((a, b) => a.startsAt.getTime() - b.startsAt.getTime())
       .filter((item) => item.establishmentId.toString() === establishmentId)
@@ -271,11 +238,113 @@ export class InMemoryAppointmentsRepository implements AppointmentsRepository {
 
         return this.matchesTextFilters(item, filters);
       });
+  }
+
+  async create(appointment: Appointment): Promise<void> {
+    this.items.push(appointment);
+  }
+
+  async findById(id: string): Promise<Appointment | null> {
+    const appointment = this.items.find((item) => item.id.toString() === id);
+
+    if (!appointment) {
+      return null;
+    }
+
+    return appointment;
+  }
+
+  async findByIdAndEstablishmentId(
+    id: string,
+    establishmentId: string,
+  ): Promise<Appointment | null> {
+    const appointment = this.items.find(
+      (item) =>
+        item.id.toString() === id &&
+        item.establishmentId.toString() === establishmentId,
+    );
+
+    if (!appointment) {
+      return null;
+    }
+
+    return appointment;
+  }
+
+  async findManyByEstablishmentId(
+    establishmentId: string,
+    filters?: AppointmentFilters,
+  ): Promise<Appointment[]> {
+    const page = filters?.page ?? 1;
+    const size = filters?.size ?? 20;
+    const filteredAppointments = this.filterByEstablishmentId(
+      establishmentId,
+      filters,
+    );
 
     const start = (page - 1) * size;
     const end = start + size;
 
     return filteredAppointments.slice(start, end);
+  }
+
+  async findPopularServiceUsagesByEstablishmentId(
+    establishmentId: string,
+    filters?: AppointmentFilters,
+  ): Promise<PopularServiceUsageMetrics> {
+    const page = filters?.page ?? 1;
+    const size = filters?.size ?? 20;
+    const filteredAppointments = this.filterByEstablishmentId(
+      establishmentId,
+      filters,
+    );
+    const groupedByService = new Map<
+      string,
+      { serviceId: string; serviceName: string; usageCount: number }
+    >();
+
+    for (const appointment of filteredAppointments) {
+      const serviceId = appointment.service.serviceId.toString();
+      const current = groupedByService.get(serviceId);
+
+      if (!current) {
+        groupedByService.set(serviceId, {
+          serviceId,
+          serviceName: appointment.service.serviceName,
+          usageCount: 1,
+        });
+
+        continue;
+      }
+
+      groupedByService.set(serviceId, {
+        ...current,
+        usageCount: current.usageCount + 1,
+      });
+    }
+
+    const start = (page - 1) * size;
+    const end = start + size;
+    const items = Array.from(groupedByService.values())
+      .sort((a, b) => {
+        if (b.usageCount === a.usageCount) {
+          const nameComparison = a.serviceName.localeCompare(b.serviceName);
+
+          if (nameComparison !== 0) {
+            return nameComparison;
+          }
+
+          return a.serviceId.localeCompare(b.serviceId);
+        }
+
+        return b.usageCount - a.usageCount;
+      })
+      .slice(start, end);
+
+    return {
+      items,
+      totalUsages: filteredAppointments.length,
+    };
   }
 
   async save(appointment: Appointment): Promise<void> {

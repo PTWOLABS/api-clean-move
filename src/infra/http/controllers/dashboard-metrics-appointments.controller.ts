@@ -1,4 +1,4 @@
-import { Controller, Get, Query } from "@nestjs/common";
+import { BadRequestException, Controller, Get, Query } from "@nestjs/common";
 import {
   ApiBearerAuth,
   ApiOkResponse,
@@ -6,8 +6,13 @@ import {
   ApiTags,
 } from "@nestjs/swagger";
 
-import { GetEstablishmentAppointmentsCountUseCase } from "../../../modules/application/use-cases/establishment/get-establishment-appointments-count";
 import { GetEstablishmentCancellationRateUseCase } from "../../../modules/application/use-cases/establishment/get-establishment-cancellation-rate";
+import {
+  DashboardMetricsRangeQuery,
+  InvalidDashboardMetricsRangeError,
+  ResolvedDashboardMetricsRange,
+  resolveDashboardMetricsRange,
+} from "../../../modules/application/services/dashboard-metrics-range-resolver";
 import { AuthenticatedUser } from "../../auth/authenticated-user";
 import { CurrentUser } from "../../auth/current-user";
 import { Roles } from "../../auth/roles";
@@ -15,11 +20,11 @@ import { DashboardMetricsAppointmentsResponseDto } from "../docs/domain-swagger.
 import { DashboardMetricsPresenter } from "../presenters/dashboard-metrics-presenter";
 import { ZodValidationPipe } from "../pipes/zod-validation.pipe";
 import {
+  ApiDashboardDynamicMetricsFilterQueries,
   ApiDashboardMetricsErrors,
-  ApiDashboardMetricsFilterQueries,
   buildMetricsFilters,
-  DashboardMetricsQuerySchema,
-  dashboardMetricsQuerySchema,
+  DashboardDynamicMetricsQuerySchema,
+  dashboardDynamicMetricsQuerySchema,
   unwrapDashboardMetricsResult,
 } from "./dashboard-metrics-http";
 
@@ -29,7 +34,6 @@ import {
 @Roles(["ESTABLISHMENT"])
 export class DashboardMetricsAppointmentsController {
   constructor(
-    private readonly getAppointmentsCount: GetEstablishmentAppointmentsCountUseCase,
     private readonly getCancellationRate: GetEstablishmentCancellationRateUseCase,
   ) {}
 
@@ -39,7 +43,7 @@ export class DashboardMetricsAppointmentsController {
     description:
       "Returns appointment count and cancellation rate for the authenticated establishment.",
   })
-  @ApiDashboardMetricsFilterQueries()
+  @ApiDashboardDynamicMetricsFilterQueries()
   @ApiOkResponse({
     description: "Appointment metrics returned successfully.",
     type: DashboardMetricsAppointmentsResponseDto,
@@ -47,32 +51,38 @@ export class DashboardMetricsAppointmentsController {
   @ApiDashboardMetricsErrors()
   async appointments(
     @CurrentUser() user: AuthenticatedUser,
-    @Query(new ZodValidationPipe(dashboardMetricsQuerySchema))
-    query: DashboardMetricsQuerySchema,
+    @Query(new ZodValidationPipe(dashboardDynamicMetricsQuerySchema))
+    query: DashboardDynamicMetricsQuerySchema,
   ) {
-    const filters = buildMetricsFilters(query);
-    const [appointmentsCountResult, cancellationRateResult] = await Promise.all(
-      [
-        this.getAppointmentsCount.execute({
-          establishmentOwnerId: user.userId,
-          filters,
-        }),
-        this.getCancellationRate.execute({
-          establishmentOwnerId: user.userId,
-          filters,
-        }),
-      ],
-    );
-    const appointmentsCount = unwrapDashboardMetricsResult(
-      appointmentsCountResult,
-    );
-    const cancellationRate = unwrapDashboardMetricsResult(
-      cancellationRateResult,
-    );
+    const referenceDate = new Date();
+    let range: ResolvedDashboardMetricsRange;
 
-    return DashboardMetricsPresenter.toAppointments({
-      appointmentsCount: appointmentsCount.appointmentsCount,
-      cancellationRate: cancellationRate.cancellationRate,
+    try {
+      const rangeQuery: DashboardMetricsRangeQuery = {
+        ...(query.period !== undefined ? { period: query.period } : {}),
+        ...(query.startsAt !== undefined ? { startsAt: query.startsAt } : {}),
+        ...(query.endsAt !== undefined ? { endsAt: query.endsAt } : {}),
+        ...(query.granularity !== undefined
+          ? { granularity: query.granularity }
+          : {}),
+      };
+
+      range = resolveDashboardMetricsRange(rangeQuery, { referenceDate });
+    } catch (error) {
+      if (error instanceof InvalidDashboardMetricsRangeError) {
+        throw new BadRequestException(error.message);
+      }
+
+      throw error;
+    }
+
+    const result = await this.getCancellationRate.execute({
+      establishmentOwnerId: user.userId,
+      range,
+      filters: buildMetricsFilters(query),
     });
+    const metrics = unwrapDashboardMetricsResult(result);
+
+    return DashboardMetricsPresenter.toAppointments(metrics);
   }
 }

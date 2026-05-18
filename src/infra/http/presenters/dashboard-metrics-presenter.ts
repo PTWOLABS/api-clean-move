@@ -1,27 +1,69 @@
 type DashboardOverviewMetrics = {
-  totalRevenueInCents: number;
-  averageTicketInCents: number;
-  appointmentsCount: number;
-  cancellationRate: number;
+  appointments: {
+    value: number;
+    variationPercentage: number | null;
+    points: Array<{
+      date: string;
+      label: string;
+      value: number;
+    }>;
+  };
+  averageTicket: {
+    valueInCents: number;
+    variationPercentage: number | null;
+    points: Array<{
+      date: string;
+      label: string;
+      valueInCents: number;
+    }>;
+  };
+  cancellationRate: {
+    value: number;
+    variationInPercentagePoints: number | null;
+    points: Array<{
+      date: string;
+      label: string;
+      value: number;
+    }>;
+  };
+  totalRevenue: {
+    valueInCents: number;
+    variationPercentage: number | null;
+    points: Array<{
+      date: string;
+      label: string;
+      valueInCents: number;
+    }>;
+  };
 };
 
 type DashboardRevenuePoint = {
-  period: string;
+  date: string;
+  label: string;
   revenueInCents: number;
-  appointmentsCount: number;
+  appointments: number;
+};
+
+type DashboardRevenueSummary = {
+  revenueInCents: number;
+  appointments: number;
+  revenueTrendPercent: number | null;
+  appointmentsTrendPercent: number | null;
 };
 
 type DashboardAppointmentMetrics = {
   appointmentsCount: number;
-  cancellationRate: number;
+  cancellationRate: {
+    currentPercent: number;
+    comparisonPercentPoints: number | null;
+  };
 };
 
 type DashboardPopularService = {
-  serviceId: string;
-  serviceName: string;
-  category: string | null;
-  appointmentsCount: number;
-  revenueInCents: number;
+  id: string;
+  name: string;
+  completedCount: number;
+  percent: number;
 };
 
 export class DashboardMetricsPresenter {
@@ -29,9 +71,13 @@ export class DashboardMetricsPresenter {
     return metrics;
   }
 
-  static toRevenue(points: DashboardRevenuePoint[]) {
+  static toRevenue(
+    points: DashboardRevenuePoint[],
+    summary: DashboardRevenueSummary,
+  ) {
     return {
       points,
+      summary,
     };
   }
 
@@ -39,9 +85,13 @@ export class DashboardMetricsPresenter {
     return metrics;
   }
 
-  static toPopularServices(popularServices: DashboardPopularService[]) {
+  static toPopularServices(
+    popularServices: DashboardPopularService[],
+    totalServices: number,
+  ) {
     return {
       popularServices,
+      totalServices,
     };
   }
 }

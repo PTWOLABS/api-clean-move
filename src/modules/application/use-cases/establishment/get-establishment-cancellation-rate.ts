@@ -2,23 +2,29 @@ import { Injectable } from "@nestjs/common";
 
 import { Either, left, right } from "../../../../shared/either";
 import { ResourceNotFoundError } from "../../../../shared/errors/resource-not-found-error";
+import { calculatePercentPointDifference } from "../../services/dashboard-metrics-bucket-builder";
+import { ResolvedDashboardMetricsRange } from "../../services/dashboard-metrics-range-resolver";
 import { AppointmentsRepository } from "../../repositories/appointments-repository";
 import { EstablishmentsRepository } from "../../repositories/establishment-repository";
 import {
   EstablishmentMetricsFilters,
-  filterAppointmentsByMetrics,
   findAllAppointmentsByEstablishment,
 } from "./establishment-metrics-helpers";
 
 type GetEstablishmentCancellationRateUseCaseRequest = {
   establishmentOwnerId: string;
+  range: ResolvedDashboardMetricsRange;
   filters?: EstablishmentMetricsFilters;
 };
 
 type GetEstablishmentCancellationRateUseCaseResponse = Either<
   ResourceNotFoundError,
   {
-    cancellationRate: number;
+    appointmentsCount: number;
+    cancellationRate: {
+      currentPercent: number;
+      comparisonPercentPoints: number | null;
+    };
   }
 >;
 
@@ -31,6 +37,7 @@ export class GetEstablishmentCancellationRateUseCase {
 
   async execute({
     establishmentOwnerId,
+    range,
     filters,
   }: GetEstablishmentCancellationRateUseCaseRequest): Promise<GetEstablishmentCancellationRateUseCaseResponse> {
     const establishment =
@@ -40,29 +47,58 @@ export class GetEstablishmentCancellationRateUseCase {
       return left(new ResourceNotFoundError({ resource: "establishment" }));
     }
 
-    const appointments = await findAllAppointmentsByEstablishment(
+    const currentAppointments = await findAllAppointmentsByEstablishment(
       this.appointmentsRepository,
       establishment.id.toString(),
-      filters,
+      {
+        startsAt: range.current.startsAt,
+        endsAt: range.current.endsAt,
+        ...(filters?.categories !== undefined
+          ? { categories: filters.categories }
+          : {}),
+      },
+    );
+    const comparisonAppointments = await findAllAppointmentsByEstablishment(
+      this.appointmentsRepository,
+      establishment.id.toString(),
+      {
+        startsAt: range.comparison.startsAt,
+        endsAt: range.comparison.endsAt,
+        ...(filters?.categories !== undefined
+          ? { categories: filters.categories }
+          : {}),
+      },
     );
 
-    const filteredAppointments = filterAppointmentsByMetrics(
-      appointments,
-      filters,
-    );
-
-    if (filteredAppointments.length === 0) {
-      return right({ cancellationRate: 0 });
-    }
-
-    const cancelledCount = filteredAppointments.filter(
-      (appointment) => appointment.status === "CANCELLED",
-    ).length;
+    const currentPercent = calculateCancellationPercent(currentAppointments);
+    const previousPercent =
+      comparisonAppointments.length === 0
+        ? null
+        : calculateCancellationPercent(comparisonAppointments);
 
     return right({
-      cancellationRate: Number(
-        (cancelledCount / filteredAppointments.length).toFixed(4),
-      ),
+      appointmentsCount: currentAppointments.length,
+      cancellationRate: {
+        currentPercent,
+        comparisonPercentPoints: calculatePercentPointDifference(
+          currentPercent,
+          previousPercent,
+        ),
+      },
     });
   }
+}
+
+function calculateCancellationPercent(
+  appointments: Awaited<ReturnType<typeof findAllAppointmentsByEstablishment>>,
+) {
+  if (appointments.length === 0) {
+    return 0;
+  }
+
+  const cancelledCount = appointments.filter(
+    (appointment) => appointment.status === "CANCELLED",
+  ).length;
+
+  return Math.round((cancelledCount / appointments.length) * 1000) / 10;
 }

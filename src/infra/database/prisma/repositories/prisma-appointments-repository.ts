@@ -3,6 +3,7 @@ import { Injectable } from "@nestjs/common";
 import {
   AppointmentFilters,
   AppointmentsRepository,
+  PopularServiceUsageMetrics,
 } from "../../../../modules/application/repositories/appointments-repository";
 import { Appointment } from "../../../../modules/scheduling/domain/entities/appointment";
 import { Prisma } from "../../../../generated/prisma/client";
@@ -162,6 +163,31 @@ export class PrismaAppointmentsRepository implements AppointmentsRepository {
     return and.length > 0 ? { AND: and } : {};
   }
 
+  private static buildWhere(
+    establishmentId: string,
+    filters?: AppointmentFilters,
+  ): Prisma.AppointmentWhereInput {
+    return {
+      establishmentId,
+      ...(filters?.customerId ? { customerId: filters.customerId } : {}),
+      ...(filters?.vehicleId ? { vehicleId: filters.vehicleId } : {}),
+      ...(filters?.serviceId ? { bookedServiceId: filters.serviceId } : {}),
+      ...PrismaAppointmentsRepository.buildStatusWhere(filters?.status),
+      ...(filters?.categories?.length
+        ? { bookedServiceCategory: { in: filters.categories } }
+        : {}),
+      ...(filters?.startsAt || filters?.endsAt
+        ? {
+            startsAt: {
+              ...(filters.startsAt ? { gte: filters.startsAt } : {}),
+              ...(filters.endsAt ? { lte: filters.endsAt } : {}),
+            },
+          }
+        : {}),
+      ...PrismaAppointmentsRepository.buildTextWhere(filters),
+    };
+  }
+
   async create(appointment: Appointment): Promise<void> {
     const data = PrismaAppointmentMapper.toPrisma(appointment);
 
@@ -229,25 +255,10 @@ export class PrismaAppointmentsRepository implements AppointmentsRepository {
       const appointments = await PrismaUnitOfWork.getClient(
         this.prisma,
       ).appointment.findMany({
-        where: {
+        where: PrismaAppointmentsRepository.buildWhere(
           establishmentId,
-          ...(filters?.customerId ? { customerId: filters.customerId } : {}),
-          ...(filters?.vehicleId ? { vehicleId: filters.vehicleId } : {}),
-          ...(filters?.serviceId ? { bookedServiceId: filters.serviceId } : {}),
-          ...PrismaAppointmentsRepository.buildStatusWhere(filters?.status),
-          ...(filters?.categories?.length
-            ? { bookedServiceCategory: { in: filters.categories } }
-            : {}),
-          ...(filters?.startsAt || filters?.endsAt
-            ? {
-                startsAt: {
-                  ...(filters.startsAt ? { gte: filters.startsAt } : {}),
-                  ...(filters.endsAt ? { lte: filters.endsAt } : {}),
-                },
-              }
-            : {}),
-          ...PrismaAppointmentsRepository.buildTextWhere(filters),
-        },
+          filters,
+        ),
         orderBy: {
           startsAt: "asc",
         },
@@ -258,6 +269,59 @@ export class PrismaAppointmentsRepository implements AppointmentsRepository {
       return appointments.map((appointment) =>
         PrismaAppointmentMapper.toDomain(appointment),
       );
+    } catch (error) {
+      rethrowPrismaRepositoryError(error);
+    }
+  }
+
+  async findPopularServiceUsagesByEstablishmentId(
+    establishmentId: string,
+    filters?: AppointmentFilters,
+  ): Promise<PopularServiceUsageMetrics> {
+    const page = filters?.page ?? 1;
+    const size = filters?.size ?? 20;
+    const where = PrismaAppointmentsRepository.buildWhere(
+      establishmentId,
+      filters,
+    );
+
+    try {
+      const client = PrismaUnitOfWork.getClient(this.prisma);
+
+      const [totalUsages, popularServices] = await Promise.all([
+        client.appointment.count({ where }),
+        client.appointment.groupBy({
+          by: ["bookedServiceId", "bookedServiceName"],
+          where,
+          _count: {
+            _all: true,
+          },
+          orderBy: [
+            {
+              _count: {
+                bookedServiceId: "desc",
+              },
+            },
+            {
+              bookedServiceName: "asc",
+            },
+            {
+              bookedServiceId: "asc",
+            },
+          ],
+          skip: (page - 1) * size,
+          take: size,
+        }),
+      ]);
+
+      return {
+        items: popularServices.map((service) => ({
+          serviceId: service.bookedServiceId,
+          serviceName: service.bookedServiceName,
+          usageCount: service._count._all,
+        })),
+        totalUsages,
+      };
     } catch (error) {
       rethrowPrismaRepositoryError(error);
     }

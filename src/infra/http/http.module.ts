@@ -24,7 +24,7 @@ import { UpdateEmployeeUseCase } from "../../modules/application/use-cases/emplo
 import { GetEstablishmentAppointmentsCountUseCase } from "../../modules/application/use-cases/establishment/get-establishment-appointments-count";
 import { GetEstablishmentCancellationRateUseCase } from "../../modules/application/use-cases/establishment/get-establishment-cancellation-rate";
 import { GetEstablishmentDashboardOverviewUseCase } from "../../modules/application/use-cases/establishment/get-establishment-dashboard-overview";
-import { GetEstablishmentPopularServicesByCategoryUseCase } from "../../modules/application/use-cases/establishment/get-establishment-popular-services-by-category";
+import { GetEstablishmentPopularServicesUseCase } from "../../modules/application/use-cases/establishment/get-establishment-popular-services";
 import { GetEstablishmentRevenueVsAppointmentsUseCase } from "../../modules/application/use-cases/establishment/get-establishment-revenue-vs-appointments";
 import { RegisterEstablishmentUseCase } from "../../modules/application/use-cases/establishment/register-establishment";
 import { UploadDomainImageUseCase } from "../../modules/application/use-cases/media/upload-domain-image";
@@ -136,7 +136,7 @@ import { UploadVehicleImageController } from "./controllers/media/upload-vehicle
     GetEstablishmentAppointmentsCountUseCase,
     GetEstablishmentCancellationRateUseCase,
     GetEstablishmentRevenueVsAppointmentsUseCase,
-    GetEstablishmentPopularServicesByCategoryUseCase,
+    GetEstablishmentPopularServicesUseCase,
     RegisterEmployeeUseCase,
     GetEmployeeUseCase,
     ListEmployeesUseCase,
