@@ -20,11 +20,11 @@ import { DashboardMetricsAppointmentsResponseDto } from "../docs/domain-swagger.
 import { DashboardMetricsPresenter } from "../presenters/dashboard-metrics-presenter";
 import { ZodValidationPipe } from "../pipes/zod-validation.pipe";
 import {
-  ApiDashboardDynamicMetricsFilterQueries,
+  ApiDashboardPeriodMetricsFilterQueries,
   ApiDashboardMetricsErrors,
   buildMetricsFilters,
-  DashboardDynamicMetricsQuerySchema,
-  dashboardDynamicMetricsQuerySchema,
+  DashboardPeriodMetricsQuerySchema,
+  dashboardPeriodMetricsQuerySchema,
   unwrapDashboardMetricsResult,
 } from "./dashboard-metrics-http";
 
@@ -43,7 +43,7 @@ export class DashboardMetricsAppointmentsController {
     description:
       "Returns appointment count and cancellation rate for the authenticated establishment.",
   })
-  @ApiDashboardDynamicMetricsFilterQueries()
+  @ApiDashboardPeriodMetricsFilterQueries()
   @ApiOkResponse({
     description: "Appointment metrics returned successfully.",
     type: DashboardMetricsAppointmentsResponseDto,
@@ -51,8 +51,8 @@ export class DashboardMetricsAppointmentsController {
   @ApiDashboardMetricsErrors()
   async appointments(
     @CurrentUser() user: AuthenticatedUser,
-    @Query(new ZodValidationPipe(dashboardDynamicMetricsQuerySchema))
-    query: DashboardDynamicMetricsQuerySchema,
+    @Query(new ZodValidationPipe(dashboardPeriodMetricsQuerySchema))
+    query: DashboardPeriodMetricsQuerySchema,
   ) {
     const referenceDate = new Date();
     let range: ResolvedDashboardMetricsRange;
@@ -62,9 +62,6 @@ export class DashboardMetricsAppointmentsController {
         ...(query.period !== undefined ? { period: query.period } : {}),
         ...(query.startsAt !== undefined ? { startsAt: query.startsAt } : {}),
         ...(query.endsAt !== undefined ? { endsAt: query.endsAt } : {}),
-        ...(query.granularity !== undefined
-          ? { granularity: query.granularity }
-          : {}),
       };
 
       range = resolveDashboardMetricsRange(rangeQuery, { referenceDate });

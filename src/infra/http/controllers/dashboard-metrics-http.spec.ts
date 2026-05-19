@@ -3,10 +3,11 @@ import { describe, expect, it } from "vitest";
 import {
   dashboardDynamicMetricsQuerySchema,
   dashboardOverviewMetricsQuerySchema,
+  dashboardPeriodMetricsQuerySchema,
   dashboardPopularServicesMetricsQuerySchema,
 } from "./dashboard-metrics-http";
 
-describe("dashboard dynamic metrics query schemas", () => {
+describe("dashboard revenue metrics query schema", () => {
   it.each(["this-month", "last-7-days", "last-30-days"])(
     "should accept period=%s",
     (period) => {
@@ -194,6 +195,37 @@ describe("dashboard dynamic metrics query schemas", () => {
   });
 });
 
+describe("dashboard period metrics query schema", () => {
+  it("should accept period filters without granularity", () => {
+    const result = dashboardPeriodMetricsQuerySchema.safeParse({
+      period: "last-30-days",
+      categories: "WASH",
+      status: "DONE,CANCELLED",
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it("should reject granularity outside revenue metrics", () => {
+    const result = dashboardPeriodMetricsQuerySchema.safeParse({
+      period: "last-7-days",
+      granularity: "daily",
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            path: ["granularity"],
+            message: "granularity is only supported for revenue metrics.",
+          }),
+        ]),
+      );
+    }
+  });
+});
+
 describe("dashboard popular services metrics query schema", () => {
   it("should default page and size", () => {
     const result = dashboardPopularServicesMetricsQuerySchema.safeParse({});
@@ -225,6 +257,24 @@ describe("dashboard popular services metrics query schema", () => {
     if (result.success) {
       expect(result.data.page).toBe(2);
       expect(result.data.size).toBe(10);
+    }
+  });
+
+  it("should reject granularity for popular services", () => {
+    const result = dashboardPopularServicesMetricsQuerySchema.safeParse({
+      granularity: "weekly",
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            path: ["granularity"],
+            message: "granularity is only supported for revenue metrics.",
+          }),
+        ]),
+      );
     }
   });
 });

@@ -106,6 +106,7 @@ const appointmentsResponseSchema = z
 
 const revenueResponseSchema = z
   .object({
+    granularity: z.enum(["daily", "weekly", "monthly"]),
     points: z.array(
       z
         .object({
@@ -601,6 +602,7 @@ describe("Dashboard metrics controller (e2e)", () => {
     const lastSevenDays = revenueResponseSchema.parse(
       lastSevenDaysResponse.body,
     );
+    expect(lastSevenDays.granularity).toBe("daily");
     expect(lastSevenDays.points).toHaveLength(7);
     expect(lastSevenDays.points).toEqual(
       expect.arrayContaining([
@@ -637,22 +639,24 @@ describe("Dashboard metrics controller (e2e)", () => {
       appointmentsTrendPercent: 33,
     });
 
-    expect(
-      revenueResponseSchema.parse(lastThirtyDaysResponse.body).summary,
-    ).toEqual({
+    const lastThirtyDays = revenueResponseSchema.parse(
+      lastThirtyDaysResponse.body,
+    );
+    expect(lastThirtyDays.granularity).toBe("weekly");
+    expect(lastThirtyDays.summary).toEqual({
       revenueInCents: 92000,
       appointments: 8,
       revenueTrendPercent: 557,
       appointmentsTrendPercent: 300,
     });
-    expect(revenueResponseSchema.parse(thisMonthResponse.body).summary).toEqual(
-      {
-        revenueInCents: 85000,
-        appointments: 7,
-        revenueTrendPercent: 750,
-        appointmentsTrendPercent: 600,
-      },
-    );
+    const thisMonth = revenueResponseSchema.parse(thisMonthResponse.body);
+    expect(thisMonth.granularity).toBe("daily");
+    expect(thisMonth.summary).toEqual({
+      revenueInCents: 85000,
+      appointments: 7,
+      revenueTrendPercent: 750,
+      appointmentsTrendPercent: 600,
+    });
   });
 
   it("should return appointment metrics for custom startsAt and endsAt", async () => {
@@ -687,12 +691,32 @@ describe("Dashboard metrics controller (e2e)", () => {
       .set("Authorization", `Bearer ${accessToken}`);
 
     expect(response.status).toBe(200);
-    expect(revenueResponseSchema.parse(response.body).summary).toEqual({
+    const revenue = revenueResponseSchema.parse(response.body);
+    expect(revenue.granularity).toBe("weekly");
+    expect(revenue.summary).toEqual({
       revenueInCents: 60000,
       appointments: 4,
       revenueTrendPercent: 140,
       appointmentsTrendPercent: 33,
     });
+  });
+
+  it("should return the requested revenue granularity in the response", async () => {
+    const { accessToken } = await seedDashboardMetrics();
+
+    const response = await request(getHttpServer(app))
+      .get("/dashboard/metrics/revenue")
+      .query({
+        period: "last-30-days",
+        granularity: "monthly",
+      })
+      .set("Authorization", `Bearer ${accessToken}`);
+
+    expect(response.status).toBe(200);
+
+    const revenue = revenueResponseSchema.parse(response.body);
+    expect(revenue.granularity).toBe("monthly");
+    expect(revenue.points).toHaveLength(2);
   });
 
   it("should paginate popular services from aggregated service usage pages", async () => {
@@ -750,6 +774,22 @@ describe("Dashboard metrics controller (e2e)", () => {
     [
       "granularity on overview",
       "/dashboard/metrics/overview",
+      {
+        period: "last-7-days",
+        granularity: "daily",
+      },
+    ],
+    [
+      "granularity on appointments",
+      "/dashboard/metrics/appointments",
+      {
+        period: "last-7-days",
+        granularity: "daily",
+      },
+    ],
+    [
+      "granularity on popular services",
+      "/dashboard/metrics/popular-services",
       {
         period: "last-7-days",
         granularity: "daily",
