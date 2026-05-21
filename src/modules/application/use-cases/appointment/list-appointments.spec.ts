@@ -1,4 +1,3 @@
-import { NotAllowedError } from "../../../../shared/errors/not-allowed-error";
 import { ResourceNotFoundError } from "../../../../shared/errors/resource-not-found-error";
 import { UniqueEntityId } from "../../../../shared/entities/unique-entity-id";
 import { makeAppointment } from "../../../../../tests/factories/appointment-factory";
@@ -224,7 +223,7 @@ describe("List appointments", () => {
     expect(result.value.appointments).toEqual([appointment]);
   });
 
-  it("should reject employee without read appointments feature", async () => {
+  it("should list appointments for an employee without enforcing feature permissions", async () => {
     const user = makeUser("EMPLOYEE");
     const employee = Employee.restore({
       establishmentId: new UniqueEntityId(),
@@ -256,7 +255,8 @@ describe("List appointments", () => {
       actor: { userId: user.id.toString(), role: "EMPLOYEE" },
     });
 
-    expect(result.isLeft()).toBe(true);
-    expect(result.value).toBeInstanceOf(NotAllowedError);
+    expect(result.isRight()).toBe(true);
+    if (result.isLeft()) throw result.value;
+    expect(result.value.appointments).toEqual([]);
   });
 });

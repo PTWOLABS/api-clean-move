@@ -1,4 +1,3 @@
-import { NotAllowedError } from "../../../../shared/errors/not-allowed-error";
 import { ResourceNotFoundError } from "../../../../shared/errors/resource-not-found-error";
 import { makeCustomer } from "../../../../../tests/factories/customer-factory";
 import { makeCustomerVehicle } from "../../../../../tests/factories/customer-vehicle-factory";
@@ -276,13 +275,12 @@ describe("Create appointment", () => {
     expect(inMemoryAppointmentsRepository.items).toHaveLength(2);
   });
 
-  it("should allow employee with create appointments feature", async () => {
+  it("should create an appointment for an employee scoped to the establishment", async () => {
     const establishment = makeEstablishment();
     const user = makeUser("EMPLOYEE");
     const employee = makeEmployee({
       establishmentId: establishment.id,
       userId: user.id,
-      extraFeatures: ["create:appointments"],
     });
     const customer = makeCustomer({ establishmentId: establishment.id });
     const service = makeService({ establishmentId: establishment.id });
@@ -300,31 +298,5 @@ describe("Create appointment", () => {
     });
 
     expect(result.isRight()).toBe(true);
-  });
-
-  it("should reject employee without create appointments feature", async () => {
-    const establishment = makeEstablishment();
-    const user = makeUser("EMPLOYEE");
-    const employee = makeEmployee({
-      establishmentId: establishment.id,
-      userId: user.id,
-    });
-    const customer = makeCustomer({ establishmentId: establishment.id });
-    const service = makeService({ establishmentId: establishment.id });
-
-    await inMemoryEstablishmentsRepository.create(establishment);
-    await inMemoryEmployeesRepository.create(employee);
-    await inMemoryCustomersRepository.create(customer);
-    await inMemoryServicesRepository.create(service);
-
-    const result = await sut.execute({
-      actor: { userId: user.id.toString(), role: "EMPLOYEE" },
-      customerId: customer.id.toString(),
-      serviceIds: [service.id.toString()],
-      startsAt: new Date("2026-04-27T10:00:00.000Z"),
-    });
-
-    expect(result.isLeft()).toBe(true);
-    expect(result.value).toBeInstanceOf(NotAllowedError);
   });
 });

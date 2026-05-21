@@ -246,7 +246,7 @@ describe("UpdateAppointmentStatusController (e2e)", () => {
     expect(body.appointment.status).toBe("DONE");
   });
 
-  it("should allow employee with delete appointments feature to cancel", async () => {
+  it("should allow employee with update appointments feature to cancel", async () => {
     const owner = await makeEstablishmentAuth({
       app,
       prisma,
@@ -260,7 +260,7 @@ describe("UpdateAppointmentStatusController (e2e)", () => {
       userFactory,
       establishmentFactory,
       establishment: owner.establishment,
-      extraFeatures: ["delete:appointments"],
+      extraFeatures: ["update:appointments"],
     });
     const appointment = await createAppointment(
       owner.accessToken,
@@ -305,7 +305,7 @@ describe("UpdateAppointmentStatusController (e2e)", () => {
     expect(response.status).toBe(403);
   });
 
-  it("should reject employee without delete appointments feature when cancelling", async () => {
+  it("should reject employee with only delete appointments feature when cancelling", async () => {
     const owner = await makeEstablishmentAuth({
       app,
       prisma,
@@ -319,7 +319,7 @@ describe("UpdateAppointmentStatusController (e2e)", () => {
       userFactory,
       establishmentFactory,
       establishment: owner.establishment,
-      extraFeatures: ["update:appointments"],
+      extraFeatures: ["delete:appointments"],
     });
     const appointment = await createAppointment(
       owner.accessToken,

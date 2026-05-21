@@ -29,10 +29,7 @@ export class EstablishmentScopeService {
   async resolve(
     actor: EstablishmentScopeActor,
   ): Promise<
-    Either<
-      ResourceNotFoundError | NotAllowedError,
-      EstablishmentScopeResult
-    >
+    Either<ResourceNotFoundError | NotAllowedError, EstablishmentScopeResult>
   > {
     if (actor.role === "ESTABLISHMENT") {
       const establishment = await this.establishmentsRepository.findByOwnerId(

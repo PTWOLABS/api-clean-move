@@ -8,10 +8,6 @@ import {
   AppointmentStatus,
 } from "../../../scheduling/domain/entities/appointment";
 import {
-  EmployeeFeature,
-  EmployeeFeaturesPolicy,
-} from "../../../employees/domain/policies/employee-features-policy";
-import {
   EstablishmentScopeActor,
   EstablishmentScopeService,
 } from "../../services/establishment-scope";
@@ -48,16 +44,7 @@ export class UpdateAppointmentStatusUseCase {
       return left(scopeResult.value);
     }
 
-    const { establishment, employee } = scopeResult.value;
-
-    if (employee) {
-      const requiredFeature: EmployeeFeature =
-        status === "CANCELLED" ? "delete:appointments" : "update:appointments";
-
-      if (!EmployeeFeaturesPolicy.hasAll(employee.features, [requiredFeature])) {
-        return left(new NotAllowedError());
-      }
-    }
+    const { establishment } = scopeResult.value;
 
     const appointment =
       await this.appointmentsRepository.findByIdAndEstablishmentId(
