@@ -1,20 +1,26 @@
 import { ResourceNotFoundError } from "../../../../shared/errors/resource-not-found-error";
 import { makeCustomer } from "../../../../../tests/factories/customer-factory";
 import { makeCustomerVehicle } from "../../../../../tests/factories/customer-vehicle-factory";
+import { makeEmployee } from "../../../../../tests/factories/employee-factory";
 import { makeEstablishment } from "../../../../../tests/factories/establishment-factory";
 import { makeService } from "../../../../../tests/factories/service-factory";
+import { makeUser } from "../../../../../tests/factories/user-factory";
 import { InMemoryAppointmentsRepository } from "../../../../../tests/repositories/in-memory-appointments-repository";
 import { InMemoryCustomerVehiclesRepository } from "../../../../../tests/repositories/in-memory-customer-vehicles-repository";
 import { InMemoryCustomersRepository } from "../../../../../tests/repositories/in-memory-customers-repository";
+import { InMemoryEmployeesRepository } from "../../../../../tests/repositories/in-memory-employees-repository";
 import { InMemoryEstablishmentsRepository } from "../../../../../tests/repositories/in-memory-establishment-repository";
 import { InMemoryServicesRepository } from "../../../../../tests/repositories/in-memory-services-repository";
+import { EstablishmentScopeService } from "../../services/establishment-scope";
 import { CreateAppointmentUseCase } from "./create-appointment";
 
 let inMemoryAppointmentsRepository: InMemoryAppointmentsRepository;
 let inMemoryCustomersRepository: InMemoryCustomersRepository;
 let inMemoryCustomerVehiclesRepository: InMemoryCustomerVehiclesRepository;
+let inMemoryEmployeesRepository: InMemoryEmployeesRepository;
 let inMemoryEstablishmentsRepository: InMemoryEstablishmentsRepository;
 let inMemoryServicesRepository: InMemoryServicesRepository;
+let establishmentScope: EstablishmentScopeService;
 let sut: CreateAppointmentUseCase;
 
 describe("Create appointment", () => {
@@ -24,15 +30,20 @@ describe("Create appointment", () => {
     inMemoryCustomerVehiclesRepository =
       new InMemoryCustomerVehiclesRepository();
     inMemoryServicesRepository = new InMemoryServicesRepository();
+    inMemoryEmployeesRepository = new InMemoryEmployeesRepository();
     inMemoryEstablishmentsRepository = new InMemoryEstablishmentsRepository(
       inMemoryServicesRepository,
+    );
+    establishmentScope = new EstablishmentScopeService(
+      inMemoryEstablishmentsRepository,
+      inMemoryEmployeesRepository,
     );
 
     sut = new CreateAppointmentUseCase(
       inMemoryAppointmentsRepository,
       inMemoryCustomersRepository,
       inMemoryCustomerVehiclesRepository,
-      inMemoryEstablishmentsRepository,
+      establishmentScope,
       inMemoryServicesRepository,
     );
   });
@@ -47,7 +58,10 @@ describe("Create appointment", () => {
     await inMemoryServicesRepository.create(service);
 
     const result = await sut.execute({
-      establishmentOwnerId: establishment.ownerId.toString(),
+      actor: {
+        userId: establishment.ownerId.toString(),
+        role: "ESTABLISHMENT",
+      },
       customerId: customer.id.toString(),
       serviceIds: [service.id.toString()],
       startsAt: new Date("2026-04-27T10:00:00.000Z"),
@@ -87,7 +101,10 @@ describe("Create appointment", () => {
     await inMemoryCustomerVehiclesRepository.create(vehicle);
 
     const result = await sut.execute({
-      establishmentOwnerId: establishment.ownerId.toString(),
+      actor: {
+        userId: establishment.ownerId.toString(),
+        role: "ESTABLISHMENT",
+      },
       customerId: customer.id.toString(),
       serviceIds: [service.id.toString()],
       vehicleId: vehicle.id.toString(),
@@ -122,7 +139,10 @@ describe("Create appointment", () => {
     await inMemoryServicesRepository.create(service);
 
     const result = await sut.execute({
-      establishmentOwnerId: establishment.ownerId.toString(),
+      actor: {
+        userId: establishment.ownerId.toString(),
+        role: "ESTABLISHMENT",
+      },
       customerId: customer.id.toString(),
       serviceIds: [service.id.toString()],
       startsAt: new Date("2026-04-27T10:00:00.000Z"),
@@ -148,7 +168,10 @@ describe("Create appointment", () => {
     await inMemoryCustomerVehiclesRepository.create(vehicle);
 
     const result = await sut.execute({
-      establishmentOwnerId: establishment.ownerId.toString(),
+      actor: {
+        userId: establishment.ownerId.toString(),
+        role: "ESTABLISHMENT",
+      },
       customerId: customer.id.toString(),
       serviceIds: [service.id.toString()],
       vehicleId: vehicle.id.toString(),
@@ -179,7 +202,10 @@ describe("Create appointment", () => {
     await inMemoryCustomerVehiclesRepository.create(vehicle);
 
     const result = await sut.execute({
-      establishmentOwnerId: establishment.ownerId.toString(),
+      actor: {
+        userId: establishment.ownerId.toString(),
+        role: "ESTABLISHMENT",
+      },
       customerId: customer.id.toString(),
       serviceIds: [service.id.toString()],
       vehicleId: vehicle.id.toString(),
@@ -203,7 +229,10 @@ describe("Create appointment", () => {
     await inMemoryServicesRepository.create(service);
 
     const result = await sut.execute({
-      establishmentOwnerId: establishment.ownerId.toString(),
+      actor: {
+        userId: establishment.ownerId.toString(),
+        role: "ESTABLISHMENT",
+      },
       customerId: customer.id.toString(),
       serviceIds: [service.id.toString()],
       startsAt: new Date("2026-04-27T10:00:00.000Z"),
@@ -223,13 +252,19 @@ describe("Create appointment", () => {
     await inMemoryServicesRepository.create(service);
 
     const firstAppointment = await sut.execute({
-      establishmentOwnerId: establishment.ownerId.toString(),
+      actor: {
+        userId: establishment.ownerId.toString(),
+        role: "ESTABLISHMENT",
+      },
       customerId: customer.id.toString(),
       serviceIds: [service.id.toString()],
       startsAt: new Date("2026-04-27T10:00:00.000Z"),
     });
     const secondAppointment = await sut.execute({
-      establishmentOwnerId: establishment.ownerId.toString(),
+      actor: {
+        userId: establishment.ownerId.toString(),
+        role: "ESTABLISHMENT",
+      },
       customerId: customer.id.toString(),
       serviceIds: [service.id.toString()],
       startsAt: new Date("2026-04-27T10:00:00.000Z"),
@@ -238,5 +273,30 @@ describe("Create appointment", () => {
     expect(firstAppointment.isRight()).toBe(true);
     expect(secondAppointment.isRight()).toBe(true);
     expect(inMemoryAppointmentsRepository.items).toHaveLength(2);
+  });
+
+  it("should create an appointment for an employee scoped to the establishment", async () => {
+    const establishment = makeEstablishment();
+    const user = makeUser("EMPLOYEE");
+    const employee = makeEmployee({
+      establishmentId: establishment.id,
+      userId: user.id,
+    });
+    const customer = makeCustomer({ establishmentId: establishment.id });
+    const service = makeService({ establishmentId: establishment.id });
+
+    await inMemoryEstablishmentsRepository.create(establishment);
+    await inMemoryEmployeesRepository.create(employee);
+    await inMemoryCustomersRepository.create(customer);
+    await inMemoryServicesRepository.create(service);
+
+    const result = await sut.execute({
+      actor: { userId: user.id.toString(), role: "EMPLOYEE" },
+      customerId: customer.id.toString(),
+      serviceIds: [service.id.toString()],
+      startsAt: new Date("2026-04-27T10:00:00.000Z"),
+    });
+
+    expect(result.isRight()).toBe(true);
   });
 });

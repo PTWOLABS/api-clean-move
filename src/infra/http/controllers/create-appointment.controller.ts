@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Body,
   Controller,
+  ForbiddenException,
   InternalServerErrorException,
   NotFoundException,
   Post,
@@ -23,10 +24,12 @@ import z from "zod";
 import { CreateAppointmentUseCase } from "../../../modules/application/use-cases/appointment/create-appointment";
 import { InactiveServiceError } from "../../../modules/catalog/domain/errors/inactive-service-error";
 import { InvalidAppointmentInputError } from "../../../modules/scheduling/domain/errors/invalid-appointment-input-error";
+import { NotAllowedError } from "../../../shared/errors/not-allowed-error";
 import { ResourceNotFoundError } from "../../../shared/errors/resource-not-found-error";
 import { UnexpectedDomainError } from "../../../shared/errors/unexpected-domain-error";
 import { AuthenticatedUser } from "../../auth/authenticated-user";
 import { CurrentUser } from "../../auth/current-user";
+import { EmployeeFeatures } from "../../auth/employee-features";
 import { Roles } from "../../auth/roles";
 import {
   AppointmentResponseDto,
@@ -50,7 +53,8 @@ type CreateAppointmentBodySchema = z.infer<typeof createAppointmentBodySchema>;
 @ApiTags("appointments")
 @ApiBearerAuth("access-token")
 @Controller("/appointments")
-@Roles(["ESTABLISHMENT"])
+@Roles(["ESTABLISHMENT", "EMPLOYEE"])
+@EmployeeFeatures(["create:appointments"])
 export class CreateAppointmentController {
   constructor(private readonly createAppointment: CreateAppointmentUseCase) {}
 
@@ -73,7 +77,8 @@ export class CreateAppointmentController {
     description: "Missing or invalid access token.",
   })
   @ApiForbiddenResponse({
-    description: "Authenticated user does not have the establishment role.",
+    description:
+      "Authenticated user does not have the required role or employee feature.",
   })
   @ApiNotFoundResponse({
     description:
@@ -88,7 +93,10 @@ export class CreateAppointmentController {
     body: CreateAppointmentBodySchema,
   ) {
     const result = await this.createAppointment.execute({
-      establishmentOwnerId: user.userId,
+      actor: {
+        userId: user.userId,
+        role: user.role,
+      },
       customerId: body.customerId,
       serviceIds: body.serviceIds,
       startsAt: body.startsAt,
@@ -106,6 +114,8 @@ export class CreateAppointmentController {
       const error = result.value;
 
       switch (error.constructor) {
+        case NotAllowedError:
+          throw new ForbiddenException(error.message);
         case ResourceNotFoundError:
           throw new NotFoundException(error.message);
         case InactiveServiceError:

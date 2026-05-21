@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Body,
   Controller,
+  ForbiddenException,
   InternalServerErrorException,
   NotFoundException,
   Param,
@@ -23,10 +24,12 @@ import {
 import z from "zod";
 
 import { UpdateAppointmentStatusUseCase } from "../../../modules/application/use-cases/appointment/update-appointment-status";
+import { NotAllowedError } from "../../../shared/errors/not-allowed-error";
 import { ResourceNotFoundError } from "../../../shared/errors/resource-not-found-error";
 import { UnexpectedDomainError } from "../../../shared/errors/unexpected-domain-error";
 import { AuthenticatedUser } from "../../auth/authenticated-user";
 import { CurrentUser } from "../../auth/current-user";
+import { EmployeeFeatures } from "../../auth/employee-features";
 import { Roles } from "../../auth/roles";
 import {
   AppointmentResponseDto,
@@ -47,7 +50,8 @@ const appointmentIdParamSchema = z.uuid();
 @ApiTags("appointments")
 @ApiBearerAuth("access-token")
 @Controller("/appointments/:appointmentId/status")
-@Roles(["ESTABLISHMENT"])
+@Roles(["ESTABLISHMENT", "EMPLOYEE"])
+@EmployeeFeatures(["update:appointments"])
 export class UpdateAppointmentStatusController {
   constructor(
     private readonly updateAppointmentStatus: UpdateAppointmentStatusUseCase,
@@ -76,7 +80,8 @@ export class UpdateAppointmentStatusController {
     description: "Missing or invalid access token.",
   })
   @ApiForbiddenResponse({
-    description: "Authenticated user does not have the establishment role.",
+    description:
+      "Authenticated user does not have the required role or employee feature for this status change.",
   })
   @ApiNotFoundResponse({
     description:
@@ -93,7 +98,10 @@ export class UpdateAppointmentStatusController {
     body: UpdateAppointmentStatusBodySchema,
   ) {
     const result = await this.updateAppointmentStatus.execute({
-      establishmentOwnerId: user.userId,
+      actor: {
+        userId: user.userId,
+        role: user.role,
+      },
       appointmentId,
       status: body.status,
     });
@@ -102,6 +110,8 @@ export class UpdateAppointmentStatusController {
       const error = result.value;
 
       switch (error.constructor) {
+        case NotAllowedError:
+          throw new ForbiddenException(error.message);
         case ResourceNotFoundError:
           throw new NotFoundException(error.message);
         case UnexpectedDomainError:

@@ -1,21 +1,25 @@
 import { Injectable } from "@nestjs/common";
 
 import { Either, left, right } from "../../../../shared/either";
+import { NotAllowedError } from "../../../../shared/errors/not-allowed-error";
 import { ResourceNotFoundError } from "../../../../shared/errors/resource-not-found-error";
 import { Appointment } from "../../../scheduling/domain/entities/appointment";
+import {
+  EstablishmentScopeActor,
+  EstablishmentScopeService,
+} from "../../services/establishment-scope";
 import {
   AppointmentFilters,
   AppointmentsRepository,
 } from "../../repositories/appointments-repository";
-import { EstablishmentsRepository } from "../../repositories/establishment-repository";
 
 type ListAppointmentsUseCaseRequest = {
-  establishmentOwnerId: string;
+  actor: EstablishmentScopeActor;
   filters?: AppointmentFilters;
 };
 
 type ListAppointmentsUseCaseResponse = Either<
-  ResourceNotFoundError,
+  ResourceNotFoundError | NotAllowedError,
   {
     appointments: Appointment[];
   }
@@ -25,19 +29,20 @@ type ListAppointmentsUseCaseResponse = Either<
 export class ListAppointmentsUseCase {
   constructor(
     private appointmentsRepository: AppointmentsRepository,
-    private establishmentsRepository: EstablishmentsRepository,
+    private establishmentScope: EstablishmentScopeService,
   ) {}
 
   async execute({
-    establishmentOwnerId,
+    actor,
     filters,
   }: ListAppointmentsUseCaseRequest): Promise<ListAppointmentsUseCaseResponse> {
-    const establishment =
-      await this.establishmentsRepository.findByOwnerId(establishmentOwnerId);
+    const scopeResult = await this.establishmentScope.resolve(actor);
 
-    if (!establishment) {
-      return left(new ResourceNotFoundError({ resource: "establishment" }));
+    if (scopeResult.isLeft()) {
+      return left(scopeResult.value);
     }
+
+    const { establishment } = scopeResult.value;
 
     const appointments =
       await this.appointmentsRepository.findManyByEstablishmentId(

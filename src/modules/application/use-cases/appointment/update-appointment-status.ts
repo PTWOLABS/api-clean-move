@@ -1,22 +1,26 @@
 import { Injectable } from "@nestjs/common";
 
 import { Either, left, right } from "../../../../shared/either";
+import { NotAllowedError } from "../../../../shared/errors/not-allowed-error";
 import { ResourceNotFoundError } from "../../../../shared/errors/resource-not-found-error";
 import {
   Appointment,
   AppointmentStatus,
 } from "../../../scheduling/domain/entities/appointment";
+import {
+  EstablishmentScopeActor,
+  EstablishmentScopeService,
+} from "../../services/establishment-scope";
 import { AppointmentsRepository } from "../../repositories/appointments-repository";
-import { EstablishmentsRepository } from "../../repositories/establishment-repository";
 
 type UpdateAppointmentStatusUseCaseRequest = {
-  establishmentOwnerId: string;
+  actor: EstablishmentScopeActor;
   appointmentId: string;
   status: AppointmentStatus;
 };
 
 type UpdateAppointmentStatusUseCaseResponse = Either<
-  ResourceNotFoundError,
+  ResourceNotFoundError | NotAllowedError,
   {
     appointment: Appointment;
   }
@@ -26,20 +30,21 @@ type UpdateAppointmentStatusUseCaseResponse = Either<
 export class UpdateAppointmentStatusUseCase {
   constructor(
     private appointmentsRepository: AppointmentsRepository,
-    private establishmentsRepository: EstablishmentsRepository,
+    private establishmentScope: EstablishmentScopeService,
   ) {}
 
   async execute({
-    establishmentOwnerId,
+    actor,
     appointmentId,
     status,
   }: UpdateAppointmentStatusUseCaseRequest): Promise<UpdateAppointmentStatusUseCaseResponse> {
-    const establishment =
-      await this.establishmentsRepository.findByOwnerId(establishmentOwnerId);
+    const scopeResult = await this.establishmentScope.resolve(actor);
 
-    if (!establishment) {
-      return left(new ResourceNotFoundError({ resource: "establishment" }));
+    if (scopeResult.isLeft()) {
+      return left(scopeResult.value);
     }
+
+    const { establishment } = scopeResult.value;
 
     const appointment =
       await this.appointmentsRepository.findByIdAndEstablishmentId(
