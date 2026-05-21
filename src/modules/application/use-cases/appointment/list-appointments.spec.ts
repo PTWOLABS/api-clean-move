@@ -55,13 +55,16 @@ describe("List appointments", () => {
       establishmentId: establishment.id,
       customerId: customer.id,
       vehicleId: vehicle.id,
-      service: {
-        serviceId: service.id,
-        serviceName: service.serviceName.value,
-        category: service.category,
-        durationInMinutes: service.estimatedDuration?.upperBoundInMinutes,
-        priceInCents: service.price.amountInCents,
-      },
+      services: [
+        {
+          serviceId: service.id,
+          serviceName: service.serviceName.value,
+          category: service.category,
+          durationInMinutes: service.estimatedDuration?.upperBoundInMinutes,
+          priceInCents: service.price.amountInCents,
+        },
+      ],
+
       vehicle: {
         plate: vehicle.plate,
         brand: vehicle.brand,
@@ -77,13 +80,16 @@ describe("List appointments", () => {
       establishmentId: establishment.id,
       customerId: customer.id,
       vehicleId: vehicle.id,
-      service: {
-        serviceId: service.id,
-        serviceName: service.serviceName.value,
-        category: service.category,
-        durationInMinutes: service.estimatedDuration?.upperBoundInMinutes,
-        priceInCents: service.price.amountInCents,
-      },
+      services: [
+        {
+          serviceId: service.id,
+          serviceName: service.serviceName.value,
+          category: service.category,
+          durationInMinutes: service.estimatedDuration?.upperBoundInMinutes,
+          priceInCents: service.price.amountInCents,
+        },
+      ],
+
       startsAt: new Date("2026-04-27T11:00:00.000Z"),
       endsAt: null,
       status: "SCHEDULED",
@@ -91,13 +97,16 @@ describe("List appointments", () => {
     const wrongCustomerAppointment = makeAppointment({
       establishmentId: establishment.id,
       customerId: otherCustomer.id,
-      service: {
-        serviceId: service.id,
-        serviceName: service.serviceName.value,
-        category: service.category,
-        durationInMinutes: service.estimatedDuration?.upperBoundInMinutes,
-        priceInCents: service.price.amountInCents,
-      },
+      services: [
+        {
+          serviceId: service.id,
+          serviceName: service.serviceName.value,
+          category: service.category,
+          durationInMinutes: service.estimatedDuration?.upperBoundInMinutes,
+          priceInCents: service.price.amountInCents,
+        },
+      ],
+
       startsAt: new Date("2026-04-27T12:00:00.000Z"),
       endsAt: null,
       status: "DONE",
@@ -105,13 +114,17 @@ describe("List appointments", () => {
     const wrongServiceAppointment = makeAppointment({
       establishmentId: establishment.id,
       customerId: customer.id,
-      service: {
-        serviceId: otherService.id,
-        serviceName: otherService.serviceName.value,
-        category: otherService.category,
-        durationInMinutes: otherService.estimatedDuration?.upperBoundInMinutes,
-        priceInCents: otherService.price.amountInCents,
-      },
+      services: [
+        {
+          serviceId: otherService.id,
+          serviceName: otherService.serviceName.value,
+          category: otherService.category,
+          durationInMinutes:
+            otherService.estimatedDuration?.upperBoundInMinutes,
+          priceInCents: otherService.price.amountInCents,
+        },
+      ],
+
       startsAt: new Date("2026-04-27T13:00:00.000Z"),
       endsAt: null,
       status: "DONE",

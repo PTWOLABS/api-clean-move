@@ -53,6 +53,32 @@ export class InMemoryAppointmentsRepository implements AppointmentsRepository {
     return appointment.status === status;
   }
 
+  private static matchesServiceFilters(
+    appointment: Appointment,
+    filters?: AppointmentFilters,
+  ) {
+    if (
+      filters?.serviceId &&
+      !appointment.services.some(
+        (service) => service.serviceId.toString() === filters.serviceId,
+      )
+    ) {
+      return false;
+    }
+
+    if (
+      filters?.categories?.length &&
+      !appointment.services.some(
+        (service) =>
+          service.category && filters.categories!.includes(service.category),
+      )
+    ) {
+      return false;
+    }
+
+    return true;
+  }
+
   private getCustomerSearchData(
     customerId: string,
   ): AppointmentCustomerSearchData | undefined {
@@ -123,9 +149,11 @@ export class InMemoryAppointmentsRepository implements AppointmentsRepository {
 
     if (
       serviceName &&
-      !InMemoryAppointmentsRepository.matchesText(
-        appointment.service.serviceName,
-        serviceName,
+      !appointment.services.some((service) =>
+        InMemoryAppointmentsRepository.matchesText(
+          service.serviceName,
+          serviceName,
+        ),
       )
     ) {
       return false;
@@ -166,7 +194,7 @@ export class InMemoryAppointmentsRepository implements AppointmentsRepository {
     }
 
     const searchableValues = [
-      appointment.service.serviceName,
+      ...appointment.services.map((service) => service.serviceName),
       appointment.vehicle?.brand,
       appointment.vehicle?.model,
       customerSearchData?.fullName,
@@ -208,22 +236,13 @@ export class InMemoryAppointmentsRepository implements AppointmentsRepository {
         }
 
         if (
-          filters?.serviceId &&
-          item.service.serviceId.toString() !== filters.serviceId
-        ) {
-          return false;
-        }
-
-        if (
           !InMemoryAppointmentsRepository.matchesStatusFilter(item, filters)
         ) {
           return false;
         }
 
         if (
-          filters?.categories?.length &&
-          (!item.service.category ||
-            !filters.categories.includes(item.service.category))
+          !InMemoryAppointmentsRepository.matchesServiceFilters(item, filters)
         ) {
           return false;
         }
@@ -304,23 +323,25 @@ export class InMemoryAppointmentsRepository implements AppointmentsRepository {
     >();
 
     for (const appointment of filteredAppointments) {
-      const serviceId = appointment.service.serviceId.toString();
-      const current = groupedByService.get(serviceId);
+      for (const service of appointment.services) {
+        const serviceId = service.serviceId.toString();
+        const current = groupedByService.get(serviceId);
 
-      if (!current) {
+        if (!current) {
+          groupedByService.set(serviceId, {
+            serviceId,
+            serviceName: service.serviceName,
+            usageCount: 1,
+          });
+
+          continue;
+        }
+
         groupedByService.set(serviceId, {
-          serviceId,
-          serviceName: appointment.service.serviceName,
-          usageCount: 1,
+          ...current,
+          usageCount: current.usageCount + 1,
         });
-
-        continue;
       }
-
-      groupedByService.set(serviceId, {
-        ...current,
-        usageCount: current.usageCount + 1,
-      });
     }
 
     const start = (page - 1) * size;
@@ -341,9 +362,14 @@ export class InMemoryAppointmentsRepository implements AppointmentsRepository {
       })
       .slice(start, end);
 
+    const totalUsages = filteredAppointments.reduce(
+      (total, appointment) => total + appointment.services.length,
+      0,
+    );
+
     return {
       items,
-      totalUsages: filteredAppointments.length,
+      totalUsages,
     };
   }
 

@@ -10,13 +10,15 @@ const baseProps = {
   establishmentId: new UniqueEntityId("establishment-1"),
   customerId: new UniqueEntityId("customer-1"),
   vehicleId: null,
-  service: {
-    serviceId: new UniqueEntityId("service-1"),
-    serviceName: "Lavagem simples",
-    category: "WASH" as const,
-    durationInMinutes: 60,
-    priceInCents: 3000,
-  },
+  services: [
+    {
+      serviceId: new UniqueEntityId("service-1"),
+      serviceName: "Lavagem simples",
+      category: "WASH" as const,
+      durationInMinutes: 60,
+      priceInCents: 3000,
+    },
+  ],
   vehicle: null,
   startsAt: new Date("2026-04-27T10:00:00.000Z"),
   endsAt: null,
@@ -44,6 +46,41 @@ describe("Appointment", () => {
         endsAt: new Date("2026-04-27T09:00:00.000Z"),
       }),
     ).toThrow(InvalidAppointmentInputError);
+  });
+
+  it("should not accept appointments without services", () => {
+    expect(() =>
+      Appointment.create({
+        ...baseProps,
+        services: [],
+      }),
+    ).toThrow(InvalidAppointmentInputError);
+  });
+
+  it("should not accept duplicate services", () => {
+    const duplicatedService = baseProps.services[0]!;
+
+    expect(() =>
+      Appointment.create({
+        ...baseProps,
+        services: [duplicatedService, duplicatedService],
+      }),
+    ).toThrow(InvalidAppointmentInputError);
+  });
+
+  it("should calculate total services price", () => {
+    const firstService = baseProps.services[0]!;
+
+    const total = Appointment.totalServicesPriceInCents([
+      { ...firstService, priceInCents: 1000 },
+      {
+        ...firstService,
+        serviceId: new UniqueEntityId("service-2"),
+        priceInCents: 2500,
+      },
+    ]);
+
+    expect(total).toEqual(3500);
   });
 
   it("should accept a discount money value", () => {
