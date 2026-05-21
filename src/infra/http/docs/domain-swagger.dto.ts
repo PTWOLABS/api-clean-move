@@ -509,12 +509,12 @@ export class CreateAppointmentBodyDto {
   customerId!: string;
 
   @ApiProperty({
-    example: "11cf3860-d512-47db-b9d1-c9044be6250d",
-    format: "uuid",
+    type: [String],
+    example: ["11cf3860-d512-47db-b9d1-c9044be6250d"],
     description:
-      "Active service identifier owned by the authenticated establishment.",
+      "One or more active service identifiers owned by the authenticated establishment.",
   })
-  serviceId!: string;
+  serviceIds!: string[];
 
   @ApiPropertyOptional({
     type: String,
@@ -634,8 +634,8 @@ export class AppointmentDto {
   })
   vehicleId!: string | null;
 
-  @ApiProperty({ type: AppointmentServiceDto })
-  service!: AppointmentServiceDto;
+  @ApiProperty({ type: AppointmentServiceDto, isArray: true })
+  services!: AppointmentServiceDto[];
 
   @ApiProperty({ type: AppointmentVehicleSnapshotDto, nullable: true })
   vehicle!: AppointmentVehicleSnapshotDto | null;

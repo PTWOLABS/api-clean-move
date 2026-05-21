@@ -93,7 +93,7 @@ describe("ListAppointmentsController (e2e)", () => {
       .send(
         appointmentPayload({
           customerId: firstCustomer.id.toString(),
-          serviceId: firstService.id.toString(),
+          serviceIds: [firstService.id.toString()],
           vehicleId: vehicle.id,
           startsAt: "2026-04-27T10:00:00.000Z",
         }),
@@ -104,7 +104,7 @@ describe("ListAppointmentsController (e2e)", () => {
       .send(
         appointmentPayload({
           customerId: firstCustomer.id.toString(),
-          serviceId: secondService.id.toString(),
+          serviceIds: [secondService.id.toString()],
           startsAt: "2026-04-27T12:00:00.000Z",
         }),
       );
@@ -114,7 +114,7 @@ describe("ListAppointmentsController (e2e)", () => {
       .send(
         appointmentPayload({
           customerId: secondCustomer.id.toString(),
-          serviceId: firstService.id.toString(),
+          serviceIds: [firstService.id.toString()],
           startsAt: "2026-04-28T10:00:00.000Z",
         }),
       );
@@ -403,7 +403,7 @@ describe("ListAppointmentsController (e2e)", () => {
       .send(
         appointmentPayload({
           customerId: customer.id.toString(),
-          serviceId: service.id.toString(),
+          serviceIds: [service.id.toString()],
         }),
       );
 
