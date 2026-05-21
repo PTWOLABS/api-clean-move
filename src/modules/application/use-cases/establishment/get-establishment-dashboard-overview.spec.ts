@@ -77,13 +77,16 @@ describe("Get establishment dashboard overview", () => {
       makeAppointment({
         establishmentId: establishment.id,
         status: "DONE",
-        service: {
-          serviceId: washService.id,
-          serviceName: washService.serviceName.value,
-          category: washService.category,
-          durationInMinutes: 60,
-          priceInCents: 10000,
-        },
+        services: [
+          {
+            serviceId: washService.id,
+            serviceName: washService.serviceName.value,
+            category: washService.category,
+            durationInMinutes: 60,
+            priceInCents: 10000,
+          },
+        ],
+
         startsAt: new Date("2026-04-01T10:00:00Z"),
         endsAt: new Date("2026-04-01T11:00:00Z"),
       }),
@@ -92,13 +95,16 @@ describe("Get establishment dashboard overview", () => {
       makeAppointment({
         establishmentId: establishment.id,
         status: "CANCELLED",
-        service: {
-          serviceId: washService.id,
-          serviceName: washService.serviceName.value,
-          category: washService.category,
-          durationInMinutes: 60,
-          priceInCents: 15000,
-        },
+        services: [
+          {
+            serviceId: washService.id,
+            serviceName: washService.serviceName.value,
+            category: washService.category,
+            durationInMinutes: 60,
+            priceInCents: 15000,
+          },
+        ],
+
         discountInCents: Money.create(5000),
         startsAt: new Date("2026-04-03T10:00:00Z"),
         endsAt: new Date("2026-04-03T11:00:00Z"),
@@ -108,13 +114,16 @@ describe("Get establishment dashboard overview", () => {
       makeAppointment({
         establishmentId: establishment.id,
         status: "DONE",
-        service: {
-          serviceId: washService.id,
-          serviceName: washService.serviceName.value,
-          category: washService.category,
-          durationInMinutes: 60,
-          priceInCents: 10000,
-        },
+        services: [
+          {
+            serviceId: washService.id,
+            serviceName: washService.serviceName.value,
+            category: washService.category,
+            durationInMinutes: 60,
+            priceInCents: 10000,
+          },
+        ],
+
         startsAt: new Date("2026-03-29T10:00:00Z"),
         endsAt: new Date("2026-03-29T11:00:00Z"),
       }),
@@ -123,13 +132,16 @@ describe("Get establishment dashboard overview", () => {
       makeAppointment({
         establishmentId: establishment.id,
         status: "DONE",
-        service: {
-          serviceId: washService.id,
-          serviceName: washService.serviceName.value,
-          category: washService.category,
-          durationInMinutes: 60,
-          priceInCents: 10000,
-        },
+        services: [
+          {
+            serviceId: washService.id,
+            serviceName: washService.serviceName.value,
+            category: washService.category,
+            durationInMinutes: 60,
+            priceInCents: 10000,
+          },
+        ],
+
         discountInCents: Money.create(5000),
         startsAt: new Date("2026-03-31T10:00:00Z"),
         endsAt: new Date("2026-03-31T11:00:00Z"),
@@ -266,13 +278,16 @@ describe("Get establishment dashboard overview", () => {
       makeAppointment({
         establishmentId: establishment.id,
         status: "DONE",
-        service: {
-          serviceId: washService.id,
-          serviceName: washService.serviceName.value,
-          category: washService.category,
-          durationInMinutes: 60,
-          priceInCents: 10000,
-        },
+        services: [
+          {
+            serviceId: washService.id,
+            serviceName: washService.serviceName.value,
+            category: washService.category,
+            durationInMinutes: 60,
+            priceInCents: 10000,
+          },
+        ],
+
         startsAt: new Date("2026-01-03T10:00:00Z"),
         endsAt: new Date("2026-01-03T11:00:00Z"),
       }),
@@ -281,13 +296,16 @@ describe("Get establishment dashboard overview", () => {
       makeAppointment({
         establishmentId: establishment.id,
         status: "DONE",
-        service: {
-          serviceId: washService.id,
-          serviceName: washService.serviceName.value,
-          category: washService.category,
-          durationInMinutes: 60,
-          priceInCents: 25000,
-        },
+        services: [
+          {
+            serviceId: washService.id,
+            serviceName: washService.serviceName.value,
+            category: washService.category,
+            durationInMinutes: 60,
+            priceInCents: 25000,
+          },
+        ],
+
         startsAt: new Date("2026-02-17T10:00:00Z"),
         endsAt: new Date("2026-02-17T11:00:00Z"),
       }),
@@ -353,13 +371,16 @@ describe("Get establishment dashboard overview", () => {
       makeAppointment({
         establishmentId: establishment.id,
         status: "DONE",
-        service: {
-          serviceId: washService.id,
-          serviceName: washService.serviceName.value,
-          category: washService.category,
-          durationInMinutes: 60,
-          priceInCents: 10000,
-        },
+        services: [
+          {
+            serviceId: washService.id,
+            serviceName: washService.serviceName.value,
+            category: washService.category,
+            durationInMinutes: 60,
+            priceInCents: 10000,
+          },
+        ],
+
         startsAt: new Date("2026-01-15T10:00:00Z"),
         endsAt: new Date("2026-01-15T11:00:00Z"),
       }),
@@ -368,13 +389,16 @@ describe("Get establishment dashboard overview", () => {
       makeAppointment({
         establishmentId: establishment.id,
         status: "CANCELLED",
-        service: {
-          serviceId: washService.id,
-          serviceName: washService.serviceName.value,
-          category: washService.category,
-          durationInMinutes: 60,
-          priceInCents: 20000,
-        },
+        services: [
+          {
+            serviceId: washService.id,
+            serviceName: washService.serviceName.value,
+            category: washService.category,
+            durationInMinutes: 60,
+            priceInCents: 20000,
+          },
+        ],
+
         startsAt: new Date("2026-03-10T10:00:00Z"),
         endsAt: new Date("2026-03-10T11:00:00Z"),
       }),
