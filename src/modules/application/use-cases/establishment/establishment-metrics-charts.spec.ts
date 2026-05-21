@@ -114,13 +114,16 @@ describe("Establishment metrics charts", () => {
       makeAppointment({
         establishmentId: establishment.id,
         status: "SCHEDULED",
-        service: {
-          serviceId: washService.id,
-          serviceName: washService.serviceName.value,
-          category: washService.category,
-          durationInMinutes: 60,
-          priceInCents: 10000,
-        },
+        services: [
+          {
+            serviceId: washService.id,
+            serviceName: washService.serviceName.value,
+            category: washService.category,
+            durationInMinutes: 60,
+            priceInCents: 10000,
+          },
+        ],
+
         discountInCents: Money.create(1000),
         startsAt: new Date("2026-04-01T10:00:00Z"),
         endsAt: new Date("2026-04-01T11:00:00Z"),
@@ -131,13 +134,16 @@ describe("Establishment metrics charts", () => {
       makeAppointment({
         establishmentId: establishment.id,
         status: "SCHEDULED",
-        service: {
-          serviceId: washService.id,
-          serviceName: washService.serviceName.value,
-          category: washService.category,
-          durationInMinutes: 60,
-          priceInCents: 12000,
-        },
+        services: [
+          {
+            serviceId: washService.id,
+            serviceName: washService.serviceName.value,
+            category: washService.category,
+            durationInMinutes: 60,
+            priceInCents: 12000,
+          },
+        ],
+
         startsAt: new Date("2026-04-01T14:00:00Z"),
         endsAt: new Date("2026-04-01T15:00:00Z"),
       }),
@@ -147,13 +153,16 @@ describe("Establishment metrics charts", () => {
       makeAppointment({
         establishmentId: establishment.id,
         status: "SCHEDULED",
-        service: {
-          serviceId: detailsService.id,
-          serviceName: detailsService.serviceName.value,
-          category: detailsService.category,
-          durationInMinutes: 60,
-          priceInCents: 30000,
-        },
+        services: [
+          {
+            serviceId: detailsService.id,
+            serviceName: detailsService.serviceName.value,
+            category: detailsService.category,
+            durationInMinutes: 60,
+            priceInCents: 30000,
+          },
+        ],
+
         discountInCents: Money.create(5000),
         startsAt: new Date("2026-04-02T14:00:00Z"),
         endsAt: new Date("2026-04-02T15:00:00Z"),
@@ -164,13 +173,16 @@ describe("Establishment metrics charts", () => {
       makeAppointment({
         establishmentId: establishment.id,
         status: "CANCELLED",
-        service: {
-          serviceId: cancelledService.id,
-          serviceName: cancelledService.serviceName.value,
-          category: cancelledService.category,
-          durationInMinutes: 60,
-          priceInCents: 99999,
-        },
+        services: [
+          {
+            serviceId: cancelledService.id,
+            serviceName: cancelledService.serviceName.value,
+            category: cancelledService.category,
+            durationInMinutes: 60,
+            priceInCents: 99999,
+          },
+        ],
+
         startsAt: new Date("2026-04-03T10:00:00Z"),
         endsAt: new Date("2026-04-03T11:00:00Z"),
       }),
@@ -180,13 +192,16 @@ describe("Establishment metrics charts", () => {
       makeAppointment({
         establishmentId: otherEstablishment.id,
         status: "SCHEDULED",
-        service: {
-          serviceId: otherWashService.id,
-          serviceName: otherWashService.serviceName.value,
-          category: otherWashService.category,
-          durationInMinutes: 60,
-          priceInCents: 999999,
-        },
+        services: [
+          {
+            serviceId: otherWashService.id,
+            serviceName: otherWashService.serviceName.value,
+            category: otherWashService.category,
+            durationInMinutes: 60,
+            priceInCents: 999999,
+          },
+        ],
+
         startsAt: new Date("2026-04-01T16:00:00Z"),
         endsAt: new Date("2026-04-01T17:00:00Z"),
       }),
@@ -433,13 +448,16 @@ describe("Establishment metrics charts", () => {
         makeAppointment({
           establishmentId: establishment.id,
           status: "DONE",
-          service: {
-            serviceId: washService.id,
-            serviceName: washService.serviceName.value,
-            category: washService.category,
-            durationInMinutes: 60,
-            priceInCents: 10000,
-          },
+          services: [
+            {
+              serviceId: washService.id,
+              serviceName: washService.serviceName.value,
+              category: washService.category,
+              durationInMinutes: 60,
+              priceInCents: 10000,
+            },
+          ],
+
           startsAt: new Date(startsAt),
           endsAt: new Date(new Date(startsAt).getTime() + 60 * 60 * 1000),
         }),
@@ -450,13 +468,16 @@ describe("Establishment metrics charts", () => {
       makeAppointment({
         establishmentId: establishment.id,
         status: "DONE",
-        service: {
-          serviceId: protectionService.id,
-          serviceName: protectionService.serviceName.value,
-          category: protectionService.category,
-          durationInMinutes: 60,
-          priceInCents: 20000,
-        },
+        services: [
+          {
+            serviceId: protectionService.id,
+            serviceName: protectionService.serviceName.value,
+            category: protectionService.category,
+            durationInMinutes: 60,
+            priceInCents: 20000,
+          },
+        ],
+
         startsAt: new Date("2026-04-03T10:00:00.000Z"),
         endsAt: new Date("2026-04-03T11:00:00.000Z"),
       }),
@@ -518,13 +539,16 @@ describe("Establishment metrics charts", () => {
       makeAppointment({
         establishmentId: establishment.id,
         status: "DONE",
-        service: {
-          serviceId: new UniqueEntityId("service-1"),
-          serviceName: "Lavagem simples",
-          category: "WASH",
-          durationInMinutes: 60,
-          priceInCents: 10000,
-        },
+        services: [
+          {
+            serviceId: new UniqueEntityId("service-1"),
+            serviceName: "Lavagem simples",
+            category: "WASH",
+            durationInMinutes: 60,
+            priceInCents: 10000,
+          },
+        ],
+
         startsAt: new Date("2026-04-01T10:00:00.000Z"),
         endsAt: new Date("2026-04-01T11:00:00.000Z"),
       }),
@@ -533,13 +557,16 @@ describe("Establishment metrics charts", () => {
       makeAppointment({
         establishmentId: establishment.id,
         status: "SCHEDULED",
-        service: {
-          serviceId: new UniqueEntityId("service-2"),
-          serviceName: "Lavagem simples",
-          category: "WASH",
-          durationInMinutes: 60,
-          priceInCents: 20000,
-        },
+        services: [
+          {
+            serviceId: new UniqueEntityId("service-2"),
+            serviceName: "Lavagem simples",
+            category: "WASH",
+            durationInMinutes: 60,
+            priceInCents: 20000,
+          },
+        ],
+
         startsAt: new Date("2026-04-01T12:00:00.000Z"),
         endsAt: new Date("2026-04-01T13:00:00.000Z"),
       }),
@@ -548,13 +575,16 @@ describe("Establishment metrics charts", () => {
       makeAppointment({
         establishmentId: establishment.id,
         status: "CANCELLED",
-        service: {
-          serviceId: new UniqueEntityId("service-3"),
-          serviceName: "Lavagem simples",
-          category: "WASH",
-          durationInMinutes: 60,
-          priceInCents: 30000,
-        },
+        services: [
+          {
+            serviceId: new UniqueEntityId("service-3"),
+            serviceName: "Lavagem simples",
+            category: "WASH",
+            durationInMinutes: 60,
+            priceInCents: 30000,
+          },
+        ],
+
         startsAt: new Date("2026-04-01T14:00:00.000Z"),
         endsAt: new Date("2026-04-01T15:00:00.000Z"),
       }),
@@ -563,13 +593,16 @@ describe("Establishment metrics charts", () => {
       makeAppointment({
         establishmentId: establishment.id,
         status: "DONE",
-        service: {
-          serviceId: new UniqueEntityId("service-4"),
-          serviceName: "Lavagem simples",
-          category: "WASH",
-          durationInMinutes: 60,
-          priceInCents: 5000,
-        },
+        services: [
+          {
+            serviceId: new UniqueEntityId("service-4"),
+            serviceName: "Lavagem simples",
+            category: "WASH",
+            durationInMinutes: 60,
+            priceInCents: 5000,
+          },
+        ],
+
         startsAt: new Date("2026-03-31T10:00:00.000Z"),
         endsAt: new Date("2026-03-31T11:00:00.000Z"),
       }),
@@ -669,13 +702,16 @@ describe("Establishment metrics charts", () => {
       makeAppointment({
         establishmentId: establishment.id,
         status: "SCHEDULED",
-        service: {
-          serviceId: new UniqueEntityId("service-1"),
-          serviceName: "Lavagem simples",
-          category: "WASH",
-          durationInMinutes: 60,
-          priceInCents: 12000,
-        },
+        services: [
+          {
+            serviceId: new UniqueEntityId("service-1"),
+            serviceName: "Lavagem simples",
+            category: "WASH",
+            durationInMinutes: 60,
+            priceInCents: 12000,
+          },
+        ],
+
         startsAt: new Date("2026-04-01T10:00:00.000Z"),
         endsAt: new Date("2026-04-01T11:00:00.000Z"),
       }),
@@ -684,13 +720,16 @@ describe("Establishment metrics charts", () => {
       makeAppointment({
         establishmentId: establishment.id,
         status: "DONE",
-        service: {
-          serviceId: new UniqueEntityId("service-2"),
-          serviceName: "Lavagem simples",
-          category: "WASH",
-          durationInMinutes: 60,
-          priceInCents: 50000,
-        },
+        services: [
+          {
+            serviceId: new UniqueEntityId("service-2"),
+            serviceName: "Lavagem simples",
+            category: "WASH",
+            durationInMinutes: 60,
+            priceInCents: 50000,
+          },
+        ],
+
         startsAt: new Date("2026-04-01T12:00:00.000Z"),
         endsAt: new Date("2026-04-01T13:00:00.000Z"),
       }),
@@ -699,13 +738,16 @@ describe("Establishment metrics charts", () => {
       makeAppointment({
         establishmentId: establishment.id,
         status: "SCHEDULED",
-        service: {
-          serviceId: new UniqueEntityId("service-3"),
-          serviceName: "Lavagem simples",
-          category: "WASH",
-          durationInMinutes: 60,
-          priceInCents: 6000,
-        },
+        services: [
+          {
+            serviceId: new UniqueEntityId("service-3"),
+            serviceName: "Lavagem simples",
+            category: "WASH",
+            durationInMinutes: 60,
+            priceInCents: 6000,
+          },
+        ],
+
         startsAt: new Date("2026-03-31T10:00:00.000Z"),
         endsAt: new Date("2026-03-31T11:00:00.000Z"),
       }),
@@ -756,13 +798,16 @@ describe("Establishment metrics charts", () => {
       makeAppointment({
         establishmentId: establishment.id,
         status: "DONE",
-        service: {
-          serviceId: new UniqueEntityId("service-1"),
-          serviceName: "Lavagem simples",
-          category: "WASH",
-          durationInMinutes: 60,
-          priceInCents: 10000,
-        },
+        services: [
+          {
+            serviceId: new UniqueEntityId("service-1"),
+            serviceName: "Lavagem simples",
+            category: "WASH",
+            durationInMinutes: 60,
+            priceInCents: 10000,
+          },
+        ],
+
         startsAt: new Date("2026-04-01T10:00:00.000Z"),
         endsAt: new Date("2026-04-01T11:00:00.000Z"),
       }),
@@ -771,13 +816,16 @@ describe("Establishment metrics charts", () => {
       makeAppointment({
         establishmentId: establishment.id,
         status: "DONE",
-        service: {
-          serviceId: new UniqueEntityId("service-2"),
-          serviceName: "Lavagem completa",
-          category: "WASH",
-          durationInMinutes: 60,
-          priceInCents: 20000,
-        },
+        services: [
+          {
+            serviceId: new UniqueEntityId("service-2"),
+            serviceName: "Lavagem completa",
+            category: "WASH",
+            durationInMinutes: 60,
+            priceInCents: 20000,
+          },
+        ],
+
         startsAt: new Date("2026-04-03T10:00:00.000Z"),
         endsAt: new Date("2026-04-03T11:00:00.000Z"),
       }),
@@ -786,13 +834,16 @@ describe("Establishment metrics charts", () => {
       makeAppointment({
         establishmentId: establishment.id,
         status: "DONE",
-        service: {
-          serviceId: new UniqueEntityId("service-3"),
-          serviceName: "Lavagem simples",
-          category: "WASH",
-          durationInMinutes: 60,
-          priceInCents: 20000,
-        },
+        services: [
+          {
+            serviceId: new UniqueEntityId("service-3"),
+            serviceName: "Lavagem simples",
+            category: "WASH",
+            durationInMinutes: 60,
+            priceInCents: 20000,
+          },
+        ],
+
         startsAt: new Date("2026-03-31T10:00:00.000Z"),
         endsAt: new Date("2026-03-31T11:00:00.000Z"),
       }),
@@ -860,13 +911,16 @@ describe("Establishment metrics charts", () => {
       makeAppointment({
         establishmentId: establishment.id,
         status: "DONE",
-        service: {
-          serviceId: new UniqueEntityId("service-1"),
-          serviceName: "Lavagem simples",
-          category: "WASH",
-          durationInMinutes: 60,
-          priceInCents: 10000,
-        },
+        services: [
+          {
+            serviceId: new UniqueEntityId("service-1"),
+            serviceName: "Lavagem simples",
+            category: "WASH",
+            durationInMinutes: 60,
+            priceInCents: 10000,
+          },
+        ],
+
         startsAt: new Date("2026-04-02T10:00:00.000Z"),
         endsAt: new Date("2026-04-02T11:00:00.000Z"),
       }),
@@ -875,13 +929,16 @@ describe("Establishment metrics charts", () => {
       makeAppointment({
         establishmentId: establishment.id,
         status: "DONE",
-        service: {
-          serviceId: new UniqueEntityId("service-2"),
-          serviceName: "Lavagem completa",
-          category: "WASH",
-          durationInMinutes: 60,
-          priceInCents: 20000,
-        },
+        services: [
+          {
+            serviceId: new UniqueEntityId("service-2"),
+            serviceName: "Lavagem completa",
+            category: "WASH",
+            durationInMinutes: 60,
+            priceInCents: 20000,
+          },
+        ],
+
         startsAt: new Date("2026-04-08T10:00:00.000Z"),
         endsAt: new Date("2026-04-08T11:00:00.000Z"),
       }),
@@ -943,13 +1000,16 @@ describe("Establishment metrics charts", () => {
       makeAppointment({
         establishmentId: establishment.id,
         status: "DONE",
-        service: {
-          serviceId: new UniqueEntityId("service-1"),
-          serviceName: "Lavagem simples",
-          category: "WASH",
-          durationInMinutes: 60,
-          priceInCents: 10000,
-        },
+        services: [
+          {
+            serviceId: new UniqueEntityId("service-1"),
+            serviceName: "Lavagem simples",
+            category: "WASH",
+            durationInMinutes: 60,
+            priceInCents: 10000,
+          },
+        ],
+
         startsAt: new Date("2026-01-15T10:00:00.000Z"),
         endsAt: new Date("2026-01-15T11:00:00.000Z"),
       }),
@@ -958,13 +1018,16 @@ describe("Establishment metrics charts", () => {
       makeAppointment({
         establishmentId: establishment.id,
         status: "DONE",
-        service: {
-          serviceId: new UniqueEntityId("service-2"),
-          serviceName: "Lavagem completa",
-          category: "WASH",
-          durationInMinutes: 60,
-          priceInCents: 20000,
-        },
+        services: [
+          {
+            serviceId: new UniqueEntityId("service-2"),
+            serviceName: "Lavagem completa",
+            category: "WASH",
+            durationInMinutes: 60,
+            priceInCents: 20000,
+          },
+        ],
+
         startsAt: new Date("2026-03-10T10:00:00.000Z"),
         endsAt: new Date("2026-03-10T11:00:00.000Z"),
       }),
@@ -1032,13 +1095,16 @@ describe("Establishment metrics charts", () => {
       makeAppointment({
         establishmentId: establishment.id,
         status: "DONE",
-        service: {
-          serviceId: new UniqueEntityId("service-1"),
-          serviceName: "Lavagem simples",
-          category: "WASH",
-          durationInMinutes: 60,
-          priceInCents: 10000,
-        },
+        services: [
+          {
+            serviceId: new UniqueEntityId("service-1"),
+            serviceName: "Lavagem simples",
+            category: "WASH",
+            durationInMinutes: 60,
+            priceInCents: 10000,
+          },
+        ],
+
         startsAt: new Date("2026-04-01T10:00:00.000Z"),
         endsAt: new Date("2026-04-01T11:00:00.000Z"),
       }),

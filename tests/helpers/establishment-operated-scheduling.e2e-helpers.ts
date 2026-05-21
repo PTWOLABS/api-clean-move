@@ -70,13 +70,17 @@ export const appointmentResponseSchema = z.object({
     establishmentId: z.uuid(),
     customerId: z.uuid(),
     vehicleId: z.uuid().nullable(),
-    service: z.object({
-      id: z.uuid(),
-      name: z.string(),
-      category: z.string().nullable(),
-      durationInMinutes: z.number().int().nullable(),
-      priceInCents: z.number().int(),
-    }),
+    services: z
+      .array(
+        z.object({
+          id: z.uuid(),
+          name: z.string(),
+          category: z.string().nullable(),
+          durationInMinutes: z.number().int().nullable(),
+          priceInCents: z.number().int(),
+        }),
+      )
+      .min(1),
     vehicle: z
       .object({
         plate: z.string().nullable(),
@@ -160,7 +164,7 @@ export function validVehiclePayload(overrides: VehiclePayloadOverrides = {}) {
 
 type AppointmentPayloadInput = {
   customerId: string;
-  serviceId: string;
+  serviceIds: string[];
   vehicleId?: string | null;
   startsAt?: string;
   endsAt?: string | null;
@@ -170,7 +174,7 @@ type AppointmentPayloadInput = {
 
 export function appointmentPayload({
   customerId,
-  serviceId,
+  serviceIds,
   vehicleId,
   startsAt = "2026-04-27T10:00:00.000Z",
   endsAt,
@@ -179,7 +183,7 @@ export function appointmentPayload({
 }: AppointmentPayloadInput) {
   return {
     customerId,
-    serviceId,
+    serviceIds,
     startsAt,
     ...(vehicleId !== undefined ? { vehicleId } : {}),
     ...(endsAt !== undefined ? { endsAt } : {}),

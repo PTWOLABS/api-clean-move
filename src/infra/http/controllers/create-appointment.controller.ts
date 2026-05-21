@@ -22,6 +22,7 @@ import z from "zod";
 
 import { CreateAppointmentUseCase } from "../../../modules/application/use-cases/appointment/create-appointment";
 import { InactiveServiceError } from "../../../modules/catalog/domain/errors/inactive-service-error";
+import { InvalidAppointmentInputError } from "../../../modules/scheduling/domain/errors/invalid-appointment-input-error";
 import { ResourceNotFoundError } from "../../../shared/errors/resource-not-found-error";
 import { UnexpectedDomainError } from "../../../shared/errors/unexpected-domain-error";
 import { AuthenticatedUser } from "../../auth/authenticated-user";
@@ -36,7 +37,7 @@ import { ZodValidationPipe } from "../pipes/zod-validation.pipe";
 
 const createAppointmentBodySchema = z.object({
   customerId: z.uuid(),
-  serviceId: z.uuid(),
+  serviceIds: z.array(z.uuid()).min(1),
   vehicleId: z.uuid().optional().nullable(),
   startsAt: z.coerce.date(),
   endsAt: z.coerce.date().optional().nullable(),
@@ -57,7 +58,7 @@ export class CreateAppointmentController {
   @ApiOperation({
     summary: "Create an appointment for the authenticated establishment.",
     description:
-      "Creates an operational appointment for an existing active customer and active service. The optional vehicle must belong to the selected customer. Overlapping appointments are allowed.",
+      "Creates an operational appointment for an existing active customer and one or more active services. The optional vehicle must belong to the selected customer. Overlapping appointments are allowed.",
   })
   @ApiBody({ type: CreateAppointmentBodyDto })
   @ApiCreatedResponse({
@@ -89,7 +90,7 @@ export class CreateAppointmentController {
     const result = await this.createAppointment.execute({
       establishmentOwnerId: user.userId,
       customerId: body.customerId,
-      serviceId: body.serviceId,
+      serviceIds: body.serviceIds,
       startsAt: body.startsAt,
       ...(body.vehicleId !== undefined ? { vehicleId: body.vehicleId } : {}),
       ...(body.endsAt !== undefined ? { endsAt: body.endsAt } : {}),
@@ -108,6 +109,8 @@ export class CreateAppointmentController {
         case ResourceNotFoundError:
           throw new NotFoundException(error.message);
         case InactiveServiceError:
+          throw new BadRequestException(error.message);
+        case InvalidAppointmentInputError:
           throw new BadRequestException(error.message);
         case UnexpectedDomainError:
           throw new InternalServerErrorException(error.message);

@@ -12,6 +12,14 @@ import { rethrowPrismaRepositoryError } from "../prisma-repository-error-handler
 import { PrismaUnitOfWork } from "../prisma-unit-of-work";
 import { PrismaService } from "../prisma.service";
 
+const bookedServicesInclude = {
+  bookedServices: {
+    orderBy: {
+      position: "asc" as const,
+    },
+  },
+} satisfies Prisma.AppointmentInclude;
+
 @Injectable()
 export class PrismaAppointmentsRepository implements AppointmentsRepository {
   constructor(private prisma: PrismaService) {}
@@ -95,8 +103,12 @@ export class PrismaAppointmentsRepository implements AppointmentsRepository {
 
     if (serviceName) {
       and.push({
-        bookedServiceName:
-          PrismaAppointmentsRepository.containsInsensitive(serviceName),
+        bookedServices: {
+          some: {
+            serviceName:
+              PrismaAppointmentsRepository.containsInsensitive(serviceName),
+          },
+        },
       });
     }
 
@@ -124,8 +136,12 @@ export class PrismaAppointmentsRepository implements AppointmentsRepository {
     if (search) {
       const searchOr: Prisma.AppointmentWhereInput[] = [
         {
-          bookedServiceName:
-            PrismaAppointmentsRepository.containsInsensitive(search),
+          bookedServices: {
+            some: {
+              serviceName:
+                PrismaAppointmentsRepository.containsInsensitive(search),
+            },
+          },
         },
         {
           vehicleBrand:
@@ -171,10 +187,24 @@ export class PrismaAppointmentsRepository implements AppointmentsRepository {
       establishmentId,
       ...(filters?.customerId ? { customerId: filters.customerId } : {}),
       ...(filters?.vehicleId ? { vehicleId: filters.vehicleId } : {}),
-      ...(filters?.serviceId ? { bookedServiceId: filters.serviceId } : {}),
+      ...(filters?.serviceId
+        ? {
+            bookedServices: {
+              some: {
+                serviceId: filters.serviceId,
+              },
+            },
+          }
+        : {}),
       ...PrismaAppointmentsRepository.buildStatusWhere(filters?.status),
       ...(filters?.categories?.length
-        ? { bookedServiceCategory: { in: filters.categories } }
+        ? {
+            bookedServices: {
+              some: {
+                serviceCategory: { in: filters.categories },
+              },
+            },
+          }
         : {}),
       ...(filters?.startsAt || filters?.endsAt
         ? {
@@ -185,6 +215,18 @@ export class PrismaAppointmentsRepository implements AppointmentsRepository {
           }
         : {}),
       ...PrismaAppointmentsRepository.buildTextWhere(filters),
+    };
+  }
+
+  private static buildBookedServiceWhere(
+    establishmentId: string,
+    filters?: AppointmentFilters,
+  ): Prisma.AppointmentBookedServiceWhereInput {
+    return {
+      appointment: PrismaAppointmentsRepository.buildWhere(
+        establishmentId,
+        filters,
+      ),
     };
   }
 
@@ -208,6 +250,7 @@ export class PrismaAppointmentsRepository implements AppointmentsRepository {
         where: {
           id,
         },
+        include: bookedServicesInclude,
       });
 
       if (!appointment) {
@@ -232,6 +275,7 @@ export class PrismaAppointmentsRepository implements AppointmentsRepository {
           id,
           establishmentId,
         },
+        include: bookedServicesInclude,
       });
 
       if (!appointment) {
@@ -259,6 +303,7 @@ export class PrismaAppointmentsRepository implements AppointmentsRepository {
           establishmentId,
           filters,
         ),
+        include: bookedServicesInclude,
         orderBy: {
           startsAt: "asc",
         },
@@ -280,7 +325,7 @@ export class PrismaAppointmentsRepository implements AppointmentsRepository {
   ): Promise<PopularServiceUsageMetrics> {
     const page = filters?.page ?? 1;
     const size = filters?.size ?? 20;
-    const where = PrismaAppointmentsRepository.buildWhere(
+    const where = PrismaAppointmentsRepository.buildBookedServiceWhere(
       establishmentId,
       filters,
     );
@@ -289,9 +334,9 @@ export class PrismaAppointmentsRepository implements AppointmentsRepository {
       const client = PrismaUnitOfWork.getClient(this.prisma);
 
       const [totalUsages, popularServices] = await Promise.all([
-        client.appointment.count({ where }),
-        client.appointment.groupBy({
-          by: ["bookedServiceId", "bookedServiceName"],
+        client.appointmentBookedService.count({ where }),
+        client.appointmentBookedService.groupBy({
+          by: ["serviceId", "serviceName"],
           where,
           _count: {
             _all: true,
@@ -299,14 +344,14 @@ export class PrismaAppointmentsRepository implements AppointmentsRepository {
           orderBy: [
             {
               _count: {
-                bookedServiceId: "desc",
+                serviceId: "desc",
               },
             },
             {
-              bookedServiceName: "asc",
+              serviceName: "asc",
             },
             {
-              bookedServiceId: "asc",
+              serviceId: "asc",
             },
           ],
           skip: (page - 1) * size,
@@ -316,8 +361,8 @@ export class PrismaAppointmentsRepository implements AppointmentsRepository {
 
       return {
         items: popularServices.map((service) => ({
-          serviceId: service.bookedServiceId,
-          serviceName: service.bookedServiceName,
+          serviceId: service.serviceId,
+          serviceName: service.serviceName,
           usageCount: service._count._all,
         })),
         totalUsages,

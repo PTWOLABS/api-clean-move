@@ -13,13 +13,16 @@ export function makeAppointment(
       establishmentId: new UniqueEntityId(),
       customerId: new UniqueEntityId(),
       vehicleId: null,
-      service: {
-        serviceId: new UniqueEntityId(),
-        serviceName: "Lavagem simples",
-        category: "WASH",
-        durationInMinutes: 60,
-        priceInCents: 30000,
-      },
+      services: [
+        {
+          serviceId: new UniqueEntityId(),
+          serviceName: "Lavagem simples",
+          category: "WASH",
+          durationInMinutes: 60,
+          priceInCents: 30000,
+        },
+      ],
+
       vehicle: null,
       startsAt: new Date("2026-04-06T10:00:00"),
       endsAt: new Date("2026-04-06T11:00:00"),

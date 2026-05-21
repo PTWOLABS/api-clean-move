@@ -1,19 +1,20 @@
 import { Appointment } from "../../../modules/scheduling/domain/entities/appointment";
+import { AppointmentItemDTO } from "../contracts/appointment.dto";
 
 export class AppointmentPresenter {
-  static toHTTP(appointment: Appointment) {
+  static toHTTP(appointment: Appointment): AppointmentItemDTO {
     return {
       id: appointment.id.toString(),
       establishmentId: appointment.establishmentId.toString(),
       customerId: appointment.customerId.toString(),
       vehicleId: appointment.vehicleId?.toString() ?? null,
-      service: {
-        id: appointment.service.serviceId.toString(),
-        name: appointment.service.serviceName,
-        category: appointment.service.category ?? null,
-        durationInMinutes: appointment.service.durationInMinutes ?? null,
-        priceInCents: appointment.service.priceInCents,
-      },
+      services: appointment.services.map((service) => ({
+        id: service.serviceId.toString(),
+        name: service.serviceName,
+        category: service.category ?? null,
+        durationInMinutes: service.durationInMinutes ?? null,
+        priceInCents: service.priceInCents,
+      })),
       vehicle: appointment.vehicle
         ? {
             plate: appointment.vehicle.plate,

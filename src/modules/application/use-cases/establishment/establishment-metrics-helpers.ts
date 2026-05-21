@@ -58,8 +58,9 @@ export async function findAllAppointmentsByEstablishment(
 
 export function getAppointmentNetRevenueInCents(appointment: Appointment) {
   const discountInCents = appointment.discountInCents?.amountInCents ?? 0;
+  const gross = Appointment.totalServicesPriceInCents(appointment.services);
 
-  return Math.max(appointment.service.priceInCents - discountInCents, 0);
+  return Math.max(gross - discountInCents, 0);
 }
 
 export function filterAppointmentsByMetrics(
@@ -83,9 +84,12 @@ export function filterAppointmentsByMetrics(
     }
 
     if (filters?.categories?.length) {
-      const serviceCategory = appointment.service.category;
+      const hasMatchingCategory = appointment.services.some(
+        (service) =>
+          service.category && filters.categories!.includes(service.category),
+      );
 
-      if (!serviceCategory || !filters.categories.includes(serviceCategory)) {
+      if (!hasMatchingCategory) {
         return false;
       }
     }

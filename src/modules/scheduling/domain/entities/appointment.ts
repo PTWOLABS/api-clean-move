@@ -4,6 +4,7 @@ import { AggregateRoot } from "../../../../shared/entities/aggregate-root";
 import { UniqueEntityId } from "../../../../shared/entities/unique-entity-id";
 import { Optional } from "../../../../shared/types/optional";
 import { InvalidAppointmentInputError } from "../errors/invalid-appointment-input-error";
+import { BookedServiceSnapshot } from "../value-objects/booked-service-snapshot";
 
 export type AppointmentStatus = "SCHEDULED" | "DONE" | "CANCELLED";
 
@@ -27,7 +28,7 @@ export type AppointmentProps = {
   establishmentId: UniqueEntityId;
   customerId: UniqueEntityId;
   vehicleId: UniqueEntityId | null;
-  service: AppointmentServiceSnapshot;
+  services: AppointmentServiceSnapshot[];
   vehicle: AppointmentVehicleSnapshot;
   startsAt: Date;
   endsAt: Date | null;
@@ -58,8 +59,8 @@ export class Appointment extends AggregateRoot<AppointmentProps> {
     return this.props.vehicleId;
   }
 
-  get service() {
-    return this.props.service;
+  get services() {
+    return this.props.services;
   }
 
   get vehicle() {
@@ -100,6 +101,10 @@ export class Appointment extends AggregateRoot<AppointmentProps> {
 
   get cancelledAt() {
     return this.props.cancelledAt;
+  }
+
+  static totalServicesPriceInCents(services: AppointmentServiceSnapshot[]) {
+    return services.reduce((total, service) => total + service.priceInCents, 0);
   }
 
   static create(props: AppointmentCreateProps, id?: UniqueEntityId) {
@@ -165,6 +170,34 @@ export class Appointment extends AggregateRoot<AppointmentProps> {
       this.props.cancelledAt,
       "cancelledAt must be a valid date.",
     );
+
+    if (this.props.services.length === 0) {
+      throw new InvalidAppointmentInputError(
+        "At least one service is required.",
+      );
+    }
+
+    const serviceIds = new Set<string>();
+
+    for (const service of this.props.services) {
+      const serviceId = service.serviceId.toString();
+
+      if (serviceIds.has(serviceId)) {
+        throw new InvalidAppointmentInputError(
+          "Duplicate services are not allowed in the same appointment.",
+        );
+      }
+
+      serviceIds.add(serviceId);
+
+      BookedServiceSnapshot.create({
+        serviceId: service.serviceId,
+        serviceName: service.serviceName,
+        category: service.category,
+        durationInMinutes: service.durationInMinutes,
+        priceInCents: service.priceInCents,
+      });
+    }
 
     if (
       this.props.endsAt &&

@@ -5,7 +5,11 @@ import { ResourceNotFoundError } from "../../../../shared/errors/resource-not-fo
 import { UnexpectedDomainError } from "../../../../shared/errors/unexpected-domain-error";
 import { InactiveServiceError } from "../../../catalog/domain/errors/inactive-service-error";
 import { Money } from "../../../catalog/domain/value-objects/money";
-import { Appointment } from "../../../scheduling/domain/entities/appointment";
+import {
+  Appointment,
+  AppointmentServiceSnapshot,
+} from "../../../scheduling/domain/entities/appointment";
+import { InvalidAppointmentInputError } from "../../../scheduling/domain/errors/invalid-appointment-input-error";
 import { AppointmentsRepository } from "../../repositories/appointments-repository";
 import { CustomerVehiclesRepository } from "../../repositories/customer-vehicles-repository";
 import { CustomersRepository } from "../../repositories/customers-repository";
@@ -15,7 +19,7 @@ import { ServicesRepository } from "../../repositories/services-repository";
 type CreateAppointmentUseCaseRequest = {
   establishmentOwnerId: string;
   customerId: string;
-  serviceId: string;
+  serviceIds: string[];
   vehicleId?: string | null;
   startsAt: Date;
   endsAt?: Date | null;
@@ -24,7 +28,10 @@ type CreateAppointmentUseCaseRequest = {
 };
 
 type CreateAppointmentUseCaseResponse = Either<
-  ResourceNotFoundError | InactiveServiceError | UnexpectedDomainError,
+  | ResourceNotFoundError
+  | InactiveServiceError
+  | InvalidAppointmentInputError
+  | UnexpectedDomainError,
   {
     appointment: Appointment;
   }
@@ -43,13 +50,21 @@ export class CreateAppointmentUseCase {
   async execute({
     establishmentOwnerId,
     customerId,
-    serviceId,
+    serviceIds,
     vehicleId = null,
     startsAt,
     endsAt = null,
     description = null,
     discountInCents = null,
   }: CreateAppointmentUseCaseRequest): Promise<CreateAppointmentUseCaseResponse> {
+    if (new Set(serviceIds).size !== serviceIds.length) {
+      return left(
+        new InvalidAppointmentInputError(
+          "Duplicate services are not allowed in the same appointment.",
+        ),
+      );
+    }
+
     const establishment =
       await this.establishmentsRepository.findByOwnerId(establishmentOwnerId);
 
@@ -66,22 +81,34 @@ export class CreateAppointmentUseCase {
       return left(new ResourceNotFoundError({ resource: "customer" }));
     }
 
-    const service =
-      await this.servicesRepository.findByServiceIdAndEstablishmentId(
-        serviceId,
-        establishment.id.toString(),
-      );
+    const services: AppointmentServiceSnapshot[] = [];
 
-    if (!service) {
-      return left(new ResourceNotFoundError({ resource: "service" }));
-    }
+    for (const serviceId of serviceIds) {
+      const service =
+        await this.servicesRepository.findByServiceIdAndEstablishmentId(
+          serviceId,
+          establishment.id.toString(),
+        );
 
-    if (service.isDeleted()) {
-      return left(new ResourceNotFoundError({ resource: "service" }));
-    }
+      if (!service) {
+        return left(new ResourceNotFoundError({ resource: "service" }));
+      }
 
-    if (!service.isActive) {
-      return left(new InactiveServiceError(service.serviceName.value));
+      if (service.isDeleted()) {
+        return left(new ResourceNotFoundError({ resource: "service" }));
+      }
+
+      if (!service.isActive) {
+        return left(new InactiveServiceError(service.serviceName.value));
+      }
+
+      services.push({
+        serviceId: service.id,
+        serviceName: service.serviceName.value,
+        category: service.category,
+        durationInMinutes: service.estimatedDuration?.upperBoundInMinutes,
+        priceInCents: service.price.amountInCents,
+      });
     }
 
     const vehicle = vehicleId
@@ -103,13 +130,7 @@ export class CreateAppointmentUseCase {
         establishmentId: establishment.id,
         customerId: customer.id,
         vehicleId: vehicle?.id ?? null,
-        service: {
-          serviceId: service.id,
-          serviceName: service.serviceName.value,
-          category: service.category,
-          durationInMinutes: service.estimatedDuration?.upperBoundInMinutes,
-          priceInCents: service.price.amountInCents,
-        },
+        services,
         vehicle: vehicle
           ? {
               plate: vehicle.plate,

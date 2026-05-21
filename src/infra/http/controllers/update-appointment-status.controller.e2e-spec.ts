@@ -67,7 +67,7 @@ describe("UpdateAppointmentStatusController (e2e)", () => {
       .send(
         appointmentPayload({
           customerId: customer.id.toString(),
-          serviceId: service.id.toString(),
+          serviceIds: [service.id.toString()],
         }),
       );
 

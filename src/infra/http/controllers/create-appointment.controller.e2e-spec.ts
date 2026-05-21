@@ -27,13 +27,17 @@ const appointmentResponseSchema = z.object({
     establishmentId: z.uuid(),
     customerId: z.uuid(),
     vehicleId: z.uuid().nullable(),
-    service: z.object({
-      id: z.uuid(),
-      name: z.string(),
-      category: z.string().nullable(),
-      durationInMinutes: z.number().int().nullable(),
-      priceInCents: z.number().int(),
-    }),
+    services: z
+      .array(
+        z.object({
+          id: z.uuid(),
+          name: z.string(),
+          category: z.string().nullable(),
+          durationInMinutes: z.number().int().nullable(),
+          priceInCents: z.number().int(),
+        }),
+      )
+      .min(1),
     vehicle: z
       .object({
         plate: z.string().nullable(),
@@ -61,7 +65,7 @@ const listAppointmentsResponseSchema = z.object({
 
 function appointmentPayload({
   customerId,
-  serviceId,
+  serviceIds,
   vehicleId,
   startsAt = "2026-04-27T10:00:00.000Z",
   endsAt,
@@ -69,7 +73,7 @@ function appointmentPayload({
   discountInCents,
 }: {
   customerId: string;
-  serviceId: string;
+  serviceIds: string[];
   vehicleId?: string | null;
   startsAt?: string;
   endsAt?: string | null;
@@ -78,7 +82,7 @@ function appointmentPayload({
 }) {
   return {
     customerId,
-    serviceId,
+    serviceIds,
     startsAt,
     ...(vehicleId !== undefined ? { vehicleId } : {}),
     ...(endsAt !== undefined ? { endsAt } : {}),
@@ -138,7 +142,7 @@ describe("Appointment controllers (e2e)", () => {
       .send(
         appointmentPayload({
           customerId: customer.id.toString(),
-          serviceId: service.id.toString(),
+          serviceIds: [service.id.toString()],
         }),
       );
     const responseBody = appointmentResponseSchema.parse(response.body);
@@ -148,7 +152,9 @@ describe("Appointment controllers (e2e)", () => {
       establishment.id.toString(),
     );
     expect(responseBody.appointment.customerId).toBe(customer.id.toString());
-    expect(responseBody.appointment.service.id).toBe(service.id.toString());
+    expect(responseBody.appointment.services[0]?.id).toBe(
+      service.id.toString(),
+    );
     expect(responseBody.appointment.endsAt).toBeNull();
     expect(responseBody.appointment.status).toBe("SCHEDULED");
   });
@@ -186,7 +192,7 @@ describe("Appointment controllers (e2e)", () => {
       .send(
         appointmentPayload({
           customerId: customer.id.toString(),
-          serviceId: service.id.toString(),
+          serviceIds: [service.id.toString()],
           vehicleId: vehicle.id,
           endsAt: "2026-04-27T11:00:00.000Z",
           description: "Lavagem completa",
@@ -225,7 +231,7 @@ describe("Appointment controllers (e2e)", () => {
     });
     const payload = appointmentPayload({
       customerId: customer.id.toString(),
-      serviceId: service.id.toString(),
+      serviceIds: [service.id.toString()],
     });
 
     const firstResponse = await request(getHttpServer(app))
@@ -269,7 +275,7 @@ describe("Appointment controllers (e2e)", () => {
       .send(
         appointmentPayload({
           customerId: customer.id.toString(),
-          serviceId: service.id.toString(),
+          serviceIds: [service.id.toString()],
         }),
       );
     const appointmentId = appointmentResponseSchema.parse(createResponse.body)
@@ -283,7 +289,7 @@ describe("Appointment controllers (e2e)", () => {
             .send(
               appointmentPayload({
                 customerId: customer.id.toString(),
-                serviceId: service.id.toString(),
+                serviceIds: [service.id.toString()],
                 startsAt: "2026-04-27T12:00:00.000Z",
               }),
             ),
@@ -294,7 +300,7 @@ describe("Appointment controllers (e2e)", () => {
             .send(
               appointmentPayload({
                 customerId: customer.id.toString(),
-                serviceId: service.id.toString(),
+                serviceIds: [service.id.toString()],
                 startsAt: "2026-04-27T12:00:00.000Z",
               }),
             ),
@@ -362,7 +368,7 @@ describe("Appointment controllers (e2e)", () => {
       .send(
         appointmentPayload({
           customerId: "not-a-uuid",
-          serviceId: service.id.toString(),
+          serviceIds: [service.id.toString()],
         }),
       );
     const invalidDateResponse = await request(getHttpServer(app))
@@ -371,7 +377,7 @@ describe("Appointment controllers (e2e)", () => {
       .send(
         appointmentPayload({
           customerId: customer.id.toString(),
-          serviceId: service.id.toString(),
+          serviceIds: [service.id.toString()],
           startsAt: "not-a-date",
         }),
       );
@@ -381,7 +387,7 @@ describe("Appointment controllers (e2e)", () => {
       .send(
         appointmentPayload({
           customerId: customer.id.toString(),
-          serviceId: service.id.toString(),
+          serviceIds: [service.id.toString()],
           startsAt: "2026-04-27T10:00:00.000Z",
           endsAt: "2026-04-27T09:00:00.000Z",
         }),
@@ -392,7 +398,7 @@ describe("Appointment controllers (e2e)", () => {
       .send(
         appointmentPayload({
           customerId: customer.id.toString(),
-          serviceId: service.id.toString(),
+          serviceIds: [service.id.toString()],
           discountInCents: -1,
         }),
       );
@@ -472,7 +478,7 @@ describe("Appointment controllers (e2e)", () => {
       .send(
         appointmentPayload({
           customerId: deletedCustomer.id.toString(),
-          serviceId: service.id.toString(),
+          serviceIds: [service.id.toString()],
         }),
       );
     const deletedVehicleResponse = await request(getHttpServer(app))
@@ -481,7 +487,7 @@ describe("Appointment controllers (e2e)", () => {
       .send(
         appointmentPayload({
           customerId: activeCustomer.id.toString(),
-          serviceId: service.id.toString(),
+          serviceIds: [service.id.toString()],
           vehicleId: deletedVehicle.id,
         }),
       );
@@ -491,7 +497,7 @@ describe("Appointment controllers (e2e)", () => {
       .send(
         appointmentPayload({
           customerId: activeCustomer.id.toString(),
-          serviceId: service.id.toString(),
+          serviceIds: [service.id.toString()],
           vehicleId: otherCustomerVehicle.id,
         }),
       );
@@ -522,7 +528,7 @@ describe("Appointment controllers (e2e)", () => {
       .send(
         appointmentPayload({
           customerId: customer.id.toString(),
-          serviceId: service.id.toString(),
+          serviceIds: [service.id.toString()],
         }),
       );
     const appointmentId = appointmentResponseSchema.parse(createResponse.body)
@@ -598,7 +604,7 @@ describe("Appointment controllers (e2e)", () => {
       .send(
         appointmentPayload({
           customerId: firstCustomer.id.toString(),
-          serviceId: firstService.id.toString(),
+          serviceIds: [firstService.id.toString()],
           vehicleId: vehicle.id,
           startsAt: "2026-04-27T10:00:00.000Z",
         }),
@@ -612,7 +618,7 @@ describe("Appointment controllers (e2e)", () => {
       .send(
         appointmentPayload({
           customerId: firstCustomer.id.toString(),
-          serviceId: secondService.id.toString(),
+          serviceIds: [secondService.id.toString()],
           startsAt: "2026-04-27T12:00:00.000Z",
         }),
       );
@@ -625,7 +631,7 @@ describe("Appointment controllers (e2e)", () => {
       .send(
         appointmentPayload({
           customerId: secondCustomer.id.toString(),
-          serviceId: firstService.id.toString(),
+          serviceIds: [firstService.id.toString()],
           startsAt: "2026-04-28T10:00:00.000Z",
         }),
       );
@@ -739,7 +745,7 @@ describe("Appointment controllers (e2e)", () => {
       .send(
         appointmentPayload({
           customerId: customer.id.toString(),
-          serviceId: service.id.toString(),
+          serviceIds: [service.id.toString()],
         }),
       );
     const appointmentId = appointmentResponseSchema.parse(createResponse.body)
@@ -751,7 +757,7 @@ describe("Appointment controllers (e2e)", () => {
       .send(
         appointmentPayload({
           customerId: customer.id.toString(),
-          serviceId: service.id.toString(),
+          serviceIds: [service.id.toString()],
           startsAt: "2026-04-27T12:00:00.000Z",
         }),
       );

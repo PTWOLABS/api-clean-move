@@ -226,13 +226,15 @@ describe("Dashboard metrics controller (e2e)", () => {
           establishmentId,
           customerId,
           status,
-          service: {
-            serviceId: service.id,
-            serviceName: serviceName ?? service.serviceName.value,
-            category: service.category,
-            durationInMinutes: service.estimatedDuration?.upperBoundInMinutes,
-            priceInCents,
-          },
+          services: [
+            {
+              serviceId: service.id,
+              serviceName: serviceName ?? service.serviceName.value,
+              category: service.category,
+              durationInMinutes: service.estimatedDuration?.upperBoundInMinutes,
+              priceInCents,
+            },
+          ],
           discountInCents:
             discountInCents !== undefined
               ? Money.create(discountInCents)
