@@ -646,11 +646,18 @@ async function seedAppointments({
           establishmentId,
           customerId: customer.id,
           vehicleId: appointmentIndex % 6 === 0 ? null : vehicle.id,
-          bookedServiceId: service.id,
-          bookedServiceName: service.serviceName,
-          bookedServiceCategory: service.category,
-          bookedServiceDurationInMinutes: durationInMinutes,
-          bookedServicePriceInCents: service.priceInCents,
+          bookedServices: {
+            create: [
+              {
+                serviceId: service.id,
+                serviceName: service.serviceName,
+                serviceCategory: service.category,
+                serviceDurationInMinutes: durationInMinutes,
+                servicePriceInCents: service.priceInCents,
+                position: 0,
+              },
+            ],
+          },
           vehiclePlate: appointmentIndex % 6 === 0 ? null : vehicle.plate,
           vehicleBrand: appointmentIndex % 6 === 0 ? null : vehicle.brand,
           vehicleModel: appointmentIndex % 6 === 0 ? null : vehicle.model,
