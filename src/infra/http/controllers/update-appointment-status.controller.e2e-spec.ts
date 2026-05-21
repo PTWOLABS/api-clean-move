@@ -14,7 +14,10 @@ import {
   makeCustomerAuth,
   makeEstablishmentAuth,
 } from "../../../../tests/helpers/establishment-operated-scheduling.e2e-helpers";
-import { getHttpServer } from "../../../../tests/helpers/auth-session.e2e-helpers";
+import {
+  getHttpServer,
+  makeEmployeeAccessToken,
+} from "../../../../tests/helpers/auth-session.e2e-helpers";
 import { HashGenerator } from "../../../modules/application/repositories/hash-generator";
 import { AppModule } from "../../app.module";
 import { PrismaService } from "../../database/prisma/prisma.service";
@@ -210,5 +213,152 @@ describe("UpdateAppointmentStatusController (e2e)", () => {
 
     expect(crossEstablishmentResponse.status).toBe(404);
     expect(missingAppointmentResponse.status).toBe(404);
+  });
+
+  it("should allow employee with update appointments feature to mark done", async () => {
+    const owner = await makeEstablishmentAuth({
+      app,
+      prisma,
+      userFactory,
+      establishmentFactory,
+      envService,
+    });
+    const employee = await makeEmployeeAccessToken({
+      app,
+      prisma,
+      userFactory,
+      establishmentFactory,
+      establishment: owner.establishment,
+      extraFeatures: ["update:appointments"],
+    });
+    const appointment = await createAppointment(
+      owner.accessToken,
+      owner.establishment.id,
+    );
+
+    const response = await request(getHttpServer(app))
+      .patch(`/appointments/${appointment.id}/status`)
+      .set("Authorization", `Bearer ${employee.accessToken}`)
+      .send({ status: "DONE" });
+    const body = appointmentResponseSchema.parse(response.body);
+
+    expect(response.status).toBe(200);
+    expect(body.appointment.status).toBe("DONE");
+  });
+
+  it("should allow employee with delete appointments feature to cancel", async () => {
+    const owner = await makeEstablishmentAuth({
+      app,
+      prisma,
+      userFactory,
+      establishmentFactory,
+      envService,
+    });
+    const employee = await makeEmployeeAccessToken({
+      app,
+      prisma,
+      userFactory,
+      establishmentFactory,
+      establishment: owner.establishment,
+      extraFeatures: ["delete:appointments"],
+    });
+    const appointment = await createAppointment(
+      owner.accessToken,
+      owner.establishment.id,
+    );
+
+    const response = await request(getHttpServer(app))
+      .patch(`/appointments/${appointment.id}/status`)
+      .set("Authorization", `Bearer ${employee.accessToken}`)
+      .send({ status: "CANCELLED" });
+    const body = appointmentResponseSchema.parse(response.body);
+
+    expect(response.status).toBe(200);
+    expect(body.appointment.status).toBe("CANCELLED");
+  });
+
+  it("should reject employee without update appointments feature", async () => {
+    const owner = await makeEstablishmentAuth({
+      app,
+      prisma,
+      userFactory,
+      establishmentFactory,
+      envService,
+    });
+    const employee = await makeEmployeeAccessToken({
+      app,
+      prisma,
+      userFactory,
+      establishmentFactory,
+      establishment: owner.establishment,
+    });
+    const appointment = await createAppointment(
+      owner.accessToken,
+      owner.establishment.id,
+    );
+
+    const response = await request(getHttpServer(app))
+      .patch(`/appointments/${appointment.id}/status`)
+      .set("Authorization", `Bearer ${employee.accessToken}`)
+      .send({ status: "DONE" });
+
+    expect(response.status).toBe(403);
+  });
+
+  it("should reject employee without delete appointments feature when cancelling", async () => {
+    const owner = await makeEstablishmentAuth({
+      app,
+      prisma,
+      userFactory,
+      establishmentFactory,
+      envService,
+    });
+    const employee = await makeEmployeeAccessToken({
+      app,
+      prisma,
+      userFactory,
+      establishmentFactory,
+      establishment: owner.establishment,
+      extraFeatures: ["update:appointments"],
+    });
+    const appointment = await createAppointment(
+      owner.accessToken,
+      owner.establishment.id,
+    );
+
+    const response = await request(getHttpServer(app))
+      .patch(`/appointments/${appointment.id}/status`)
+      .set("Authorization", `Bearer ${employee.accessToken}`)
+      .send({ status: "CANCELLED" });
+
+    expect(response.status).toBe(403);
+  });
+
+  it("should not update appointments from another establishment as employee", async () => {
+    const firstOwner = await makeEstablishmentAuth({
+      app,
+      prisma,
+      userFactory,
+      establishmentFactory,
+      envService,
+    });
+    const employee = await makeEmployeeAccessToken({
+      app,
+      prisma,
+      userFactory,
+      establishmentFactory,
+      extraFeatures: ["update:appointments"],
+    });
+    const appointment = await createAppointment(
+      firstOwner.accessToken,
+      firstOwner.establishment.id,
+    );
+
+    const response = await request(getHttpServer(app))
+      .patch(`/appointments/${appointment.id}/status`)
+      .set("Authorization", `Bearer ${employee.accessToken}`)
+      .send({ status: "DONE" });
+
+    expect(response.status).toBe(404);
   });
 });

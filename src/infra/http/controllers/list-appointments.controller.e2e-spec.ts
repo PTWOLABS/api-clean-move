@@ -14,7 +14,10 @@ import {
   makeCustomerAuth,
   makeEstablishmentAuth,
 } from "../../../../tests/helpers/establishment-operated-scheduling.e2e-helpers";
-import { getHttpServer } from "../../../../tests/helpers/auth-session.e2e-helpers";
+import {
+  getHttpServer,
+  makeEmployeeAccessToken,
+} from "../../../../tests/helpers/auth-session.e2e-helpers";
 import { HashGenerator } from "../../../modules/application/repositories/hash-generator";
 import { ServiceName } from "../../../modules/catalog/domain/value-objects/service-name";
 import { AppModule } from "../../app.module";
@@ -414,5 +417,47 @@ describe("ListAppointmentsController (e2e)", () => {
 
     expect(response.status).toBe(200);
     expect(body.appointments).toHaveLength(0);
+  });
+
+  it("should allow employee with read appointments feature", async () => {
+    const owner = await makeEstablishmentAuth({
+      app,
+      prisma,
+      userFactory,
+      establishmentFactory,
+      envService,
+    });
+    const employee = await makeEmployeeAccessToken({
+      app,
+      prisma,
+      userFactory,
+      establishmentFactory,
+      establishment: owner.establishment,
+    });
+    const customer = await customerFactory.makePrismaCustomer({
+      establishmentId: owner.establishment.id,
+      cpfCnpj: null,
+    });
+    const service = await serviceFactory.makePrismaService({
+      establishmentId: owner.establishment.id,
+    });
+
+    await request(getHttpServer(app))
+      .post("/appointments")
+      .set("Authorization", `Bearer ${owner.accessToken}`)
+      .send(
+        appointmentPayload({
+          customerId: customer.id.toString(),
+          serviceIds: [service.id.toString()],
+        }),
+      );
+
+    const response = await request(getHttpServer(app))
+      .get("/appointments")
+      .set("Authorization", `Bearer ${employee.accessToken}`);
+    const body = listAppointmentsResponseSchema.parse(response.body);
+
+    expect(response.status).toBe(200);
+    expect(body.appointments).toHaveLength(1);
   });
 });

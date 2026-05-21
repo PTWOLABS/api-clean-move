@@ -5,8 +5,11 @@ import z from "zod";
 
 import { PrismaService } from "../../src/infra/database/prisma/prisma.service";
 import { EnvService } from "../../src/infra/env/env.service";
+import { EmployeeFactory } from "../factories/employee-factory";
 import { EstablishmentFactory } from "../factories/establishment-factory";
 import { UserFactory } from "../factories/user-factory";
+import { Establishment } from "../../src/modules/establishments/domain/entities/establishment";
+import { ExtraEmployeeFeature } from "../../src/modules/employees/domain/policies/employee-features-policy";
 
 export const authResponseSchema = z.object({
   userId: z.uuid(),
@@ -109,6 +112,12 @@ type EstablishmentAuthInput = UserAuthInput & {
   envService: EnvService;
 };
 
+type EmployeeAuthInput = UserAuthInput & {
+  establishmentFactory: EstablishmentFactory;
+  establishment?: Establishment;
+  extraFeatures?: ExtraEmployeeFeature[];
+};
+
 export async function makeEstablishmentAuth({
   app,
   prisma,
@@ -195,7 +204,55 @@ export async function makeEstablishmentUserWithoutProfileAuth({
   };
 }
 
+export async function makeEmployeeAuth({
+  app,
+  prisma,
+  userFactory,
+  establishmentFactory,
+  establishment: existingEstablishment,
+  extraFeatures = [],
+}: EmployeeAuthInput) {
+  const establishment =
+    existingEstablishment ??
+    (await (async () => {
+      const { user } = await userFactory.makePrismaUser({
+        role: "ESTABLISHMENT",
+        plainPassword: "strong-password",
+      });
+
+      return establishmentFactory.makePrismaEstablishment({
+        ownerId: user.id,
+      });
+    })());
+
+  const { user, plainPassword } = await userFactory.makePrismaUser({
+    role: "EMPLOYEE",
+    plainPassword: "strong-password",
+  });
+  const employeeFactory = new EmployeeFactory(prisma);
+  const employee = await employeeFactory.makePrismaEmployee({
+    establishmentId: establishment.id,
+    userId: user.id,
+    extraFeatures,
+  });
+  const login = await loginUser({
+    app,
+    prisma,
+    userId: user.id.toString(),
+    email: user.email.toString(),
+    password: plainPassword ?? "",
+  });
+
+  return {
+    accessToken: login.loginBody.accessToken,
+    establishment,
+    employee,
+    user,
+  };
+}
+
 export const makeEstablishmentAccessToken = makeEstablishmentAuth;
 export const makeCustomerAccessToken = makeCustomerAuth;
+export const makeEmployeeAccessToken = makeEmployeeAuth;
 export const makeEstablishmentUserWithoutProfileAccessToken =
   makeEstablishmentUserWithoutProfileAuth;

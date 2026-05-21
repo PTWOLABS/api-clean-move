@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 
 import { Either, left, right } from "../../../../shared/either";
+import { NotAllowedError } from "../../../../shared/errors/not-allowed-error";
 import { ResourceNotFoundError } from "../../../../shared/errors/resource-not-found-error";
 import { UnexpectedDomainError } from "../../../../shared/errors/unexpected-domain-error";
 import { InactiveServiceError } from "../../../catalog/domain/errors/inactive-service-error";
@@ -10,14 +11,18 @@ import {
   AppointmentServiceSnapshot,
 } from "../../../scheduling/domain/entities/appointment";
 import { InvalidAppointmentInputError } from "../../../scheduling/domain/errors/invalid-appointment-input-error";
+import { EmployeeFeaturesPolicy } from "../../../employees/domain/policies/employee-features-policy";
+import {
+  EstablishmentScopeActor,
+  EstablishmentScopeService,
+} from "../../services/establishment-scope";
 import { AppointmentsRepository } from "../../repositories/appointments-repository";
 import { CustomerVehiclesRepository } from "../../repositories/customer-vehicles-repository";
 import { CustomersRepository } from "../../repositories/customers-repository";
-import { EstablishmentsRepository } from "../../repositories/establishment-repository";
 import { ServicesRepository } from "../../repositories/services-repository";
 
 type CreateAppointmentUseCaseRequest = {
-  establishmentOwnerId: string;
+  actor: EstablishmentScopeActor;
   customerId: string;
   serviceIds: string[];
   vehicleId?: string | null;
@@ -29,6 +34,7 @@ type CreateAppointmentUseCaseRequest = {
 
 type CreateAppointmentUseCaseResponse = Either<
   | ResourceNotFoundError
+  | NotAllowedError
   | InactiveServiceError
   | InvalidAppointmentInputError
   | UnexpectedDomainError,
@@ -43,12 +49,12 @@ export class CreateAppointmentUseCase {
     private appointmentsRepository: AppointmentsRepository,
     private customersRepository: CustomersRepository,
     private customerVehiclesRepository: CustomerVehiclesRepository,
-    private establishmentsRepository: EstablishmentsRepository,
+    private establishmentScope: EstablishmentScopeService,
     private servicesRepository: ServicesRepository,
   ) {}
 
   async execute({
-    establishmentOwnerId,
+    actor,
     customerId,
     serviceIds,
     vehicleId = null,
@@ -65,11 +71,22 @@ export class CreateAppointmentUseCase {
       );
     }
 
-    const establishment =
-      await this.establishmentsRepository.findByOwnerId(establishmentOwnerId);
+    const scopeResult = await this.establishmentScope.resolve(actor);
 
-    if (!establishment) {
-      return left(new ResourceNotFoundError({ resource: "establishment" }));
+    if (scopeResult.isLeft()) {
+      return left(scopeResult.value);
+    }
+
+    const { establishment, employee } = scopeResult.value;
+
+    if (employee) {
+      if (
+        !EmployeeFeaturesPolicy.hasAll(employee.features, [
+          "create:appointments",
+        ])
+      ) {
+        return left(new NotAllowedError());
+      }
     }
 
     const customer = await this.customersRepository.findByIdAndEstablishmentId(

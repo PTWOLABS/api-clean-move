@@ -12,6 +12,7 @@ import { UserFactory } from "../../../../tests/factories/user-factory";
 import {
   getHttpServer,
   makeCustomerAccessToken,
+  makeEmployeeAccessToken,
   makeEstablishmentAccessToken,
 } from "../../../../tests/helpers/auth-session.e2e-helpers";
 import { HashGenerator } from "../../../modules/application/repositories/hash-generator";
@@ -776,5 +777,104 @@ describe("Appointment controllers (e2e)", () => {
     expect(crossEstablishmentListResponse.status).toBe(200);
     expect(crossEstablishmentListBody.appointments).toHaveLength(0);
     expect(crossEstablishmentUpdateResponse.status).toBe(404);
+  });
+
+  it("should allow employee with create appointments feature", async () => {
+    const { accessToken, establishment } = await makeEmployeeAccessToken({
+      app,
+      prisma,
+      userFactory,
+      establishmentFactory,
+      extraFeatures: ["create:appointments"],
+    });
+    const customer = await customerFactory.makePrismaCustomer({
+      establishmentId: establishment.id,
+      cpfCnpj: null,
+    });
+    const service = await serviceFactory.makePrismaService({
+      establishmentId: establishment.id,
+    });
+
+    const response = await request(getHttpServer(app))
+      .post("/appointments")
+      .set("Authorization", `Bearer ${accessToken}`)
+      .send(
+        appointmentPayload({
+          customerId: customer.id.toString(),
+          serviceIds: [service.id.toString()],
+        }),
+      );
+
+    expect(response.status).toBe(201);
+    expect(appointmentResponseSchema.parse(response.body).appointment).toEqual(
+      expect.objectContaining({
+        establishmentId: establishment.id.toString(),
+        customerId: customer.id.toString(),
+      }),
+    );
+  });
+
+  it("should reject employee without create appointments feature", async () => {
+    const { accessToken, establishment } = await makeEmployeeAccessToken({
+      app,
+      prisma,
+      userFactory,
+      establishmentFactory,
+    });
+    const customer = await customerFactory.makePrismaCustomer({
+      establishmentId: establishment.id,
+      cpfCnpj: null,
+    });
+    const service = await serviceFactory.makePrismaService({
+      establishmentId: establishment.id,
+    });
+
+    const response = await request(getHttpServer(app))
+      .post("/appointments")
+      .set("Authorization", `Bearer ${accessToken}`)
+      .send(
+        appointmentPayload({
+          customerId: customer.id.toString(),
+          serviceIds: [service.id.toString()],
+        }),
+      );
+
+    expect(response.status).toBe(403);
+  });
+
+  it("should reject employee creating appointment for another establishment customer", async () => {
+    const owner = await makeEstablishmentAccessToken({
+      app,
+      prisma,
+      userFactory,
+      establishmentFactory,
+      envService,
+    });
+    const employee = await makeEmployeeAccessToken({
+      app,
+      prisma,
+      userFactory,
+      establishmentFactory,
+      extraFeatures: ["create:appointments"],
+    });
+    const customer = await customerFactory.makePrismaCustomer({
+      establishmentId: owner.establishment.id,
+      cpfCnpj: null,
+    });
+    const service = await serviceFactory.makePrismaService({
+      establishmentId: owner.establishment.id,
+    });
+
+    const response = await request(getHttpServer(app))
+      .post("/appointments")
+      .set("Authorization", `Bearer ${employee.accessToken}`)
+      .send(
+        appointmentPayload({
+          customerId: customer.id.toString(),
+          serviceIds: [service.id.toString()],
+        }),
+      );
+
+    expect(response.status).toBe(404);
   });
 });

@@ -5,6 +5,7 @@ import { ListAppointmentsUseCase } from "../../modules/application/use-cases/app
 import { UpdateAppointmentStatusUseCase } from "../../modules/application/use-cases/appointment/update-appointment-status";
 import { AuthenticateWithOAuthUseCase } from "../../modules/application/use-cases/auth/authenticate-with-oauth";
 import { AuthSessionService } from "../../modules/application/services/auth-session.service";
+import { EstablishmentScopeService } from "../../modules/application/services/establishment-scope";
 import { LoginWithCredentialsUseCase } from "../../modules/application/use-cases/auth/login-with-credentials";
 import { RefreshSessionUseCase } from "../../modules/application/use-cases/auth/refresh-session";
 import { SignOutUseCase } from "../../modules/application/use-cases/auth/sign-out";
@@ -144,6 +145,7 @@ import { UploadVehicleImageController } from "./controllers/media/upload-vehicle
     DeleteEmployeeUseCase,
     UploadDomainImageUseCase,
     AuthSessionService,
+    EstablishmentScopeService,
     LoginWithCredentialsUseCase,
     RefreshSessionUseCase,
     SignOutUseCase,

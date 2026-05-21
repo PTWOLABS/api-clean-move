@@ -1,5 +1,6 @@
 import {
   Controller,
+  ForbiddenException,
   Get,
   InternalServerErrorException,
   NotFoundException,
@@ -20,10 +21,12 @@ import {
 import z from "zod";
 
 import { ListAppointmentsUseCase } from "../../../modules/application/use-cases/appointment/list-appointments";
+import { NotAllowedError } from "../../../shared/errors/not-allowed-error";
 import { ResourceNotFoundError } from "../../../shared/errors/resource-not-found-error";
 import { UnexpectedDomainError } from "../../../shared/errors/unexpected-domain-error";
 import { AuthenticatedUser } from "../../auth/authenticated-user";
 import { CurrentUser } from "../../auth/current-user";
+import { EmployeeFeatures } from "../../auth/employee-features";
 import { Roles } from "../../auth/roles";
 import { ListAppointmentsResponseDto } from "../docs/domain-swagger.dto";
 import { AppointmentPresenter } from "../presenters/appointment-presenter";
@@ -59,7 +62,8 @@ type ListAppointmentsQuerySchema = z.infer<typeof listAppointmentsQuerySchema>;
 @ApiTags("appointments")
 @ApiBearerAuth("access-token")
 @Controller("/appointments")
-@Roles(["ESTABLISHMENT"])
+@Roles(["ESTABLISHMENT", "EMPLOYEE"])
+@EmployeeFeatures(["read:appointments"])
 export class ListAppointmentsController {
   constructor(private readonly listAppointments: ListAppointmentsUseCase) {}
 
@@ -218,7 +222,8 @@ export class ListAppointmentsController {
     description: "Missing or invalid access token.",
   })
   @ApiForbiddenResponse({
-    description: "Authenticated user does not have the establishment role.",
+    description:
+      "Authenticated user does not have the required role or employee feature.",
   })
   @ApiNotFoundResponse({
     description:
@@ -233,7 +238,10 @@ export class ListAppointmentsController {
     query: ListAppointmentsQuerySchema,
   ) {
     const result = await this.listAppointments.execute({
-      establishmentOwnerId: user.userId,
+      actor: {
+        userId: user.userId,
+        role: user.role,
+      },
       filters: {
         ...(query.search !== undefined ? { search: query.search } : {}),
         ...(query.customerId !== undefined
@@ -275,6 +283,8 @@ export class ListAppointmentsController {
       const error = result.value;
 
       switch (error.constructor) {
+        case NotAllowedError:
+          throw new ForbiddenException(error.message);
         case ResourceNotFoundError:
           throw new NotFoundException(error.message);
         case UnexpectedDomainError:
