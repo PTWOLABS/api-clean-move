@@ -1,25 +1,34 @@
 import {
   Appointment as PrismaAppointmentRecord,
+  AppointmentBookedService as PrismaAppointmentBookedServiceRecord,
   Prisma,
 } from "../../../../generated/prisma/client";
 import { Money } from "../../../../modules/catalog/domain/value-objects/money";
 import { Appointment } from "../../../../modules/scheduling/domain/entities/appointment";
 import { UniqueEntityId } from "../../../../shared/entities/unique-entity-id";
 
+type PrismaAppointmentWithBookedServices = PrismaAppointmentRecord & {
+  bookedServices: PrismaAppointmentBookedServiceRecord[];
+};
+
 export class PrismaAppointmentMapper {
-  static toDomain(raw: PrismaAppointmentRecord): Appointment {
+  static toDomain(raw: PrismaAppointmentWithBookedServices): Appointment {
     return Appointment.create(
       {
         establishmentId: new UniqueEntityId(raw.establishmentId),
         customerId: new UniqueEntityId(raw.customerId),
         vehicleId: raw.vehicleId ? new UniqueEntityId(raw.vehicleId) : null,
-        service: {
-          serviceId: new UniqueEntityId(raw.bookedServiceId),
-          serviceName: raw.bookedServiceName,
-          category: raw.bookedServiceCategory ?? undefined,
-          durationInMinutes: raw.bookedServiceDurationInMinutes ?? undefined,
-          priceInCents: raw.bookedServicePriceInCents,
-        },
+        services: raw.bookedServices
+          .slice()
+          .sort((a, b) => a.position - b.position)
+          .map((bookedService) => ({
+            serviceId: new UniqueEntityId(bookedService.serviceId),
+            serviceName: bookedService.serviceName,
+            category: bookedService.serviceCategory ?? undefined,
+            durationInMinutes:
+              bookedService.serviceDurationInMinutes ?? undefined,
+            priceInCents: bookedService.servicePriceInCents,
+          })),
         vehicle: raw.vehicleId
           ? {
               plate: raw.vehiclePlate,
@@ -46,17 +55,28 @@ export class PrismaAppointmentMapper {
     );
   }
 
+  private static toBookedServicesCreate(
+    raw: Appointment,
+  ): Prisma.AppointmentBookedServiceUncheckedCreateWithoutAppointmentInput[] {
+    return raw.services.map((service, index) => ({
+      serviceId: service.serviceId.toString(),
+      serviceName: service.serviceName,
+      serviceCategory: service.category ?? null,
+      serviceDurationInMinutes: service.durationInMinutes ?? null,
+      servicePriceInCents: service.priceInCents,
+      position: index,
+    }));
+  }
+
   static toPrisma(raw: Appointment): Prisma.AppointmentUncheckedCreateInput {
     return {
       id: raw.id.toString(),
       establishmentId: raw.establishmentId.toString(),
       customerId: raw.customerId.toString(),
       vehicleId: raw.vehicleId?.toString() ?? null,
-      bookedServiceId: raw.service.serviceId.toString(),
-      bookedServiceName: raw.service.serviceName,
-      bookedServiceCategory: raw.service.category ?? null,
-      bookedServiceDurationInMinutes: raw.service.durationInMinutes ?? null,
-      bookedServicePriceInCents: raw.service.priceInCents,
+      bookedServices: {
+        create: PrismaAppointmentMapper.toBookedServicesCreate(raw),
+      },
       vehiclePlate: raw.vehicle?.plate ?? null,
       vehicleBrand: raw.vehicle?.brand ?? null,
       vehicleModel: raw.vehicle?.model ?? null,
@@ -79,11 +99,10 @@ export class PrismaAppointmentMapper {
   ): Prisma.AppointmentUncheckedUpdateInput {
     return {
       vehicleId: raw.vehicleId?.toString() ?? null,
-      bookedServiceId: raw.service.serviceId.toString(),
-      bookedServiceName: raw.service.serviceName,
-      bookedServiceCategory: raw.service.category ?? null,
-      bookedServiceDurationInMinutes: raw.service.durationInMinutes ?? null,
-      bookedServicePriceInCents: raw.service.priceInCents,
+      bookedServices: {
+        deleteMany: {},
+        create: PrismaAppointmentMapper.toBookedServicesCreate(raw),
+      },
       vehiclePlate: raw.vehicle?.plate ?? null,
       vehicleBrand: raw.vehicle?.brand ?? null,
       vehicleModel: raw.vehicle?.model ?? null,
