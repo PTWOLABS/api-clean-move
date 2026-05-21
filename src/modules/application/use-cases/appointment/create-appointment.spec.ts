@@ -49,7 +49,7 @@ describe("Create appointment", () => {
     const result = await sut.execute({
       establishmentOwnerId: establishment.ownerId.toString(),
       customerId: customer.id.toString(),
-      serviceId: service.id.toString(),
+      serviceIds: [service.id.toString()],
       startsAt: new Date("2026-04-27T10:00:00.000Z"),
     });
 
@@ -64,7 +64,7 @@ describe("Create appointment", () => {
     );
     expect(result.value.appointment.endsAt).toBeNull();
     expect(result.value.appointment.status).toBe("SCHEDULED");
-    expect(result.value.appointment.service.serviceId).toEqual(service.id);
+    expect(result.value.appointment.services[0]?.serviceId).toEqual(service.id);
   });
 
   it("should create an appointment with vehicle snapshot", async () => {
@@ -89,7 +89,7 @@ describe("Create appointment", () => {
     const result = await sut.execute({
       establishmentOwnerId: establishment.ownerId.toString(),
       customerId: customer.id.toString(),
-      serviceId: service.id.toString(),
+      serviceIds: [service.id.toString()],
       vehicleId: vehicle.id.toString(),
       startsAt: new Date("2026-04-27T10:00:00.000Z"),
       endsAt: new Date("2026-04-27T11:00:00.000Z"),
@@ -124,7 +124,7 @@ describe("Create appointment", () => {
     const result = await sut.execute({
       establishmentOwnerId: establishment.ownerId.toString(),
       customerId: customer.id.toString(),
-      serviceId: service.id.toString(),
+      serviceIds: [service.id.toString()],
       startsAt: new Date("2026-04-27T10:00:00.000Z"),
     });
 
@@ -150,7 +150,7 @@ describe("Create appointment", () => {
     const result = await sut.execute({
       establishmentOwnerId: establishment.ownerId.toString(),
       customerId: customer.id.toString(),
-      serviceId: service.id.toString(),
+      serviceIds: [service.id.toString()],
       vehicleId: vehicle.id.toString(),
       startsAt: new Date("2026-04-27T10:00:00.000Z"),
     });
@@ -181,7 +181,7 @@ describe("Create appointment", () => {
     const result = await sut.execute({
       establishmentOwnerId: establishment.ownerId.toString(),
       customerId: customer.id.toString(),
-      serviceId: service.id.toString(),
+      serviceIds: [service.id.toString()],
       vehicleId: vehicle.id.toString(),
       startsAt: new Date("2026-04-27T10:00:00.000Z"),
     });
@@ -205,7 +205,7 @@ describe("Create appointment", () => {
     const result = await sut.execute({
       establishmentOwnerId: establishment.ownerId.toString(),
       customerId: customer.id.toString(),
-      serviceId: service.id.toString(),
+      serviceIds: [service.id.toString()],
       startsAt: new Date("2026-04-27T10:00:00.000Z"),
     });
 
@@ -225,13 +225,13 @@ describe("Create appointment", () => {
     const firstAppointment = await sut.execute({
       establishmentOwnerId: establishment.ownerId.toString(),
       customerId: customer.id.toString(),
-      serviceId: service.id.toString(),
+      serviceIds: [service.id.toString()],
       startsAt: new Date("2026-04-27T10:00:00.000Z"),
     });
     const secondAppointment = await sut.execute({
       establishmentOwnerId: establishment.ownerId.toString(),
       customerId: customer.id.toString(),
-      serviceId: service.id.toString(),
+      serviceIds: [service.id.toString()],
       startsAt: new Date("2026-04-27T10:00:00.000Z"),
     });
 
