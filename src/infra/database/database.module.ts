@@ -5,6 +5,7 @@ import { CustomerVehiclesRepository } from "../../modules/application/repositori
 import { CustomersRepository } from "../../modules/application/repositories/customers-repository";
 import { EmployeesRepository } from "../../modules/application/repositories/employees-repository";
 import { EstablishmentsRepository } from "../../modules/application/repositories/establishment-repository";
+import { QuotesRepository } from "../../modules/application/repositories/quotes-repository";
 import { ServicesRepository } from "../../modules/application/repositories/services-repository";
 import { UnitOfWork } from "../../modules/application/repositories/unit-of-work";
 import { UsersRepository } from "../../modules/application/repositories/users-repository";
@@ -15,6 +16,7 @@ import { PrismaCustomerVehiclesRepository } from "./prisma/repositories/prisma-c
 import { PrismaEstablishmentRepository } from "./prisma/repositories/prisma-establishments-repository";
 import { PrismaCustomersRepository } from "./prisma/repositories/prisma-customers-repository";
 import { PrismaEmployeesRepository } from "./prisma/repositories/prisma-employees-repository";
+import { PrismaQuotesRepository } from "./prisma/repositories/prisma-quotes-repository";
 import { PrismaServicesRepository } from "./prisma/repositories/prisma-services-repository";
 import { PrismaUsersRepository } from "./prisma/repositories/prisma-users-repository";
 import { PrismaUnitOfWork } from "./prisma/prisma-unit-of-work";
@@ -55,6 +57,10 @@ import { PrismaSessionsRepository } from "./prisma/repositories/prisma-sessions-
       useClass: PrismaAppointmentsRepository,
     },
     {
+      provide: QuotesRepository,
+      useClass: PrismaQuotesRepository,
+    },
+    {
       provide: EmployeesRepository,
       useClass: PrismaEmployeesRepository,
     },
@@ -73,6 +79,7 @@ import { PrismaSessionsRepository } from "./prisma/repositories/prisma-sessions-
     CustomerVehiclesRepository,
     ServicesRepository,
     AppointmentsRepository,
+    QuotesRepository,
     EmployeesRepository,
   ],
 })
