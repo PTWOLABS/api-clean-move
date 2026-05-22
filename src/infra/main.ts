@@ -72,8 +72,14 @@ async function bootstrap(): Promise<void> {
   const envService = app.get(EnvService);
   const port = envService.get("PORT");
 
+  const allowedOrigins = envService
+    .get("CORS_ALLOWED_ORIGINS")
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
   app.enableCors({
-    origin: envService.get("FRONTEND_URL"),
+    origin: allowedOrigins,
     credentials: true,
   });
 

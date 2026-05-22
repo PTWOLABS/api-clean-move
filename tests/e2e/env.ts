@@ -48,6 +48,7 @@ export function configureE2EEnv(): E2EEnvironment {
   process.env.AWS_REGION ??= "us-east-1";
   process.env.AWS_S3_BUCKET ??= "clean-move-test-bucket";
   process.env.AWS_S3_PUBLIC_BASE_URL ??= "http://localhost:4566/clean-move";
+  process.env.CORS_ALLOWED_ORIGINS ??= "http://localhost:3000";
 
   process.env.NODE_ENV = "test";
   process.env.DATABASE_URL = databaseUrl;
