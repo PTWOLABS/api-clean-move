@@ -54,7 +54,9 @@ export class UpdateAppointmentStatusUseCase {
       const requiredFeature: EmployeeFeature =
         status === "CANCELLED" ? "delete:appointments" : "update:appointments";
 
-      if (!EmployeeFeaturesPolicy.hasAll(employee.features, [requiredFeature])) {
+      if (
+        !EmployeeFeaturesPolicy.hasAll(employee.features, [requiredFeature])
+      ) {
         return left(new NotAllowedError());
       }
     }

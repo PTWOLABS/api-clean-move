@@ -64,7 +64,10 @@ const listCalendarAppointmentsQuerySchema = z
       });
     }
 
-    if (data.endsAt.getTime() - data.startsAt.getTime() > CALENDAR_MAX_RANGE_MS) {
+    if (
+      data.endsAt.getTime() - data.startsAt.getTime() >
+      CALENDAR_MAX_RANGE_MS
+    ) {
       ctx.addIssue({
         code: "custom",
         message: "Range cannot exceed 42 days.",

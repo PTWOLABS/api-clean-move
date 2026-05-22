@@ -6,7 +6,5 @@ export function appointmentIntersectsRange(
 ): boolean {
   const effectiveEndsAt = appointmentEndsAt ?? appointmentStartsAt;
 
-  return (
-    appointmentStartsAt < rangeEndsAt && effectiveEndsAt > rangeStartsAt
-  );
+  return appointmentStartsAt < rangeEndsAt && effectiveEndsAt > rangeStartsAt;
 }
