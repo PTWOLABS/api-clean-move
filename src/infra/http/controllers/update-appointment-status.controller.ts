@@ -29,6 +29,7 @@ import { ResourceNotFoundError } from "../../../shared/errors/resource-not-found
 import { UnexpectedDomainError } from "../../../shared/errors/unexpected-domain-error";
 import { AuthenticatedUser } from "../../auth/authenticated-user";
 import { CurrentUser } from "../../auth/current-user";
+import { EmployeeFeatures } from "../../auth/employee-features";
 import { Roles } from "../../auth/roles";
 import {
   AppointmentResponseDto,
@@ -50,6 +51,7 @@ const appointmentIdParamSchema = z.uuid();
 @ApiBearerAuth("access-token")
 @Controller("/appointments/:appointmentId/status")
 @Roles(["ESTABLISHMENT", "EMPLOYEE"])
+@EmployeeFeatures(["update:appointments"])
 export class UpdateAppointmentStatusController {
   constructor(
     private readonly updateAppointmentStatus: UpdateAppointmentStatusUseCase,

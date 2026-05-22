@@ -4,7 +4,6 @@ import { Either, left, right } from "../../../../shared/either";
 import { NotAllowedError } from "../../../../shared/errors/not-allowed-error";
 import { ResourceNotFoundError } from "../../../../shared/errors/resource-not-found-error";
 import { Appointment } from "../../../scheduling/domain/entities/appointment";
-import { EmployeeFeaturesPolicy } from "../../../employees/domain/policies/employee-features-policy";
 import {
   EstablishmentScopeActor,
   EstablishmentScopeService,
@@ -43,15 +42,7 @@ export class ListAppointmentsUseCase {
       return left(scopeResult.value);
     }
 
-    const { establishment, employee } = scopeResult.value;
-
-    if (employee) {
-      if (
-        !EmployeeFeaturesPolicy.hasAll(employee.features, ["read:appointments"])
-      ) {
-        return left(new NotAllowedError());
-      }
-    }
+    const { establishment } = scopeResult.value;
 
     const appointments =
       await this.appointmentsRepository.findManyByEstablishmentId(

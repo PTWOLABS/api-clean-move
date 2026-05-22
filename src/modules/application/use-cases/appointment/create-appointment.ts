@@ -11,7 +11,6 @@ import {
   AppointmentServiceSnapshot,
 } from "../../../scheduling/domain/entities/appointment";
 import { InvalidAppointmentInputError } from "../../../scheduling/domain/errors/invalid-appointment-input-error";
-import { EmployeeFeaturesPolicy } from "../../../employees/domain/policies/employee-features-policy";
 import {
   EstablishmentScopeActor,
   EstablishmentScopeService,
@@ -77,17 +76,7 @@ export class CreateAppointmentUseCase {
       return left(scopeResult.value);
     }
 
-    const { establishment, employee } = scopeResult.value;
-
-    if (employee) {
-      if (
-        !EmployeeFeaturesPolicy.hasAll(employee.features, [
-          "create:appointments",
-        ])
-      ) {
-        return left(new NotAllowedError());
-      }
-    }
+    const { establishment } = scopeResult.value;
 
     const customer = await this.customersRepository.findByIdAndEstablishmentId(
       customerId,
