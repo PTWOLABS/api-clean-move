@@ -1,10 +1,12 @@
 import {
   AppointmentFilters,
   AppointmentsRepository,
+  CalendarAppointmentFilters,
   PopularServiceUsageMetrics,
 } from "../../src/modules/application/repositories/appointments-repository";
 import { Customer } from "../../src/modules/customer/domain/entities/customer";
 import { Appointment } from "../../src/modules/scheduling/domain/entities/appointment";
+import { appointmentIntersectsRange } from "../../src/modules/scheduling/domain/services/appointment-intersects-range";
 
 type AppointmentCustomerSearchData = {
   fullName?: string | null;
@@ -288,6 +290,28 @@ export class InMemoryAppointmentsRepository implements AppointmentsRepository {
     }
 
     return appointment;
+  }
+
+  async findManyByEstablishmentIdInCalendarRange(
+    establishmentId: string,
+    filters: CalendarAppointmentFilters,
+  ): Promise<Appointment[]> {
+    return this.items
+      .slice()
+      .sort((a, b) => a.startsAt.getTime() - b.startsAt.getTime())
+      .filter((item) => item.establishmentId.toString() === establishmentId)
+      .filter((item) => {
+        if (filters.status && item.status !== filters.status) {
+          return false;
+        }
+
+        return appointmentIntersectsRange(
+          item.startsAt,
+          item.endsAt,
+          filters.startsAt,
+          filters.endsAt,
+        );
+      });
   }
 
   async findManyByEstablishmentId(
