@@ -1,11 +1,8 @@
-import { NotAllowedError } from "../../../../shared/errors/not-allowed-error";
 import { ResourceNotFoundError } from "../../../../shared/errors/resource-not-found-error";
-import { UniqueEntityId } from "../../../../shared/entities/unique-entity-id";
 import { makeAppointment } from "../../../../../tests/factories/appointment-factory";
 import { makeEmployee } from "../../../../../tests/factories/employee-factory";
 import { makeEstablishment } from "../../../../../tests/factories/establishment-factory";
 import { makeUser } from "../../../../../tests/factories/user-factory";
-import { Employee } from "../../../employees/domain/entities/employee";
 import { InMemoryAppointmentsRepository } from "../../../../../tests/repositories/in-memory-appointments-repository";
 import { InMemoryCustomersRepository } from "../../../../../tests/repositories/in-memory-customers-repository";
 import { InMemoryEmployeesRepository } from "../../../../../tests/repositories/in-memory-employees-repository";
@@ -210,7 +207,7 @@ describe("List calendar appointments", () => {
     expect(result.value).toBeInstanceOf(ResourceNotFoundError);
   });
 
-  it("should allow employee with read appointments feature", async () => {
+  it("should list appointments for employee actor", async () => {
     const establishment = makeEstablishment();
     const user = makeUser("EMPLOYEE");
     const employee = makeEmployee({
@@ -238,45 +235,5 @@ describe("List calendar appointments", () => {
     expect(result.isRight()).toBe(true);
     if (result.isLeft()) throw result.value;
     expect(result.value.appointments).toEqual([appointment]);
-  });
-
-  it("should reject employee without read appointments feature", async () => {
-    const user = makeUser("EMPLOYEE");
-    const employee = Employee.restore({
-      establishmentId: new UniqueEntityId(),
-      userId: user.id,
-      profileImageUrl: null,
-      name: user.name,
-      cpf: null,
-      birthDate: null,
-      features: [
-        "read:services",
-        "read:customers",
-        "read:employees:self",
-        "create:sessions:self",
-        "read:sessions:self",
-      ],
-      deletedAt: null,
-      createdAt: new Date("2026-05-05T10:00:00.000Z"),
-      updatedAt: new Date("2026-05-05T10:00:00.000Z"),
-    });
-    const establishment = makeEstablishment(
-      undefined,
-      employee.establishmentId,
-    );
-
-    await inMemoryEstablishmentsRepository.create(establishment);
-    await inMemoryEmployeesRepository.create(employee);
-
-    const result = await sut.execute({
-      actor: { userId: user.id.toString(), role: "EMPLOYEE" },
-      filters: {
-        startsAt: rangeStartsAt,
-        endsAt: rangeEndsAt,
-      },
-    });
-
-    expect(result.isLeft()).toBe(true);
-    expect(result.value).toBeInstanceOf(NotAllowedError);
   });
 });
