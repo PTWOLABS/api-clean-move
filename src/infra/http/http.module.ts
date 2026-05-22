@@ -2,6 +2,7 @@ import { Module } from "@nestjs/common";
 
 import { CreateAppointmentUseCase } from "../../modules/application/use-cases/appointment/create-appointment";
 import { ListAppointmentsUseCase } from "../../modules/application/use-cases/appointment/list-appointments";
+import { ListCalendarAppointmentsUseCase } from "../../modules/application/use-cases/appointment/list-calendar-appointments";
 import { UpdateAppointmentStatusUseCase } from "../../modules/application/use-cases/appointment/update-appointment-status";
 import { AuthenticateWithOAuthUseCase } from "../../modules/application/use-cases/auth/authenticate-with-oauth";
 import { AuthSessionService } from "../../modules/application/services/auth-session.service";
@@ -58,6 +59,7 @@ import { DeleteEmployeeController } from "./controllers/delete-employee.controll
 import { GetEmployeeController } from "./controllers/get-employee.controller";
 import { GetMeController } from "./controllers/get-me.controller";
 import { ListAppointmentsController } from "./controllers/list-appointments.controller";
+import { ListCalendarAppointmentsController } from "./controllers/list-calendar-appointments.controller";
 import { ListCustomersController } from "./controllers/list-customers.controller";
 import { ListCustomerVehiclesController } from "./controllers/list-customer-vehicles.controller";
 import { ListEmployeesController } from "./controllers/list-employees.controller";
@@ -99,6 +101,7 @@ import { UploadVehicleImageController } from "./controllers/media/upload-vehicle
     DeleteCustomerVehicleController,
     CreateAppointmentController,
     ListAppointmentsController,
+    ListCalendarAppointmentsController,
     UpdateAppointmentStatusController,
     DashboardMetricsOverviewController,
     DashboardMetricsRevenueController,
@@ -132,6 +135,7 @@ import { UploadVehicleImageController } from "./controllers/media/upload-vehicle
     DeleteCustomerVehicleUseCase,
     CreateAppointmentUseCase,
     ListAppointmentsUseCase,
+    ListCalendarAppointmentsUseCase,
     UpdateAppointmentStatusUseCase,
     GetEstablishmentDashboardOverviewUseCase,
     GetEstablishmentAppointmentsCountUseCase,
