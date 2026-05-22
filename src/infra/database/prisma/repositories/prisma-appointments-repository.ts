@@ -3,6 +3,7 @@ import { Injectable } from "@nestjs/common";
 import {
   AppointmentFilters,
   AppointmentsRepository,
+  CalendarAppointmentFilters,
   PopularServiceUsageMetrics,
 } from "../../../../modules/application/repositories/appointments-repository";
 import { Appointment } from "../../../../modules/scheduling/domain/entities/appointment";
@@ -283,6 +284,59 @@ export class PrismaAppointmentsRepository implements AppointmentsRepository {
       }
 
       return PrismaAppointmentMapper.toDomain(appointment);
+    } catch (error) {
+      rethrowPrismaRepositoryError(error);
+    }
+  }
+
+  private static buildCalendarWhere(
+    establishmentId: string,
+    filters: CalendarAppointmentFilters,
+  ): Prisma.AppointmentWhereInput {
+    return {
+      establishmentId,
+      startsAt: {
+        lt: filters.endsAt,
+      },
+      OR: [
+        {
+          endsAt: {
+            gt: filters.startsAt,
+          },
+        },
+        {
+          endsAt: null,
+          startsAt: {
+            gt: filters.startsAt,
+            lt: filters.endsAt,
+          },
+        },
+      ],
+      ...PrismaAppointmentsRepository.buildStatusWhere(filters.status),
+    };
+  }
+
+  async findManyByEstablishmentIdInCalendarRange(
+    establishmentId: string,
+    filters: CalendarAppointmentFilters,
+  ): Promise<Appointment[]> {
+    try {
+      const appointments = await PrismaUnitOfWork.getClient(
+        this.prisma,
+      ).appointment.findMany({
+        where: PrismaAppointmentsRepository.buildCalendarWhere(
+          establishmentId,
+          filters,
+        ),
+        include: bookedServicesInclude,
+        orderBy: {
+          startsAt: "asc",
+        },
+      });
+
+      return appointments.map((appointment) =>
+        PrismaAppointmentMapper.toDomain(appointment),
+      );
     } catch (error) {
       rethrowPrismaRepositoryError(error);
     }

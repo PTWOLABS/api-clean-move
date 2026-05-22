@@ -5,6 +5,12 @@ import {
   AppointmentStatus,
 } from "../../scheduling/domain/entities/appointment";
 
+export type CalendarAppointmentFilters = {
+  startsAt: Date;
+  endsAt: Date;
+  status?: AppointmentStatus;
+};
+
 export type AppointmentFilters = {
   search?: string;
   customerId?: string;
@@ -43,6 +49,10 @@ export abstract class AppointmentsRepository {
   abstract findManyByEstablishmentId(
     establishmentId: string,
     filters?: AppointmentFilters,
+  ): Promise<Appointment[]>;
+  abstract findManyByEstablishmentIdInCalendarRange(
+    establishmentId: string,
+    filters: CalendarAppointmentFilters,
   ): Promise<Appointment[]>;
   abstract findPopularServiceUsagesByEstablishmentId(
     establishmentId: string,
