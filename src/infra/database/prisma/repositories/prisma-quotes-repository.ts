@@ -134,8 +134,9 @@ export class PrismaQuotesRepository implements QuotesRepository {
 
       if (normalizedSearchPlate) {
         searchOr.push({
-          vehiclePlate:
-            PrismaQuotesRepository.containsInsensitive(normalizedSearchPlate),
+          vehiclePlate: PrismaQuotesRepository.containsInsensitive(
+            normalizedSearchPlate,
+          ),
         });
       }
 
@@ -185,9 +186,7 @@ export class PrismaQuotesRepository implements QuotesRepository {
       ...(filters?.vehicleId ? { vehicleId: filters.vehicleId } : {}),
       ...(filters?.converted !== undefined
         ? {
-            convertedAppointmentId: filters.converted
-              ? { not: null }
-              : null,
+            convertedAppointmentId: filters.converted ? { not: null } : null,
           }
         : {}),
       ...PrismaQuotesRepository.buildCreatedAtWhere(filters?.createdAt),
