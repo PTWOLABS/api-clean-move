@@ -37,6 +37,13 @@ export default [
     rules: {
       "no-useless-constructor": "off",
       "@typescript-eslint/no-useless-constructor": "error",
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        {
+          varsIgnorePattern: "^_",
+          ignoreRestSiblings: true,
+        },
+      ],
       "@typescript-eslint/require-await": "off",
     },
   },

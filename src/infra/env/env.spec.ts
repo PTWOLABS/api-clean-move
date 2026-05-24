@@ -8,6 +8,7 @@ function baseEnv(
   return {
     PORT: "8080",
     FRONTEND_URL: "http://localhost:3000",
+    CORS_ALLOWED_ORIGINS: "http://localhost:3000",
     POSTGRES_HOST: "localhost",
     POSTGRES_PORT: "5432",
     POSTGRES_DB: "clean_move",
@@ -149,6 +150,18 @@ describe("envSchema", () => {
   it("should allow http AWS_S3_PUBLIC_BASE_URL when NODE_ENV is not production", () => {
     const result = envSchema.safeParse(
       baseEnv({ AWS_S3_PUBLIC_BASE_URL: "http://localhost:9000" }),
+    );
+
+    expect(result.success).toBe(true);
+  });
+
+  it("should allow staging NODE_ENV", () => {
+    const result = envSchema.safeParse(
+      baseEnv({
+        NODE_ENV: "staging",
+        FRONTEND_URL: "https://staging.example.com",
+        AWS_S3_PUBLIC_BASE_URL: "https://cdn-staging.example.com",
+      }),
     );
 
     expect(result.success).toBe(true);

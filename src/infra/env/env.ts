@@ -16,7 +16,12 @@ try {
   }
 }
 
-export const nodeEnvSchema = z.enum(["development", "test", "production"]);
+export const nodeEnvSchema = z.enum([
+  "development",
+  "test",
+  "production",
+  "staging",
+]);
 const nonEmptyStringSchema = z.string().trim().min(1);
 const jwtExpiresInSchema = z.custom<StringValue>(
   (value) => typeof value === "string" && value.trim().length > 0,
@@ -48,6 +53,7 @@ export const envSchema = z
   .object({
     PORT: z.coerce.number().int().min(1).max(65535).optional().default(8080),
     FRONTEND_URL: z.url(),
+    CORS_ALLOWED_ORIGINS: z.string(),
     POSTGRES_HOST: nonEmptyStringSchema,
     POSTGRES_PORT: z.coerce
       .number()
