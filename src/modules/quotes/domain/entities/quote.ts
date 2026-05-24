@@ -217,6 +217,16 @@ export class Quote extends AggregateRoot<QuoteProps> {
     this.touch(referenceDate);
   }
 
+  linkCustomer(customerId: UniqueEntityId, vehicleId: UniqueEntityId | null) {
+    if (this.props.customerId) {
+      throw new InvalidQuoteInputError("Quote already has a customer.");
+    }
+
+    this.props.customerId = customerId;
+    this.props.vehicleId = vehicleId;
+    this.touch();
+  }
+
   private touch(referenceDate: Date = new Date()) {
     this.props.updatedAt = referenceDate;
   }
