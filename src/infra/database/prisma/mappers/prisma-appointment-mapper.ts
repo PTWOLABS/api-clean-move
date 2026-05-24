@@ -13,6 +13,13 @@ type PrismaAppointmentWithBookedServices = PrismaAppointmentRecord & {
 
 export class PrismaAppointmentMapper {
   static toDomain(raw: PrismaAppointmentWithBookedServices): Appointment {
+    const hasVehicleSnapshot =
+      raw.vehiclePlate !== null ||
+      raw.vehicleBrand !== null ||
+      raw.vehicleModel !== null ||
+      raw.vehicleColor !== null ||
+      raw.vehicleYear !== null;
+
     return Appointment.create(
       {
         establishmentId: new UniqueEntityId(raw.establishmentId),
@@ -29,7 +36,7 @@ export class PrismaAppointmentMapper {
               bookedService.serviceDurationInMinutes ?? undefined,
             priceInCents: bookedService.servicePriceInCents,
           })),
-        vehicle: raw.vehicleId
+        vehicle: hasVehicleSnapshot
           ? {
               plate: raw.vehiclePlate,
               brand: raw.vehicleBrand,

@@ -3,6 +3,7 @@ import {
   QuotesRepository,
 } from "../../src/modules/application/repositories/quotes-repository";
 import { Quote } from "../../src/modules/quotes/domain/entities/quote";
+import { UniqueEntityId } from "../../src/shared/entities/unique-entity-id";
 
 export class InMemoryQuotesRepository implements QuotesRepository {
   public items: Quote[] = [];
@@ -220,6 +221,26 @@ export class InMemoryQuotesRepository implements QuotesRepository {
     const end = start + size;
 
     return filteredQuotes.slice(start, end);
+  }
+
+  async markAsConverted(
+    quote: Quote,
+    appointmentId: UniqueEntityId,
+    convertedAt: Date,
+  ): Promise<boolean> {
+    const persistedQuote = this.items.find((item) => item.id.equals(quote.id));
+
+    if (!persistedQuote || persistedQuote.convertedAppointmentId) {
+      return false;
+    }
+
+    persistedQuote.markAsConverted(appointmentId, convertedAt);
+
+    if (persistedQuote !== quote) {
+      quote.markAsConverted(appointmentId, convertedAt);
+    }
+
+    return true;
   }
 
   async save(quote: Quote): Promise<void> {

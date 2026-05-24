@@ -6,6 +6,7 @@ import {
 } from "../../../../modules/application/repositories/quotes-repository";
 import { Quote } from "../../../../modules/quotes/domain/entities/quote";
 import { Prisma } from "../../../../generated/prisma/client";
+import { UniqueEntityId } from "../../../../shared/entities/unique-entity-id";
 import { PrismaQuoteMapper } from "../mappers/prisma-quote-mapper";
 import { rethrowPrismaRepositoryError } from "../prisma-repository-error-handler";
 import { PrismaUnitOfWork } from "../prisma-unit-of-work";
@@ -288,6 +289,38 @@ export class PrismaQuotesRepository implements QuotesRepository {
         },
         data,
       });
+    } catch (error) {
+      rethrowPrismaRepositoryError(error);
+    }
+  }
+
+  async markAsConverted(
+    quote: Quote,
+    appointmentId: UniqueEntityId,
+    convertedAt: Date,
+  ): Promise<boolean> {
+    try {
+      const result = await PrismaUnitOfWork.getClient(
+        this.prisma,
+      ).quote.updateMany({
+        where: {
+          id: quote.id.toString(),
+          convertedAppointmentId: null,
+        },
+        data: {
+          convertedAppointmentId: appointmentId.toString(),
+          convertedAt,
+          updatedAt: convertedAt,
+        },
+      });
+
+      if (result.count === 0) {
+        return false;
+      }
+
+      quote.markAsConverted(appointmentId, convertedAt);
+
+      return true;
     } catch (error) {
       rethrowPrismaRepositoryError(error);
     }

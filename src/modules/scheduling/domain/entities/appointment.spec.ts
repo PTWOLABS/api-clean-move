@@ -39,6 +39,23 @@ describe("Appointment", () => {
     expect(appointment.endsAt).toBeNull();
   });
 
+  it("should accept a vehicle snapshot without a vehicle id", () => {
+    const appointment = Appointment.create({
+      ...baseProps,
+      vehicleId: null,
+      vehicle: {
+        plate: "ABC1D23",
+        brand: "Honda",
+        model: "HR-V",
+        color: "Branco",
+        year: 2025,
+      },
+    });
+
+    expect(appointment.vehicleId).toBeNull();
+    expect(appointment.vehicle?.model).toBe("HR-V");
+  });
+
   it("should not accept an end date before the start date", () => {
     expect(() =>
       Appointment.create({
