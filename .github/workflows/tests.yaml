@@ -6,9 +6,14 @@ permissions:
   contents: read
 
 jobs:
+  validate-pr-flow:
+    name: Validate PR Flow
+    uses: ./.github/workflows/validate-pr-flow.yml
+
   unit-tests:
     name: Unit Tests
     runs-on: ubuntu-latest
+    needs: validate-pr-flow
     env:
       NODE_ENV: test
       FRONTEND_URL: http://localhost:3000
@@ -41,6 +46,7 @@ jobs:
   e2e-tests:
     name: E2E Tests
     runs-on: ubuntu-latest
+    needs: validate-pr-flow
     env:
       NODE_ENV: test
       FRONTEND_URL: http://localhost:3000
