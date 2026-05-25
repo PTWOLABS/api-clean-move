@@ -5,7 +5,10 @@ import { Email } from "../../../accounts/domain/value-objects/email";
 import { Phone } from "../../../accounts/domain/value-objects/phone";
 import { Customer } from "../../../customer/domain/entities/customer";
 import { CustomerVehicle } from "../../../customer/domain/entities/customer-vehicle";
-import { Quote, QuoteAddressSnapshot } from "../../../quotes/domain/entities/quote";
+import {
+  Quote,
+  QuoteAddressSnapshot,
+} from "../../../quotes/domain/entities/quote";
 import { InvalidQuoteInputError } from "../../../quotes/domain/errors/invalid-quote-input-error";
 import { Either, left, right } from "../../../../shared/either";
 import { NotAllowedError } from "../../../../shared/errors/not-allowed-error";
