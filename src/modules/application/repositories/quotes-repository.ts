@@ -1,4 +1,5 @@
 import { PaginationParams } from "../../../shared/types/pagination-params";
+import { UniqueEntityId } from "../../../shared/entities/unique-entity-id";
 import { Quote } from "../../quotes/domain/entities/quote";
 
 export type QuoteFilters = {
@@ -26,5 +27,10 @@ export abstract class QuotesRepository {
     establishmentId: string,
     filters?: QuoteFilters,
   ): Promise<Quote[]>;
+  abstract markAsConverted(
+    quote: Quote,
+    appointmentId: UniqueEntityId,
+    convertedAt: Date,
+  ): Promise<boolean>;
   abstract save(quote: Quote): Promise<void>;
 }

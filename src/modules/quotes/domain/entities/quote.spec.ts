@@ -399,4 +399,18 @@ describe("Quote", () => {
       quote.markAsConverted(new UniqueEntityId("appointment-2")),
     ).toThrow(InvalidQuoteInputError);
   });
+
+  it("should link a prospect quote to a customer and vehicle once", () => {
+    const quote = Quote.create(baseProps);
+    const customerId = new UniqueEntityId("customer-1");
+    const vehicleId = new UniqueEntityId("vehicle-1");
+
+    quote.linkCustomer(customerId, vehicleId);
+
+    expect(quote.customerId).toEqual(customerId);
+    expect(quote.vehicleId).toEqual(vehicleId);
+    expect(() =>
+      quote.linkCustomer(new UniqueEntityId("customer-2"), null),
+    ).toThrow(InvalidQuoteInputError);
+  });
 });
