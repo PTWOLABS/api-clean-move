@@ -62,14 +62,16 @@ export class RefreshTokenCookieService {
   }
 
   private buildCookieOptions(maxAge: number, expires?: Date) {
-    const isProduction = this.envService.get("NODE_ENV") === "production";
+    const nodeEnv = this.envService.get("NODE_ENV");
+    const usesCrossSiteCookiePolicy =
+      nodeEnv === "production" || nodeEnv === "staging";
 
     return {
       httpOnly: true,
       path: "/auth",
       maxAge,
-      secure: isProduction,
-      sameSite: isProduction ? "none" : "lax",
+      secure: usesCrossSiteCookiePolicy,
+      sameSite: usesCrossSiteCookiePolicy ? "none" : "lax",
       ...(expires ? { expires } : {}),
     } satisfies ResponseCookieOptions;
   }
