@@ -53,6 +53,8 @@ type EmployeeSeedData = {
   features: string[];
 };
 
+type SeededService = Awaited<ReturnType<typeof prisma.service.create>>;
+
 const DEFAULT_PASSWORD = "123456";
 const REFERENCE_DATE = new Date();
 const ESTABLISHMENT_SLUG = "clean-move";
@@ -534,6 +536,7 @@ async function seedCustomers(establishmentId: string) {
               ][index % 5],
               city: ["Socorro", "Braganca Paulista", "Serra Negra"][index % 3],
               state: "SP",
+              country: "Brasil",
               zipCode: `1396${String(index).padStart(4, "0")}`,
             },
       birthDate:
@@ -608,7 +611,7 @@ async function seedAppointments({
   establishmentId: string;
   customers: Awaited<ReturnType<typeof prisma.customer.create>>[];
   vehicles: Awaited<ReturnType<typeof prisma.customerVehicle.create>>[];
-  services: Awaited<ReturnType<typeof prisma.service.create>>[];
+  services: SeededService[];
 }) {
   let createdAppointments = 0;
   let appointmentIndex = 0;
@@ -621,23 +624,25 @@ async function seedAppointments({
         (appointmentIndex * 7 + slotIndex * 3) % customers.length;
       const customer = customers[customerIndex]!;
       const vehicle = vehicles[customerIndex]!;
-      const service =
-        services[
-          SERVICE_SELECTION_SEQUENCE[
-            appointmentIndex % SERVICE_SELECTION_SEQUENCE.length
-          ]!
-        ]!;
+      const bookedServices = selectAppointmentServices(
+        services,
+        appointmentIndex,
+      );
       const timeSlot =
         TIME_SLOTS[(appointmentIndex + slotIndex) % TIME_SLOTS.length]!;
       const startsAt = setTime(addDays(REFERENCE_DATE, dayOffset), timeSlot);
-      const durationInMinutes =
-        service.estimatedDurationMaxInMinutes ??
-        service.estimatedDurationMinInMinutes ??
-        60;
+      const durationInMinutes = bookedServices.reduce(
+        (total, service) => total + resolveServiceDurationForSchedule(service),
+        0,
+      );
+      const totalPriceInCents = bookedServices.reduce(
+        (total, service) => total + service.priceInCents,
+        0,
+      );
       const endsAt = addMinutes(startsAt, durationInMinutes);
       const status = resolveAppointmentStatus(dayOffset, appointmentIndex);
       const discountInCents = resolveDiscountInCents(
-        service.priceInCents,
+        totalPriceInCents,
         appointmentIndex,
       );
 
@@ -647,16 +652,15 @@ async function seedAppointments({
           customerId: customer.id,
           vehicleId: appointmentIndex % 6 === 0 ? null : vehicle.id,
           bookedServices: {
-            create: [
-              {
-                serviceId: service.id,
-                serviceName: service.serviceName,
-                serviceCategory: service.category,
-                serviceDurationInMinutes: durationInMinutes,
-                servicePriceInCents: service.priceInCents,
-                position: 0,
-              },
-            ],
+            create: bookedServices.map((service, position) => ({
+              serviceId: service.id,
+              serviceName: service.serviceName,
+              serviceCategory: service.category,
+              serviceDurationInMinutes:
+                resolveBookedServiceDurationInMinutes(service),
+              servicePriceInCents: service.priceInCents,
+              position,
+            })),
           },
           vehiclePlate: appointmentIndex % 6 === 0 ? null : vehicle.plate,
           vehicleBrand: appointmentIndex % 6 === 0 ? null : vehicle.brand,
@@ -667,7 +671,7 @@ async function seedAppointments({
           endsAt,
           description: resolveAppointmentDescription(
             appointmentIndex,
-            service.serviceName,
+            formatAppointmentServiceNames(bookedServices),
           ),
           discountInCents,
           status,
@@ -685,6 +689,66 @@ async function seedAppointments({
   }
 
   return createdAppointments;
+}
+
+function selectAppointmentServices(
+  services: SeededService[],
+  appointmentIndex: number,
+) {
+  const selectedServiceIds = new Set<string>();
+  const preferredServiceIndex =
+    SERVICE_SELECTION_SEQUENCE[
+      appointmentIndex % SERVICE_SELECTION_SEQUENCE.length
+    ]!;
+  const serviceCount =
+    appointmentIndex % 9 === 0 ? 3 : appointmentIndex % 4 === 0 ? 2 : 1;
+
+  return Array.from({ length: serviceCount }, (_, index) => {
+    const service = findActiveService(
+      services,
+      preferredServiceIndex + index * 5,
+      selectedServiceIds,
+    );
+
+    selectedServiceIds.add(service.id);
+
+    return service;
+  });
+}
+
+function findActiveService(
+  services: SeededService[],
+  preferredServiceIndex: number,
+  selectedServiceIds: Set<string>,
+) {
+  for (let offset = 0; offset < services.length; offset += 1) {
+    const service =
+      services[(preferredServiceIndex + offset) % services.length]!;
+
+    if (service.isActive && !selectedServiceIds.has(service.id)) {
+      return service;
+    }
+  }
+
+  throw new Error(
+    "At least one active service is required to seed appointments.",
+  );
+}
+
+function resolveBookedServiceDurationInMinutes(service: SeededService) {
+  return (
+    service.estimatedDurationMaxInMinutes ??
+    service.estimatedDurationMinInMinutes ??
+    null
+  );
+}
+
+function resolveServiceDurationForSchedule(service: SeededService) {
+  return resolveBookedServiceDurationInMinutes(service) ?? 60;
+}
+
+function formatAppointmentServiceNames(services: SeededService[]) {
+  return services.map((service) => service.serviceName).join(", ");
 }
 
 function resolveAppointmentsForDay(dayOffset: number) {
