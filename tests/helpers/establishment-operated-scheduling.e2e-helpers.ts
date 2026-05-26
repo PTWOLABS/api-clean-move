@@ -77,6 +77,12 @@ export const vehicleOptionsResponseSchema = z
   })
   .strict();
 
+export const serviceOptionsResponseSchema = z
+  .object({
+    services: z.array(optionItemSchema),
+  })
+  .strict();
+
 export const appointmentStatusSchema = z.enum([
   "SCHEDULED",
   "DONE",

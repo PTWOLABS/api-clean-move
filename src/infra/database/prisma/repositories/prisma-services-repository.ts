@@ -4,6 +4,8 @@ import { Prisma } from "../../../../generated/prisma/client";
 import {
   type PaginatedServices,
   type ServiceFilters,
+  type ServiceOption,
+  type ServiceOptionsFilters,
   ServicesRepository,
 } from "../../../../modules/application/repositories/services-repository";
 import { Service } from "../../../../modules/catalog/domain/entities/services";
@@ -88,6 +90,49 @@ export class PrismaServicesRepository implements ServicesRepository {
         items: rows.map((service) => PrismaServiceMapper.toDomain(service)),
         totalItems,
       };
+    } catch (error) {
+      rethrowPrismaRepositoryError(error);
+    }
+  }
+
+  async findOptionsByEstablishmentId(
+    establishmentId: string,
+    filters?: ServiceOptionsFilters,
+  ): Promise<ServiceOption[]> {
+    const limit = filters?.limit ?? 20;
+    const search = filters?.search?.trim();
+
+    try {
+      const services = await PrismaUnitOfWork.getClient(
+        this.prisma,
+      ).service.findMany({
+        select: {
+          id: true,
+          serviceName: true,
+        },
+        where: {
+          establishmentId,
+          deletedAt: null,
+          isActive: true,
+          ...(search
+            ? {
+                serviceName: {
+                  contains: search,
+                  mode: "insensitive",
+                },
+              }
+            : {}),
+        },
+        orderBy: {
+          serviceName: "asc",
+        },
+        take: limit,
+      });
+
+      return services.map((service) => ({
+        id: service.id,
+        label: service.serviceName,
+      }));
     } catch (error) {
       rethrowPrismaRepositoryError(error);
     }

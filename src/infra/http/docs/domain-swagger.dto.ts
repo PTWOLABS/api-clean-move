@@ -952,6 +952,11 @@ export class ListServicesResponseDto {
   totalItems!: number;
 }
 
+export class ServiceOptionsResponseDto {
+  @ApiProperty({ type: OptionItemDto, isArray: true })
+  services!: OptionItemDto[];
+}
+
 export class DashboardMetricsOverviewPointDto {
   @ApiProperty({
     example: "2026-05-12",
