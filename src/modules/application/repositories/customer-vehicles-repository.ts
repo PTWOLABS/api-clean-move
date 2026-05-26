@@ -5,6 +5,17 @@ export type CustomerVehicleFilters = {
   includeDeleted?: boolean;
 } & PaginationParams;
 
+export type CustomerVehicleOption = {
+  id: string;
+  label: string;
+};
+
+export type CustomerVehicleOptionsFilters = {
+  search?: string;
+  customerId?: string;
+  limit?: number;
+};
+
 export abstract class CustomerVehiclesRepository {
   abstract create(vehicle: CustomerVehicle): Promise<void>;
   abstract findById(id: string): Promise<CustomerVehicle | null>;
@@ -26,5 +37,9 @@ export abstract class CustomerVehiclesRepository {
     establishmentId: string,
     filters?: CustomerVehicleFilters,
   ): Promise<CustomerVehicle[]>;
+  abstract findOptionsByEstablishmentId(
+    establishmentId: string,
+    filters?: CustomerVehicleOptionsFilters,
+  ): Promise<CustomerVehicleOption[]>;
   abstract save(vehicle: CustomerVehicle): Promise<void>;
 }

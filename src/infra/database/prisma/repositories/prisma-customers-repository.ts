@@ -2,6 +2,8 @@ import { Injectable } from "@nestjs/common";
 
 import {
   CustomerFilters,
+  CustomerOption,
+  CustomerOptionsFilters,
   CustomersRepository,
 } from "../../../../modules/application/repositories/customers-repository";
 import { Customer } from "../../../../modules/customer/domain/entities/customer";
@@ -137,6 +139,48 @@ export class PrismaCustomersRepository implements CustomersRepository {
       return customers.map((customer) =>
         PrismaCustomerMapper.toDomain(customer),
       );
+    } catch (error) {
+      rethrowPrismaRepositoryError(error);
+    }
+  }
+
+  async findOptionsByEstablishmentId(
+    establishmentId: string,
+    filters?: CustomerOptionsFilters,
+  ): Promise<CustomerOption[]> {
+    const limit = filters?.limit ?? 20;
+    const search = filters?.search?.trim();
+
+    try {
+      const customers = await PrismaUnitOfWork.getClient(
+        this.prisma,
+      ).customer.findMany({
+        select: {
+          id: true,
+          fullName: true,
+        },
+        where: {
+          establishmentId,
+          deletedAt: null,
+          ...(search
+            ? {
+                OR: [
+                  { fullName: { contains: search, mode: "insensitive" } },
+                  { nickname: { contains: search, mode: "insensitive" } },
+                ],
+              }
+            : {}),
+        },
+        orderBy: {
+          fullName: "asc",
+        },
+        take: limit,
+      });
+
+      return customers.map((customer) => ({
+        id: customer.id,
+        label: customer.fullName,
+      }));
     } catch (error) {
       rethrowPrismaRepositoryError(error);
     }

@@ -2,6 +2,8 @@ import { Injectable } from "@nestjs/common";
 
 import {
   CustomerVehicleFilters,
+  CustomerVehicleOption,
+  CustomerVehicleOptionsFilters,
   CustomerVehiclesRepository,
 } from "../../../../modules/application/repositories/customer-vehicles-repository";
 import { CustomerVehicle } from "../../../../modules/customer/domain/entities/customer-vehicle";
@@ -150,6 +152,51 @@ export class PrismaCustomerVehiclesRepository implements CustomerVehiclesReposit
       return vehicles.map((vehicle) =>
         PrismaCustomerVehicleMapper.toDomain(vehicle),
       );
+    } catch (error) {
+      rethrowPrismaRepositoryError(error);
+    }
+  }
+
+  async findOptionsByEstablishmentId(
+    establishmentId: string,
+    filters?: CustomerVehicleOptionsFilters,
+  ): Promise<CustomerVehicleOption[]> {
+    const limit = filters?.limit ?? 20;
+    const search = filters?.search?.trim();
+    const plateSearch = search?.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+
+    try {
+      const vehicles = await PrismaUnitOfWork.getClient(
+        this.prisma,
+      ).customerVehicle.findMany({
+        select: {
+          id: true,
+          model: true,
+        },
+        where: {
+          establishmentId,
+          deletedAt: null,
+          ...(filters?.customerId ? { customerId: filters.customerId } : {}),
+          ...(search
+            ? {
+                OR: [
+                  ...(plateSearch
+                    ? [{ plate: { contains: plateSearch } }]
+                    : []),
+                  { model: { contains: search, mode: "insensitive" } },
+                  { brand: { contains: search, mode: "insensitive" } },
+                ],
+              }
+            : {}),
+        },
+        orderBy: [{ model: "asc" }, { plate: "asc" }],
+        take: limit,
+      });
+
+      return vehicles.map((vehicle) => ({
+        id: vehicle.id,
+        label: vehicle.model ?? "",
+      }));
     } catch (error) {
       rethrowPrismaRepositoryError(error);
     }

@@ -378,6 +378,19 @@ export class ListCustomersResponseDto {
   customers!: CustomerDto[];
 }
 
+export class OptionItemDto {
+  @ApiProperty({ example: "5f588c8b-ef0f-4193-aec0-2926e77c1d09" })
+  id!: string;
+
+  @ApiProperty({ example: "Maria Silva" })
+  label!: string;
+}
+
+export class CustomerOptionsResponseDto {
+  @ApiProperty({ type: OptionItemDto, isArray: true })
+  customers!: OptionItemDto[];
+}
+
 export class CreateCustomerVehicleBodyDto {
   @ApiPropertyOptional({
     type: String,
@@ -497,6 +510,11 @@ export class CustomerVehicleResponseDto {
 export class ListCustomerVehiclesResponseDto {
   @ApiProperty({ type: CustomerVehicleDto, isArray: true })
   vehicles!: CustomerVehicleDto[];
+}
+
+export class CustomerVehicleOptionsResponseDto {
+  @ApiProperty({ type: OptionItemDto, isArray: true })
+  vehicles!: OptionItemDto[];
 }
 
 export class CreateAppointmentBodyDto {

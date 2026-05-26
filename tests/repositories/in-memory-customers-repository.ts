@@ -1,5 +1,7 @@
 import {
   CustomerFilters,
+  CustomerOption,
+  CustomerOptionsFilters,
   CustomersRepository,
 } from "../../src/modules/application/repositories/customers-repository";
 import { Customer } from "../../src/modules/customer/domain/entities/customer";
@@ -91,6 +93,35 @@ export class InMemoryCustomersRepository implements CustomersRepository {
     return filteredCustomers.slice(start, end);
   }
 
+  async findOptionsByEstablishmentId(
+    establishmentId: string,
+    filters?: CustomerOptionsFilters,
+  ): Promise<CustomerOption[]> {
+    const limit = filters?.limit ?? 20;
+    const search = filters?.search?.trim().toLowerCase();
+
+    return this.items
+      .slice()
+      .filter((item) => item.establishmentId.toString() === establishmentId)
+      .filter((item) => !item.isDeleted())
+      .filter((item) => {
+        if (!search) {
+          return true;
+        }
+
+        return (
+          item.fullName.toLowerCase().includes(search) ||
+          (item.nickname?.toLowerCase().includes(search) ?? false)
+        );
+      })
+      .sort((a, b) => compareStrings(a.fullName, b.fullName))
+      .slice(0, limit)
+      .map((customer) => ({
+        id: customer.id.toString(),
+        label: customer.fullName,
+      }));
+  }
+
   async save(customer: Customer): Promise<void> {
     const customerIndex = this.items.findIndex((item) =>
       item.id.equals(customer.id),
@@ -103,4 +134,16 @@ export class InMemoryCustomersRepository implements CustomersRepository {
 
     this.items[customerIndex] = customer;
   }
+}
+
+function compareStrings(a: string, b: string) {
+  if (a < b) {
+    return -1;
+  }
+
+  if (a > b) {
+    return 1;
+  }
+
+  return 0;
 }
