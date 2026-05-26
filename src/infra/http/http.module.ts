@@ -14,6 +14,8 @@ import { CreateCustomerUseCase } from "../../modules/application/use-cases/custo
 import { CreateCustomerVehicleUseCase } from "../../modules/application/use-cases/customer/create-customer-vehicle";
 import { DeleteCustomerUseCase } from "../../modules/application/use-cases/customer/delete-customer";
 import { DeleteCustomerVehicleUseCase } from "../../modules/application/use-cases/customer/delete-customer-vehicle";
+import { ListCustomerOptionsUseCase } from "../../modules/application/use-cases/customer/list-customer-options";
+import { ListCustomerVehicleOptionsUseCase } from "../../modules/application/use-cases/customer/list-customer-vehicle-options";
 import { ListCustomersUseCase } from "../../modules/application/use-cases/customer/list-customers";
 import { ListCustomerVehiclesUseCase } from "../../modules/application/use-cases/customer/list-customer-vehicles";
 import { UpdateCustomerUseCase } from "../../modules/application/use-cases/customer/update-customer";
@@ -60,6 +62,8 @@ import { GetEmployeeController } from "./controllers/get-employee.controller";
 import { GetMeController } from "./controllers/get-me.controller";
 import { ListAppointmentsController } from "./controllers/list-appointments.controller";
 import { ListCalendarAppointmentsController } from "./controllers/list-calendar-appointments.controller";
+import { ListCustomerOptionsController } from "./controllers/list-customer-options.controller";
+import { ListCustomerVehicleOptionsController } from "./controllers/list-customer-vehicle-options.controller";
 import { ListCustomersController } from "./controllers/list-customers.controller";
 import { ListCustomerVehiclesController } from "./controllers/list-customer-vehicles.controller";
 import { ListEmployeesController } from "./controllers/list-employees.controller";
@@ -92,10 +96,12 @@ import { UploadVehicleImageController } from "./controllers/media/upload-vehicle
     UpdateServiceController,
     DeleteServiceController,
     CreateCustomerController,
+    ListCustomerOptionsController,
     ListCustomersController,
     UpdateCustomerController,
     DeleteCustomerController,
     CreateCustomerVehicleController,
+    ListCustomerVehicleOptionsController,
     ListCustomerVehiclesController,
     UpdateCustomerVehicleController,
     DeleteCustomerVehicleController,
@@ -126,10 +132,12 @@ import { UploadVehicleImageController } from "./controllers/media/upload-vehicle
     UpdateServiceUseCase,
     DeleteServiceUseCase,
     CreateCustomerUseCase,
+    ListCustomerOptionsUseCase,
     ListCustomersUseCase,
     UpdateCustomerUseCase,
     DeleteCustomerUseCase,
     CreateCustomerVehicleUseCase,
+    ListCustomerVehicleOptionsUseCase,
     ListCustomerVehiclesUseCase,
     UpdateCustomerVehicleUseCase,
     DeleteCustomerVehicleUseCase,
