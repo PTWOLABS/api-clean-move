@@ -1,5 +1,7 @@
 import {
   CustomerVehicleFilters,
+  CustomerVehicleOption,
+  CustomerVehicleOptionsFilters,
   CustomerVehiclesRepository,
 } from "../../src/modules/application/repositories/customer-vehicles-repository";
 import { CustomerVehicle } from "../../src/modules/customer/domain/entities/customer-vehicle";
@@ -93,6 +95,54 @@ export class InMemoryCustomerVehiclesRepository implements CustomerVehiclesRepos
     return filteredVehicles.slice(start, end);
   }
 
+  async findOptionsByEstablishmentId(
+    establishmentId: string,
+    filters?: CustomerVehicleOptionsFilters,
+  ): Promise<CustomerVehicleOption[]> {
+    const limit = filters?.limit ?? 20;
+    const search = filters?.search?.trim().toLowerCase();
+    const plateSearch = filters?.search
+      ?.replace(/[^a-zA-Z0-9]/g, "")
+      .toUpperCase();
+
+    return this.items
+      .slice()
+      .filter((item) => item.establishmentId.toString() === establishmentId)
+      .filter((item) => !item.isDeleted())
+      .filter((item) =>
+        filters?.customerId
+          ? item.customerId.toString() === filters.customerId
+          : true,
+      )
+      .filter((item) => {
+        if (!search) {
+          return true;
+        }
+
+        return (
+          (plateSearch
+            ? (item.plate?.includes(plateSearch) ?? false)
+            : false) ||
+          (item.model?.toLowerCase().includes(search) ?? false) ||
+          (item.brand?.toLowerCase().includes(search) ?? false)
+        );
+      })
+      .sort((a, b) => {
+        const byModel = compareStrings(a.model ?? "", b.model ?? "");
+
+        if (byModel !== 0) {
+          return byModel;
+        }
+
+        return compareStrings(a.plate ?? "", b.plate ?? "");
+      })
+      .slice(0, limit)
+      .map((vehicle) => ({
+        id: vehicle.id.toString(),
+        label: vehicle.model ?? "",
+      }));
+  }
+
   async save(vehicle: CustomerVehicle): Promise<void> {
     const vehicleIndex = this.items.findIndex((item) =>
       item.id.equals(vehicle.id),
@@ -105,4 +155,16 @@ export class InMemoryCustomerVehiclesRepository implements CustomerVehiclesRepos
 
     this.items[vehicleIndex] = vehicle;
   }
+}
+
+function compareStrings(a: string, b: string) {
+  if (a < b) {
+    return -1;
+  }
+
+  if (a > b) {
+    return 1;
+  }
+
+  return 0;
 }
