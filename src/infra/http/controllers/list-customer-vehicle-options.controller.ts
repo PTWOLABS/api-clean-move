@@ -131,7 +131,6 @@ export class ListCustomerVehicleOptionsController {
 
     return {
       vehicles: result.value.vehicles,
-      totalItems: result.value.totalItems,
     };
   }
 }

@@ -1,7 +1,6 @@
 import {
   CustomerVehicleFilters,
   CustomerVehicleOptionsFilters,
-  CustomerVehicleOptionsResult,
   CustomerVehiclesRepository,
   PaginatedCustomerVehicles,
 } from "../../src/modules/application/repositories/customer-vehicles-repository";
@@ -100,17 +99,32 @@ export class InMemoryCustomerVehiclesRepository implements CustomerVehiclesRepos
     };
   }
 
+  async findAllActiveByCustomerIdAndEstablishmentId(
+    customerId: string,
+    establishmentId: string,
+  ) {
+    return this.items
+      .slice()
+      .sort((a, b) => a.createdAt!.getTime() - b.createdAt!.getTime())
+      .filter(
+        (item) =>
+          item.customerId.toString() === customerId &&
+          item.establishmentId.toString() === establishmentId &&
+          !item.isDeleted(),
+      );
+  }
+
   async findOptionsByEstablishmentId(
     establishmentId: string,
     filters?: CustomerVehicleOptionsFilters,
-  ): Promise<CustomerVehicleOptionsResult> {
+  ) {
     const limit = filters?.limit ?? 20;
     const search = filters?.search?.trim().toLowerCase();
     const plateSearch = filters?.search
       ?.replace(/[^a-zA-Z0-9]/g, "")
       .toUpperCase();
 
-    const filteredVehicles = this.items
+    return this.items
       .slice()
       .filter((item) => item.establishmentId.toString() === establishmentId)
       .filter((item) => !item.isDeleted())
@@ -140,15 +154,12 @@ export class InMemoryCustomerVehiclesRepository implements CustomerVehiclesRepos
         }
 
         return compareStrings(a.plate ?? "", b.plate ?? "");
-      });
-
-    return {
-      vehicles: filteredVehicles.slice(0, limit).map((vehicle) => ({
+      })
+      .slice(0, limit)
+      .map((vehicle) => ({
         id: vehicle.id.toString(),
         label: vehicle.model ?? "",
-      })),
-      totalItems: filteredVehicles.length,
-    };
+      }));
   }
 
   async save(vehicle: CustomerVehicle): Promise<void> {

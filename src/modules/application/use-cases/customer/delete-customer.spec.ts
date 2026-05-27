@@ -74,6 +74,38 @@ describe("Delete customer", () => {
     ).resolves.toBeNull();
   });
 
+  it("should soft-delete all active vehicles when the customer has more than one page of vehicles", async () => {
+    const establishment = makeEstablishment();
+    const customer = makeCustomer({ establishmentId: establishment.id });
+    const vehicles = Array.from({ length: 21 }, (_, index) =>
+      makeCustomerVehicle({
+        establishmentId: establishment.id,
+        customerId: customer.id,
+        plate: `ABC${index.toString().padStart(4, "0")}`.slice(0, 7),
+      }),
+    );
+
+    await inMemoryEstablishmentsRepository.create(establishment);
+    await inMemoryCustomersRepository.create(customer);
+
+    for (const vehicle of vehicles) {
+      await inMemoryCustomerVehiclesRepository.create(vehicle);
+    }
+
+    const result = await sut.execute({
+      establishmentOwnerId: establishment.ownerId.toString(),
+      customerId: customer.id.toString(),
+    });
+
+    expect(result.isRight()).toBe(true);
+    expect(customer.isDeleted()).toBe(true);
+
+    for (const vehicle of vehicles) {
+      expect(vehicle.isDeleted()).toBe(true);
+      expect(vehicle.deletedAt).toEqual(customer.deletedAt);
+    }
+  });
+
   it("should reject customers outside the establishment", async () => {
     const firstEstablishment = makeEstablishment();
     const secondEstablishment = makeEstablishment();

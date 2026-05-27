@@ -102,7 +102,6 @@ describe("List customer options", () => {
         label: "Beatriz Souza",
       },
     ]);
-    expect(result.value.totalItems).toBe(3);
   });
 
   it("should allow employee scope", async () => {

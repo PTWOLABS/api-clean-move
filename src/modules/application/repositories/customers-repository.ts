@@ -21,11 +21,6 @@ export type PaginatedCustomers = {
   totalItems: number;
 };
 
-export type CustomerOptionsResult = {
-  customers: CustomerOption[];
-  totalItems: number;
-};
-
 export abstract class CustomersRepository {
   abstract create(customer: Customer): Promise<void>;
   abstract findById(id: string): Promise<Customer | null>;
@@ -44,6 +39,6 @@ export abstract class CustomersRepository {
   abstract findOptionsByEstablishmentId(
     establishmentId: string,
     filters?: CustomerOptionsFilters,
-  ): Promise<CustomerOptionsResult>;
+  ): Promise<CustomerOption[]>;
   abstract save(customer: Customer): Promise<void>;
 }

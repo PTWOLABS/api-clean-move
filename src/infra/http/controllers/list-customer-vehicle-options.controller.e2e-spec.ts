@@ -153,8 +153,6 @@ describe("ListCustomerVehicleOptionsController (e2e)", () => {
         label: "Gol Trend",
       },
     ]);
-    expect(brandBody.totalItems).toBe(1);
-    expect(plateBody.totalItems).toBe(1);
   });
 
   it("should allow employee scope", async () => {

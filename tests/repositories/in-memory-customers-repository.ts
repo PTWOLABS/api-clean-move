@@ -1,7 +1,6 @@
 import {
   CustomerFilters,
   CustomerOptionsFilters,
-  CustomerOptionsResult,
   CustomersRepository,
   PaginatedCustomers,
 } from "../../src/modules/application/repositories/customers-repository";
@@ -101,11 +100,11 @@ export class InMemoryCustomersRepository implements CustomersRepository {
   async findOptionsByEstablishmentId(
     establishmentId: string,
     filters?: CustomerOptionsFilters,
-  ): Promise<CustomerOptionsResult> {
+  ) {
     const limit = filters?.limit ?? 20;
     const search = filters?.search?.trim().toLowerCase();
 
-    const filteredCustomers = this.items
+    return this.items
       .slice()
       .filter((item) => item.establishmentId.toString() === establishmentId)
       .filter((item) => !item.isDeleted())
@@ -119,15 +118,12 @@ export class InMemoryCustomersRepository implements CustomersRepository {
           (item.nickname?.toLowerCase().includes(search) ?? false)
         );
       })
-      .sort((a, b) => compareStrings(a.fullName, b.fullName));
-
-    return {
-      customers: filteredCustomers.slice(0, limit).map((customer) => ({
+      .sort((a, b) => compareStrings(a.fullName, b.fullName))
+      .slice(0, limit)
+      .map((customer) => ({
         id: customer.id.toString(),
         label: customer.fullName,
-      })),
-      totalItems: filteredCustomers.length,
-    };
+      }));
   }
 
   async save(customer: Customer): Promise<void> {

@@ -133,21 +133,18 @@ describe("List customer vehicle options", () => {
         label: "Gol Trend",
       },
     ]);
-    expect(brandResult.value.totalItems).toBe(1);
     expect(plateResult.value.vehicles).toEqual([
       {
         id: firstVehicle.id.toString(),
         label: "Gol Trend",
       },
     ]);
-    expect(plateResult.value.totalItems).toBe(1);
     expect(modelResult.value.vehicles).toEqual([
       {
         id: secondVehicle.id.toString(),
         label: "Onix",
       },
     ]);
-    expect(modelResult.value.totalItems).toBe(1);
   });
 
   it("should allow employee scope", async () => {

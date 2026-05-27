@@ -24,7 +24,6 @@ type ListCustomerVehicleOptionsUseCaseResponse = Either<
   ResourceNotFoundError | NotAllowedError,
   {
     vehicles: CustomerVehicleOption[];
-    totalItems: number;
   }
 >;
 
@@ -63,7 +62,7 @@ export class ListCustomerVehicleOptionsUseCase {
       }
     }
 
-    const { vehicles, totalItems } =
+    const vehicles =
       await this.customerVehiclesRepository.findOptionsByEstablishmentId(
         establishmentId,
         {
@@ -75,7 +74,6 @@ export class ListCustomerVehicleOptionsUseCase {
 
     return right({
       vehicles,
-      totalItems,
     });
   }
 }

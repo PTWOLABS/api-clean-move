@@ -119,7 +119,6 @@ export class ListCustomerOptionsController {
 
     return {
       customers: result.value.customers,
-      totalItems: result.value.totalItems,
     };
   }
 }

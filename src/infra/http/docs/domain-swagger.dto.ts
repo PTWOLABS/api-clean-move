@@ -396,13 +396,6 @@ export class OptionItemDto {
 export class CustomerOptionsResponseDto {
   @ApiProperty({ type: OptionItemDto, isArray: true })
   customers!: OptionItemDto[];
-
-  @ApiProperty({
-    example: 42,
-    description:
-      "Total number of customer options matching the current filters (before limit).",
-  })
-  totalItems!: number;
 }
 
 export class CreateCustomerVehicleBodyDto {
@@ -536,13 +529,6 @@ export class ListCustomerVehiclesResponseDto {
 export class CustomerVehicleOptionsResponseDto {
   @ApiProperty({ type: OptionItemDto, isArray: true })
   vehicles!: OptionItemDto[];
-
-  @ApiProperty({
-    example: 7,
-    description:
-      "Total number of vehicle options matching the current filters (before limit).",
-  })
-  totalItems!: number;
 }
 
 export class CreateAppointmentBodyDto {

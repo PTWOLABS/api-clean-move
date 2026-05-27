@@ -122,7 +122,6 @@ describe("ListCustomerOptionsController (e2e)", () => {
     expect(body.customers.map((customer) => customer.id)).not.toContain(
       deletedCustomer.id.toString(),
     );
-    expect(body.totalItems).toBe(3);
   });
 
   it("should allow employee scope", async () => {

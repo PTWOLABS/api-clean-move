@@ -21,11 +21,6 @@ export type PaginatedCustomerVehicles = {
   totalItems: number;
 };
 
-export type CustomerVehicleOptionsResult = {
-  vehicles: CustomerVehicleOption[];
-  totalItems: number;
-};
-
 export abstract class CustomerVehiclesRepository {
   abstract create(vehicle: CustomerVehicle): Promise<void>;
   abstract findById(id: string): Promise<CustomerVehicle | null>;
@@ -47,9 +42,13 @@ export abstract class CustomerVehiclesRepository {
     establishmentId: string,
     filters?: CustomerVehicleFilters,
   ): Promise<PaginatedCustomerVehicles>;
+  abstract findAllActiveByCustomerIdAndEstablishmentId(
+    customerId: string,
+    establishmentId: string,
+  ): Promise<CustomerVehicle[]>;
   abstract findOptionsByEstablishmentId(
     establishmentId: string,
     filters?: CustomerVehicleOptionsFilters,
-  ): Promise<CustomerVehicleOptionsResult>;
+  ): Promise<CustomerVehicleOption[]>;
   abstract save(vehicle: CustomerVehicle): Promise<void>;
 }

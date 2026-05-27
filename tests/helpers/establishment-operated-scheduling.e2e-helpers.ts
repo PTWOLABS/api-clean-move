@@ -47,7 +47,6 @@ export const optionItemSchema = z
 export const customerOptionsResponseSchema = z
   .object({
     customers: z.array(optionItemSchema),
-    totalItems: z.number().int().nonnegative(),
   })
   .strict();
 
@@ -77,7 +76,6 @@ export const listVehiclesResponseSchema = z.object({
 export const vehicleOptionsResponseSchema = z
   .object({
     vehicles: z.array(optionItemSchema),
-    totalItems: z.number().int().nonnegative(),
   })
   .strict();
 
