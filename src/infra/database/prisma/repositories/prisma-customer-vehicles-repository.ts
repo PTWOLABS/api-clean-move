@@ -193,6 +193,36 @@ export class PrismaCustomerVehiclesRepository implements CustomerVehiclesReposit
     }
   }
 
+  async findAllActiveByCustomerIdsAndEstablishmentId(
+    customerIds: string[],
+    establishmentId: string,
+  ): Promise<CustomerVehicle[]> {
+    if (customerIds.length === 0) {
+      return [];
+    }
+
+    try {
+      const vehicles = await PrismaUnitOfWork.getClient(
+        this.prisma,
+      ).customerVehicle.findMany({
+        where: {
+          customerId: { in: customerIds },
+          establishmentId,
+          deletedAt: null,
+        },
+        orderBy: {
+          createdAt: "asc",
+        },
+      });
+
+      return vehicles.map((vehicle) =>
+        PrismaCustomerVehicleMapper.toDomain(vehicle),
+      );
+    } catch (error) {
+      rethrowPrismaRepositoryError(error);
+    }
+  }
+
   async findOptionsByEstablishmentId(
     establishmentId: string,
     filters?: CustomerVehicleOptionsFilters,

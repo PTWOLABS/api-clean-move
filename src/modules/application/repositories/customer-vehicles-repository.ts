@@ -46,6 +46,10 @@ export abstract class CustomerVehiclesRepository {
     customerId: string,
     establishmentId: string,
   ): Promise<CustomerVehicle[]>;
+  abstract findAllActiveByCustomerIdsAndEstablishmentId(
+    customerIds: string[],
+    establishmentId: string,
+  ): Promise<CustomerVehicle[]>;
   abstract findOptionsByEstablishmentId(
     establishmentId: string,
     filters?: CustomerVehicleOptionsFilters,
