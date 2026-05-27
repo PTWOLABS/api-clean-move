@@ -2,10 +2,12 @@ import { Injectable } from "@nestjs/common";
 
 import {
   CustomerFilters,
-  CustomerOption,
   CustomerOptionsFilters,
+  CustomerOptionsResult,
   CustomersRepository,
+  PaginatedCustomers,
 } from "../../../../modules/application/repositories/customers-repository";
+import { Prisma } from "../../../../generated/prisma/client";
 import { Customer } from "../../../../modules/customer/domain/entities/customer";
 import { CustomerDocument } from "../../../../modules/customer/domain/value-objects/customer-document";
 import { PrismaCustomerMapper } from "../mappers/prisma-customer-mapper";
@@ -103,42 +105,50 @@ export class PrismaCustomersRepository implements CustomersRepository {
   async findManyByEstablishmentId(
     establishmentId: string,
     filters?: CustomerFilters,
-  ): Promise<Customer[]> {
+  ): Promise<PaginatedCustomers> {
     const page = filters?.page ?? 1;
     const size = filters?.size ?? 20;
     const search = filters?.search?.trim();
     const documentSearch = search?.replace(/\D/g, "");
 
-    try {
-      const customers = await PrismaUnitOfWork.getClient(
-        this.prisma,
-      ).customer.findMany({
-        where: {
-          establishmentId,
-          ...(filters?.includeDeleted ? {} : { deletedAt: null }),
-          ...(search
-            ? {
-                OR: [
-                  { fullName: { contains: search, mode: "insensitive" } },
-                  { phone: { contains: search } },
-                  { email: { contains: search, mode: "insensitive" } },
-                  ...(documentSearch
-                    ? [{ cpfCnpj: { contains: documentSearch } }]
-                    : []),
-                ],
-              }
-            : {}),
-        },
-        orderBy: {
-          createdAt: "asc",
-        },
-        skip: (page - 1) * size,
-        take: size,
-      });
+    const where: Prisma.CustomerWhereInput = {
+      establishmentId,
+      ...(filters?.includeDeleted ? {} : { deletedAt: null }),
+      ...(search
+        ? {
+            OR: [
+              { fullName: { contains: search, mode: "insensitive" } },
+              { phone: { contains: search } },
+              { email: { contains: search, mode: "insensitive" } },
+              ...(documentSearch
+                ? [{ cpfCnpj: { contains: documentSearch } }]
+                : []),
+            ],
+          }
+        : {}),
+    };
 
-      return customers.map((customer) =>
-        PrismaCustomerMapper.toDomain(customer),
-      );
+    try {
+      const client = PrismaUnitOfWork.getClient(this.prisma);
+
+      const [totalItems, customers] = await Promise.all([
+        client.customer.count({ where }),
+        client.customer.findMany({
+          where,
+          orderBy: {
+            createdAt: "asc",
+          },
+          skip: (page - 1) * size,
+          take: size,
+        }),
+      ]);
+
+      return {
+        customers: customers.map((customer) =>
+          PrismaCustomerMapper.toDomain(customer),
+        ),
+        totalItems,
+      };
     } catch (error) {
       rethrowPrismaRepositoryError(error);
     }
@@ -147,40 +157,48 @@ export class PrismaCustomersRepository implements CustomersRepository {
   async findOptionsByEstablishmentId(
     establishmentId: string,
     filters?: CustomerOptionsFilters,
-  ): Promise<CustomerOption[]> {
+  ): Promise<CustomerOptionsResult> {
     const limit = filters?.limit ?? 20;
     const search = filters?.search?.trim();
 
-    try {
-      const customers = await PrismaUnitOfWork.getClient(
-        this.prisma,
-      ).customer.findMany({
-        select: {
-          id: true,
-          fullName: true,
-        },
-        where: {
-          establishmentId,
-          deletedAt: null,
-          ...(search
-            ? {
-                OR: [
-                  { fullName: { contains: search, mode: "insensitive" } },
-                  { nickname: { contains: search, mode: "insensitive" } },
-                ],
-              }
-            : {}),
-        },
-        orderBy: {
-          fullName: "asc",
-        },
-        take: limit,
-      });
+    const where: Prisma.CustomerWhereInput = {
+      establishmentId,
+      deletedAt: null,
+      ...(search
+        ? {
+            OR: [
+              { fullName: { contains: search, mode: "insensitive" } },
+              { nickname: { contains: search, mode: "insensitive" } },
+            ],
+          }
+        : {}),
+    };
 
-      return customers.map((customer) => ({
-        id: customer.id,
-        label: customer.fullName,
-      }));
+    try {
+      const client = PrismaUnitOfWork.getClient(this.prisma);
+
+      const [totalItems, customers] = await Promise.all([
+        client.customer.count({ where }),
+        client.customer.findMany({
+          select: {
+            id: true,
+            fullName: true,
+          },
+          where,
+          orderBy: {
+            fullName: "asc",
+          },
+          take: limit,
+        }),
+      ]);
+
+      return {
+        customers: customers.map((customer) => ({
+          id: customer.id,
+          label: customer.fullName,
+        })),
+        totalItems,
+      };
     } catch (error) {
       rethrowPrismaRepositoryError(error);
     }

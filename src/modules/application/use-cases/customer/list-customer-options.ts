@@ -22,6 +22,7 @@ type ListCustomerOptionsUseCaseResponse = Either<
   ResourceNotFoundError | NotAllowedError,
   {
     customers: CustomerOption[];
+    totalItems: number;
   }
 >;
 
@@ -45,7 +46,7 @@ export class ListCustomerOptionsUseCase {
 
     const { establishment } = scopeResult.value;
 
-    const customers =
+    const { customers, totalItems } =
       await this.customersRepository.findOptionsByEstablishmentId(
         establishment.id.toString(),
         {
@@ -56,6 +57,7 @@ export class ListCustomerOptionsUseCase {
 
     return right({
       customers,
+      totalItems,
     });
   }
 }

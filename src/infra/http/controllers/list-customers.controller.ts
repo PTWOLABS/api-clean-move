@@ -120,6 +120,7 @@ export class ListCustomersController {
       customers: result.value.customers.map((customer) =>
         CustomerPresenter.toHTTP(customer),
       ),
+      totalItems: result.value.totalItems,
     };
   }
 }
