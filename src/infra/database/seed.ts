@@ -842,7 +842,32 @@ function buildPhone(sequence: number) {
 }
 
 function buildCpf(sequence: number) {
-  return String(10000000000 + sequence).slice(-11);
+  const baseDigits = String(100000000 + sequence).slice(-9);
+  const firstCheckDigit = calculateCpfCheckDigit(
+    baseDigits,
+    [10, 9, 8, 7, 6, 5, 4, 3, 2],
+  );
+  const secondCheckDigit = calculateCpfCheckDigit(
+    `${baseDigits}${firstCheckDigit}`,
+    [11, 10, 9, 8, 7, 6, 5, 4, 3, 2],
+  );
+
+  return `${baseDigits}${firstCheckDigit}${secondCheckDigit}`;
+}
+
+function calculateCpfCheckDigit(value: string, weights: number[]) {
+  const total = value.split("").reduce((sum, digit, index) => {
+    const weight = weights[index];
+
+    if (weight === undefined) {
+      throw new Error(`Missing CPF weight for index ${index}`);
+    }
+
+    return sum + Number(digit) * weight;
+  }, 0);
+  const remainder = total % 11;
+
+  return remainder < 2 ? 0 : 11 - remainder;
 }
 
 function buildPlate(index: number) {
