@@ -1,8 +1,8 @@
 import {
   CustomerFilters,
-  CustomerOption,
   CustomerOptionsFilters,
   CustomersRepository,
+  PaginatedCustomers,
 } from "../../src/modules/application/repositories/customers-repository";
 import { Customer } from "../../src/modules/customer/domain/entities/customer";
 import { CustomerDocument } from "../../src/modules/customer/domain/value-objects/customer-document";
@@ -58,7 +58,7 @@ export class InMemoryCustomersRepository implements CustomersRepository {
   async findManyByEstablishmentId(
     establishmentId: string,
     filters?: CustomerFilters,
-  ): Promise<Customer[]> {
+  ): Promise<PaginatedCustomers> {
     const page = filters?.page ?? 1;
     const size = filters?.size ?? 20;
     const search = filters?.search?.trim().toLowerCase();
@@ -87,16 +87,20 @@ export class InMemoryCustomersRepository implements CustomersRepository {
         );
       });
 
+    const totalItems = filteredCustomers.length;
     const start = (page - 1) * size;
     const end = start + size;
 
-    return filteredCustomers.slice(start, end);
+    return {
+      customers: filteredCustomers.slice(start, end),
+      totalItems,
+    };
   }
 
   async findOptionsByEstablishmentId(
     establishmentId: string,
     filters?: CustomerOptionsFilters,
-  ): Promise<CustomerOption[]> {
+  ) {
     const limit = filters?.limit ?? 20;
     const search = filters?.search?.trim().toLowerCase();
 

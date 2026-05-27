@@ -18,6 +18,7 @@ type ListCustomerVehiclesUseCaseResponse = Either<
   ResourceNotFoundError,
   {
     vehicles: CustomerVehicle[];
+    totalItems: number;
   }
 >;
 
@@ -51,7 +52,7 @@ export class ListCustomerVehiclesUseCase {
       return left(new ResourceNotFoundError({ resource: "customer" }));
     }
 
-    const vehicles =
+    const { vehicles, totalItems } =
       await this.customerVehiclesRepository.findManyByCustomerIdAndEstablishmentId(
         customer.id.toString(),
         establishment.id.toString(),
@@ -63,6 +64,7 @@ export class ListCustomerVehiclesUseCase {
 
     return right({
       vehicles,
+      totalItems,
     });
   }
 }

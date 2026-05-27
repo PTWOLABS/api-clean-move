@@ -1,8 +1,8 @@
 import {
   CustomerVehicleFilters,
-  CustomerVehicleOption,
   CustomerVehicleOptionsFilters,
   CustomerVehiclesRepository,
+  PaginatedCustomerVehicles,
 } from "../../src/modules/application/repositories/customer-vehicles-repository";
 import { CustomerVehicle } from "../../src/modules/customer/domain/entities/customer-vehicle";
 
@@ -75,7 +75,7 @@ export class InMemoryCustomerVehiclesRepository implements CustomerVehiclesRepos
     customerId: string,
     establishmentId: string,
     filters?: CustomerVehicleFilters,
-  ): Promise<CustomerVehicle[]> {
+  ): Promise<PaginatedCustomerVehicles> {
     const page = filters?.page ?? 1;
     const size = filters?.size ?? 20;
 
@@ -89,16 +89,35 @@ export class InMemoryCustomerVehiclesRepository implements CustomerVehiclesRepos
       )
       .filter((item) => filters?.includeDeleted || !item.isDeleted());
 
+    const totalItems = filteredVehicles.length;
     const start = (page - 1) * size;
     const end = start + size;
 
-    return filteredVehicles.slice(start, end);
+    return {
+      vehicles: filteredVehicles.slice(start, end),
+      totalItems,
+    };
+  }
+
+  async findAllActiveByCustomerIdAndEstablishmentId(
+    customerId: string,
+    establishmentId: string,
+  ) {
+    return this.items
+      .slice()
+      .sort((a, b) => a.createdAt!.getTime() - b.createdAt!.getTime())
+      .filter(
+        (item) =>
+          item.customerId.toString() === customerId &&
+          item.establishmentId.toString() === establishmentId &&
+          !item.isDeleted(),
+      );
   }
 
   async findOptionsByEstablishmentId(
     establishmentId: string,
     filters?: CustomerVehicleOptionsFilters,
-  ): Promise<CustomerVehicleOption[]> {
+  ) {
     const limit = filters?.limit ?? 20;
     const search = filters?.search?.trim().toLowerCase();
     const plateSearch = filters?.search

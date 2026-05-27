@@ -376,6 +376,13 @@ export class CustomerResponseDto {
 export class ListCustomersResponseDto {
   @ApiProperty({ type: CustomerDto, isArray: true })
   customers!: CustomerDto[];
+
+  @ApiProperty({
+    example: 42,
+    description:
+      "Total number of customers matching the current filters (across all pages).",
+  })
+  totalItems!: number;
 }
 
 export class OptionItemDto {
@@ -510,6 +517,13 @@ export class CustomerVehicleResponseDto {
 export class ListCustomerVehiclesResponseDto {
   @ApiProperty({ type: CustomerVehicleDto, isArray: true })
   vehicles!: CustomerVehicleDto[];
+
+  @ApiProperty({
+    example: 7,
+    description:
+      "Total number of vehicles matching the current filters (across all pages).",
+  })
+  totalItems!: number;
 }
 
 export class CustomerVehicleOptionsResponseDto {

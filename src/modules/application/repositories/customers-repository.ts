@@ -16,6 +16,11 @@ export type CustomerOptionsFilters = {
   limit?: number;
 };
 
+export type PaginatedCustomers = {
+  customers: Customer[];
+  totalItems: number;
+};
+
 export abstract class CustomersRepository {
   abstract create(customer: Customer): Promise<void>;
   abstract findById(id: string): Promise<Customer | null>;
@@ -30,7 +35,7 @@ export abstract class CustomersRepository {
   abstract findManyByEstablishmentId(
     establishmentId: string,
     filters?: CustomerFilters,
-  ): Promise<Customer[]>;
+  ): Promise<PaginatedCustomers>;
   abstract findOptionsByEstablishmentId(
     establishmentId: string,
     filters?: CustomerOptionsFilters,

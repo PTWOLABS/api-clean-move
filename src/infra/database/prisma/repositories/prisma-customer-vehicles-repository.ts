@@ -5,7 +5,9 @@ import {
   CustomerVehicleOption,
   CustomerVehicleOptionsFilters,
   CustomerVehiclesRepository,
+  PaginatedCustomerVehicles,
 } from "../../../../modules/application/repositories/customer-vehicles-repository";
+import { Prisma } from "../../../../generated/prisma/client";
 import { CustomerVehicle } from "../../../../modules/customer/domain/entities/customer-vehicle";
 import { PrismaCustomerVehicleMapper } from "../mappers/prisma-customer-vehicle-mapper";
 import { rethrowPrismaRepositoryError } from "../prisma-repository-error-handler";
@@ -129,10 +131,46 @@ export class PrismaCustomerVehiclesRepository implements CustomerVehiclesReposit
     customerId: string,
     establishmentId: string,
     filters?: CustomerVehicleFilters,
-  ): Promise<CustomerVehicle[]> {
+  ): Promise<PaginatedCustomerVehicles> {
     const page = filters?.page ?? 1;
     const size = filters?.size ?? 20;
 
+    const where: Prisma.CustomerVehicleWhereInput = {
+      customerId,
+      establishmentId,
+      ...(filters?.includeDeleted ? {} : { deletedAt: null }),
+    };
+
+    try {
+      const client = PrismaUnitOfWork.getClient(this.prisma);
+
+      const [totalItems, vehicles] = await Promise.all([
+        client.customerVehicle.count({ where }),
+        client.customerVehicle.findMany({
+          where,
+          orderBy: {
+            createdAt: "asc",
+          },
+          skip: (page - 1) * size,
+          take: size,
+        }),
+      ]);
+
+      return {
+        vehicles: vehicles.map((vehicle) =>
+          PrismaCustomerVehicleMapper.toDomain(vehicle),
+        ),
+        totalItems,
+      };
+    } catch (error) {
+      rethrowPrismaRepositoryError(error);
+    }
+  }
+
+  async findAllActiveByCustomerIdAndEstablishmentId(
+    customerId: string,
+    establishmentId: string,
+  ): Promise<CustomerVehicle[]> {
     try {
       const vehicles = await PrismaUnitOfWork.getClient(
         this.prisma,
@@ -140,13 +178,11 @@ export class PrismaCustomerVehiclesRepository implements CustomerVehiclesReposit
         where: {
           customerId,
           establishmentId,
-          ...(filters?.includeDeleted ? {} : { deletedAt: null }),
+          deletedAt: null,
         },
         orderBy: {
           createdAt: "asc",
         },
-        skip: (page - 1) * size,
-        take: size,
       });
 
       return vehicles.map((vehicle) =>

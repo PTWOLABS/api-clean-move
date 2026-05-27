@@ -16,6 +16,11 @@ export type CustomerVehicleOptionsFilters = {
   limit?: number;
 };
 
+export type PaginatedCustomerVehicles = {
+  vehicles: CustomerVehicle[];
+  totalItems: number;
+};
+
 export abstract class CustomerVehiclesRepository {
   abstract create(vehicle: CustomerVehicle): Promise<void>;
   abstract findById(id: string): Promise<CustomerVehicle | null>;
@@ -36,6 +41,10 @@ export abstract class CustomerVehiclesRepository {
     customerId: string,
     establishmentId: string,
     filters?: CustomerVehicleFilters,
+  ): Promise<PaginatedCustomerVehicles>;
+  abstract findAllActiveByCustomerIdAndEstablishmentId(
+    customerId: string,
+    establishmentId: string,
   ): Promise<CustomerVehicle[]>;
   abstract findOptionsByEstablishmentId(
     establishmentId: string,
