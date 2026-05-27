@@ -34,6 +34,7 @@ export const customerResponseSchema = z.object({
 
 export const listCustomersResponseSchema = z.object({
   customers: z.array(customerResponseSchema.shape.customer),
+  totalItems: z.number().int().nonnegative(),
 });
 
 export const optionItemSchema = z
@@ -46,6 +47,7 @@ export const optionItemSchema = z
 export const customerOptionsResponseSchema = z
   .object({
     customers: z.array(optionItemSchema),
+    totalItems: z.number().int().nonnegative(),
   })
   .strict();
 
@@ -69,11 +71,13 @@ export const vehicleResponseSchema = z.object({
 
 export const listVehiclesResponseSchema = z.object({
   vehicles: z.array(vehicleResponseSchema.shape.vehicle),
+  totalItems: z.number().int().nonnegative(),
 });
 
 export const vehicleOptionsResponseSchema = z
   .object({
     vehicles: z.array(optionItemSchema),
+    totalItems: z.number().int().nonnegative(),
   })
   .strict();
 

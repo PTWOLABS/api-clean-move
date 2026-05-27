@@ -124,6 +124,9 @@ describe("ListCustomersController (e2e)", () => {
     ]);
     expect(paginatedResponse.status).toBe(200);
     expect(paginatedBody.customers).toHaveLength(1);
+    expect(allBody.totalItems).toBe(2);
+    expect(searchBody.totalItems).toBe(1);
+    expect(paginatedBody.totalItems).toBe(2);
   });
 
   it("should enforce authentication and establishment role", async () => {
@@ -211,5 +214,6 @@ describe("ListCustomersController (e2e)", () => {
 
     expect(response.status).toBe(200);
     expect(body.customers).toHaveLength(0);
+    expect(body.totalItems).toBe(0);
   });
 });

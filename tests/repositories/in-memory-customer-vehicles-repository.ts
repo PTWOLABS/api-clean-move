@@ -1,8 +1,9 @@
 import {
   CustomerVehicleFilters,
-  CustomerVehicleOption,
   CustomerVehicleOptionsFilters,
+  CustomerVehicleOptionsResult,
   CustomerVehiclesRepository,
+  PaginatedCustomerVehicles,
 } from "../../src/modules/application/repositories/customer-vehicles-repository";
 import { CustomerVehicle } from "../../src/modules/customer/domain/entities/customer-vehicle";
 
@@ -75,7 +76,7 @@ export class InMemoryCustomerVehiclesRepository implements CustomerVehiclesRepos
     customerId: string,
     establishmentId: string,
     filters?: CustomerVehicleFilters,
-  ): Promise<CustomerVehicle[]> {
+  ): Promise<PaginatedCustomerVehicles> {
     const page = filters?.page ?? 1;
     const size = filters?.size ?? 20;
 
@@ -89,23 +90,27 @@ export class InMemoryCustomerVehiclesRepository implements CustomerVehiclesRepos
       )
       .filter((item) => filters?.includeDeleted || !item.isDeleted());
 
+    const totalItems = filteredVehicles.length;
     const start = (page - 1) * size;
     const end = start + size;
 
-    return filteredVehicles.slice(start, end);
+    return {
+      vehicles: filteredVehicles.slice(start, end),
+      totalItems,
+    };
   }
 
   async findOptionsByEstablishmentId(
     establishmentId: string,
     filters?: CustomerVehicleOptionsFilters,
-  ): Promise<CustomerVehicleOption[]> {
+  ): Promise<CustomerVehicleOptionsResult> {
     const limit = filters?.limit ?? 20;
     const search = filters?.search?.trim().toLowerCase();
     const plateSearch = filters?.search
       ?.replace(/[^a-zA-Z0-9]/g, "")
       .toUpperCase();
 
-    return this.items
+    const filteredVehicles = this.items
       .slice()
       .filter((item) => item.establishmentId.toString() === establishmentId)
       .filter((item) => !item.isDeleted())
@@ -135,12 +140,15 @@ export class InMemoryCustomerVehiclesRepository implements CustomerVehiclesRepos
         }
 
         return compareStrings(a.plate ?? "", b.plate ?? "");
-      })
-      .slice(0, limit)
-      .map((vehicle) => ({
+      });
+
+    return {
+      vehicles: filteredVehicles.slice(0, limit).map((vehicle) => ({
         id: vehicle.id.toString(),
         label: vehicle.model ?? "",
-      }));
+      })),
+      totalItems: filteredVehicles.length,
+    };
   }
 
   async save(vehicle: CustomerVehicle): Promise<void> {

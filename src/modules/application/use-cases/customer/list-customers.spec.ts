@@ -69,6 +69,39 @@ describe("List customers", () => {
     }
 
     expect(result.value.customers).toEqual([firstCustomer, secondCustomer]);
+    expect(result.value.totalItems).toBe(2);
+  });
+
+  it("should return totalItems across all pages when paginating", async () => {
+    const establishment = makeEstablishment();
+    const firstCustomer = makeCustomer({
+      establishmentId: establishment.id,
+      fullName: "Maria Silva",
+    });
+    const secondCustomer = makeCustomer({
+      establishmentId: establishment.id,
+      fullName: "Jose Silva",
+      cpfCnpj: null,
+    });
+
+    await inMemoryEstablishmentsRepository.create(establishment);
+    await inMemoryCustomersRepository.create(firstCustomer);
+    await inMemoryCustomersRepository.create(secondCustomer);
+
+    const result = await sut.execute({
+      establishmentOwnerId: establishment.ownerId.toString(),
+      page: 1,
+      size: 1,
+    });
+
+    expect(result.isRight()).toBe(true);
+
+    if (result.isLeft()) {
+      throw result.value;
+    }
+
+    expect(result.value.customers).toHaveLength(1);
+    expect(result.value.totalItems).toBe(2);
   });
 
   it("should reject a missing establishment", async () => {

@@ -126,6 +126,7 @@ export class ListCustomerVehiclesController {
       vehicles: result.value.vehicles.map((vehicle) =>
         CustomerVehiclePresenter.toHTTP(vehicle),
       ),
+      totalItems: result.value.totalItems,
     };
   }
 }
