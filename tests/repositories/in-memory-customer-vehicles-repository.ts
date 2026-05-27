@@ -114,6 +114,27 @@ export class InMemoryCustomerVehiclesRepository implements CustomerVehiclesRepos
       );
   }
 
+  async findAllActiveByCustomerIdsAndEstablishmentId(
+    customerIds: string[],
+    establishmentId: string,
+  ) {
+    if (customerIds.length === 0) {
+      return [];
+    }
+
+    const customerIdSet = new Set(customerIds);
+
+    return this.items
+      .slice()
+      .sort((a, b) => a.createdAt!.getTime() - b.createdAt!.getTime())
+      .filter(
+        (item) =>
+          customerIdSet.has(item.customerId.toString()) &&
+          item.establishmentId.toString() === establishmentId &&
+          !item.isDeleted(),
+      );
+  }
+
   async findOptionsByEstablishmentId(
     establishmentId: string,
     filters?: CustomerVehicleOptionsFilters,

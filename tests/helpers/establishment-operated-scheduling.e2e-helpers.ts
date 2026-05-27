@@ -32,24 +32,6 @@ export const customerResponseSchema = z.object({
   }),
 });
 
-export const listCustomersResponseSchema = z.object({
-  customers: z.array(customerResponseSchema.shape.customer),
-  totalItems: z.number().int().nonnegative(),
-});
-
-export const optionItemSchema = z
-  .object({
-    id: z.uuid(),
-    label: z.string(),
-  })
-  .strict();
-
-export const customerOptionsResponseSchema = z
-  .object({
-    customers: z.array(optionItemSchema),
-  })
-  .strict();
-
 export const vehicleResponseSchema = z.object({
   vehicle: z.object({
     id: z.uuid(),
@@ -67,6 +49,29 @@ export const vehicleResponseSchema = z.object({
     updatedAt: z.string().nullable(),
   }),
 });
+
+export const listCustomersResponseSchema = z.object({
+  customers: z.array(
+    customerResponseSchema.shape.customer.extend({
+      vehicles: z.array(vehicleResponseSchema.shape.vehicle),
+      vehiclesCount: z.number().int().nonnegative(),
+    }),
+  ),
+  totalItems: z.number().int().nonnegative(),
+});
+
+export const optionItemSchema = z
+  .object({
+    id: z.uuid(),
+    label: z.string(),
+  })
+  .strict();
+
+export const customerOptionsResponseSchema = z
+  .object({
+    customers: z.array(optionItemSchema),
+  })
+  .strict();
 
 export const listVehiclesResponseSchema = z.object({
   vehicles: z.array(vehicleResponseSchema.shape.vehicle),

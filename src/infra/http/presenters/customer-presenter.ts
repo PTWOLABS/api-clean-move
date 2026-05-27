@@ -1,4 +1,6 @@
 import { Customer } from "../../../modules/customer/domain/entities/customer";
+import { CustomerVehicle } from "../../../modules/customer/domain/entities/customer-vehicle";
+import { CustomerVehiclePresenter } from "./customer-vehicle-presenter";
 
 export class CustomerPresenter {
   static toHTTP(customer: Customer) {
@@ -28,6 +30,16 @@ export class CustomerPresenter {
       deletedAt: customer.deletedAt?.toISOString() ?? null,
       createdAt: customer.createdAt?.toISOString() ?? null,
       updatedAt: customer.updatedAt?.toISOString() ?? null,
+    };
+  }
+
+  static toHTTPListItem(customer: Customer, vehicles: CustomerVehicle[]) {
+    return {
+      ...CustomerPresenter.toHTTP(customer),
+      vehicles: vehicles.map((vehicle) =>
+        CustomerVehiclePresenter.toHTTP(vehicle),
+      ),
+      vehiclesCount: vehicles.length,
     };
   }
 }

@@ -127,6 +127,84 @@ describe("ListCustomersController (e2e)", () => {
     expect(allBody.totalItems).toBe(2);
     expect(searchBody.totalItems).toBe(1);
     expect(paginatedBody.totalItems).toBe(2);
+
+    for (const customer of allBody.customers) {
+      expect(customer.vehicles).toEqual([]);
+      expect(customer.vehiclesCount).toBe(0);
+    }
+  });
+
+  it("should include active vehicles and vehiclesCount for each customer", async () => {
+    const { accessToken } = await makeEstablishmentAuth({
+      app,
+      prisma,
+      userFactory,
+      establishmentFactory,
+      envService,
+    });
+    const customerResponse = await request(getHttpServer(app))
+      .post("/customers")
+      .set("Authorization", `Bearer ${accessToken}`)
+      .send(validCustomerPayload({ cpfCnpj: null }));
+    const customer = customerResponseSchema.parse(
+      customerResponse.body,
+    ).customer;
+
+    const firstVehicleResponse = await request(getHttpServer(app))
+      .post(`/customers/${customer.id}/vehicles`)
+      .set("Authorization", `Bearer ${accessToken}`)
+      .send({
+        plate: "ABC1D23",
+        brand: "Toyota",
+        model: "Corolla",
+        color: "Prata",
+        year: 2022,
+        notes: "Veiculo principal",
+      });
+    const secondVehicleResponse = await request(getHttpServer(app))
+      .post(`/customers/${customer.id}/vehicles`)
+      .set("Authorization", `Bearer ${accessToken}`)
+      .send({
+        plate: "XYZ9Z99",
+        brand: "Honda",
+        model: "Civic",
+        color: "Preto",
+        year: 2020,
+      });
+
+    expect(firstVehicleResponse.status).toBe(201);
+    expect(secondVehicleResponse.status).toBe(201);
+
+    const secondVehicleId = (
+      secondVehicleResponse.body as { vehicle: { id: string } }
+    ).vehicle.id;
+
+    await request(getHttpServer(app))
+      .delete(`/customers/${customer.id}/vehicles/${secondVehicleId}`)
+      .set("Authorization", `Bearer ${accessToken}`);
+
+    const listResponse = await request(getHttpServer(app))
+      .get("/customers")
+      .set("Authorization", `Bearer ${accessToken}`);
+    const listBody = listCustomersResponseSchema.parse(listResponse.body);
+    const listedCustomer = listBody.customers.find(
+      (item) => item.id === customer.id,
+    );
+
+    expect(listResponse.status).toBe(200);
+    expect(listedCustomer?.vehiclesCount).toBe(1);
+    expect(listedCustomer?.vehicles).toHaveLength(1);
+    expect(listedCustomer?.vehicles[0]).toMatchObject({
+      plate: "ABC1D23",
+      brand: "Toyota",
+      model: "Corolla",
+      color: "Prata",
+      year: 2022,
+      notes: "Veiculo principal",
+      customerId: customer.id,
+      establishmentId: customer.establishmentId,
+      deletedAt: null,
+    });
   });
 
   it("should enforce authentication and establishment role", async () => {

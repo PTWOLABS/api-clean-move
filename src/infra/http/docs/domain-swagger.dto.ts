@@ -373,18 +373,6 @@ export class CustomerResponseDto {
   customer!: CustomerDto;
 }
 
-export class ListCustomersResponseDto {
-  @ApiProperty({ type: CustomerDto, isArray: true })
-  customers!: CustomerDto[];
-
-  @ApiProperty({
-    example: 42,
-    description:
-      "Total number of customers matching the current filters (across all pages).",
-  })
-  totalItems!: number;
-}
-
 export class OptionItemDto {
   @ApiProperty({ example: "5f588c8b-ef0f-4193-aec0-2926e77c1d09" })
   id!: string;
@@ -462,6 +450,9 @@ export class CustomerVehicleDto {
   @ApiProperty({ example: "5f588c8b-ef0f-4193-aec0-2926e77c1d09" })
   customerId!: string;
 
+  @ApiProperty({ type: String, example: null, nullable: true })
+  imageUrl!: string | null;
+
   @ApiProperty({ type: String, example: "ABC1D23", nullable: true })
   plate!: string | null;
 
@@ -507,6 +498,29 @@ export class CustomerVehicleDto {
     format: "date-time",
   })
   updatedAt!: string | null;
+}
+
+export class CustomerListItemDto extends CustomerDto {
+  @ApiProperty({ type: CustomerVehicleDto, isArray: true })
+  vehicles!: CustomerVehicleDto[];
+
+  @ApiProperty({
+    example: 2,
+    description: "Number of active vehicles associated with this customer.",
+  })
+  vehiclesCount!: number;
+}
+
+export class ListCustomersResponseDto {
+  @ApiProperty({ type: CustomerListItemDto, isArray: true })
+  customers!: CustomerListItemDto[];
+
+  @ApiProperty({
+    example: 42,
+    description:
+      "Total number of customers matching the current filters (across all pages).",
+  })
+  totalItems!: number;
 }
 
 export class CustomerVehicleResponseDto {
