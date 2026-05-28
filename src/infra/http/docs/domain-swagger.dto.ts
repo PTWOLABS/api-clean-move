@@ -662,6 +662,11 @@ export class AppointmentVehicleSnapshotDto {
   year!: number | null;
 }
 
+export class AppointmentCustomerSnapshotDto {
+  @ApiProperty({ example: "Maria Silva" })
+  fullName!: string;
+}
+
 export class AppointmentDto {
   @ApiProperty({ example: "63f1d0ee-e8a4-47a8-8a73-0f3764b8731e" })
   id!: string;
@@ -671,6 +676,9 @@ export class AppointmentDto {
 
   @ApiProperty({ example: "5f588c8b-ef0f-4193-aec0-2926e77c1d09" })
   customerId!: string;
+
+  @ApiProperty({ type: AppointmentCustomerSnapshotDto })
+  customer!: AppointmentCustomerSnapshotDto;
 
   @ApiProperty({
     type: String,

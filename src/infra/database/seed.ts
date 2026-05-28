@@ -650,6 +650,7 @@ async function seedAppointments({
         data: {
           establishmentId,
           customerId: customer.id,
+          customerFullName: customer.fullName,
           vehicleId: appointmentIndex % 6 === 0 ? null : vehicle.id,
           bookedServices: {
             create: bookedServices.map((service, position) => ({

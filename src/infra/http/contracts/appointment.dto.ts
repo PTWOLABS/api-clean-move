@@ -11,10 +11,15 @@ export type AppointmentServiceDTO = {
   priceInCents: number;
 };
 
+export type AppointmentCustomerDTO = {
+  fullName: string;
+};
+
 export type AppointmentItemDTO = {
   id: string;
   establishmentId: string;
   customerId: string;
+  customer: AppointmentCustomerDTO;
   vehicleId: string | null;
   services: AppointmentServiceDTO[];
   vehicle: {

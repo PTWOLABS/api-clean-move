@@ -101,6 +101,9 @@ export const appointmentResponseSchema = z.object({
     id: z.uuid(),
     establishmentId: z.uuid(),
     customerId: z.uuid(),
+    customer: z.object({
+      fullName: z.string(),
+    }),
     vehicleId: z.uuid().nullable(),
     services: z
       .array(

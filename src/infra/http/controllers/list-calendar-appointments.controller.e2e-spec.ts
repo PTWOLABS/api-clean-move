@@ -88,6 +88,7 @@ describe("ListCalendarAppointmentsController (e2e)", () => {
     const customer = await customerFactory.makePrismaCustomer({
       establishmentId: establishment.id,
       cpfCnpj: null,
+      fullName: "Cliente Agenda",
     });
     const service = await serviceFactory.makePrismaService({
       establishmentId: establishment.id,
@@ -122,6 +123,15 @@ describe("ListCalendarAppointmentsController (e2e)", () => {
       "2026-04-21T10:00:00.000Z",
     );
 
+    await prisma.customer.update({
+      where: {
+        id: customer.id.toString(),
+      },
+      data: {
+        fullName: "Cliente Agenda Atualizado",
+      },
+    });
+
     const response = await request(getHttpServer(app))
       .get("/appointments/calendar")
       .set("Authorization", `Bearer ${accessToken}`)
@@ -143,6 +153,13 @@ describe("ListCalendarAppointmentsController (e2e)", () => {
       startsBeforeEndsWithin.startsAt,
       fullyInside.startsAt,
       startsWithinEndsAfter.startsAt,
+    ]);
+    expect(
+      body.appointments.map((appointment) => appointment.customer),
+    ).toEqual([
+      { fullName: "Cliente Agenda" },
+      { fullName: "Cliente Agenda" },
+      { fullName: "Cliente Agenda" },
     ]);
   });
 

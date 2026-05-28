@@ -9,6 +9,9 @@ import { Appointment } from "./appointment";
 const baseProps = {
   establishmentId: new UniqueEntityId("establishment-1"),
   customerId: new UniqueEntityId("customer-1"),
+  customer: {
+    fullName: "Maria Silva",
+  },
   vehicleId: null,
   services: [
     {
@@ -70,6 +73,17 @@ describe("Appointment", () => {
       Appointment.create({
         ...baseProps,
         services: [],
+      }),
+    ).toThrow(InvalidAppointmentInputError);
+  });
+
+  it("should not accept appointments without a customer full name snapshot", () => {
+    expect(() =>
+      Appointment.create({
+        ...baseProps,
+        customer: {
+          fullName: " ",
+        },
       }),
     ).toThrow(InvalidAppointmentInputError);
   });

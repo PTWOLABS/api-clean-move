@@ -24,6 +24,9 @@ export class PrismaAppointmentMapper {
       {
         establishmentId: new UniqueEntityId(raw.establishmentId),
         customerId: new UniqueEntityId(raw.customerId),
+        customer: {
+          fullName: raw.customerFullName,
+        },
         vehicleId: raw.vehicleId ? new UniqueEntityId(raw.vehicleId) : null,
         services: raw.bookedServices
           .slice()
@@ -80,6 +83,7 @@ export class PrismaAppointmentMapper {
       id: raw.id.toString(),
       establishmentId: raw.establishmentId.toString(),
       customerId: raw.customerId.toString(),
+      customerFullName: raw.customer.fullName,
       vehicleId: raw.vehicleId?.toString() ?? null,
       bookedServices: {
         create: PrismaAppointmentMapper.toBookedServicesCreate(raw),
@@ -105,6 +109,7 @@ export class PrismaAppointmentMapper {
     raw: Appointment,
   ): Prisma.AppointmentUncheckedUpdateInput {
     return {
+      customerFullName: raw.customer.fullName,
       vehicleId: raw.vehicleId?.toString() ?? null,
       bookedServices: {
         deleteMany: {},

@@ -236,24 +236,25 @@ model Service {
 }
 
 model Appointment {
-  id              String            @id @default(uuid()) @db.Uuid
-  establishmentId String            @map("establishment_id") @db.Uuid
-  customerId      String            @map("customer_id") @db.Uuid
-  vehicleId       String?           @map("vehicle_id") @db.Uuid
-  vehiclePlate    String?           @map("vehicle_plate") @db.VarChar(12)
-  vehicleBrand    String?           @map("vehicle_brand")
-  vehicleModel    String?           @map("vehicle_model")
-  vehicleColor    String?           @map("vehicle_color")
-  vehicleYear     Int?              @map("vehicle_year")
-  startsAt        DateTime          @map("starts_at")
-  endsAt          DateTime?         @map("ends_at")
-  description     String?           @db.Text
-  discountInCents Int?              @map("discount_in_cents")
-  status          AppointmentStatus @default(SCHEDULED)
-  createdAt       DateTime          @default(now()) @map("created_at")
-  updatedAt       DateTime          @default(now()) @updatedAt @map("updated_at")
-  doneAt          DateTime?         @map("done_at")
-  cancelledAt     DateTime?         @map("cancelled_at")
+  id               String            @id @default(uuid()) @db.Uuid
+  establishmentId  String            @map("establishment_id") @db.Uuid
+  customerId       String            @map("customer_id") @db.Uuid
+  customerFullName String            @map("customer_full_name")
+  vehicleId        String?           @map("vehicle_id") @db.Uuid
+  vehiclePlate     String?           @map("vehicle_plate") @db.VarChar(12)
+  vehicleBrand     String?           @map("vehicle_brand")
+  vehicleModel     String?           @map("vehicle_model")
+  vehicleColor     String?           @map("vehicle_color")
+  vehicleYear      Int?              @map("vehicle_year")
+  startsAt         DateTime          @map("starts_at")
+  endsAt           DateTime?         @map("ends_at")
+  description      String?           @db.Text
+  discountInCents  Int?              @map("discount_in_cents")
+  status           AppointmentStatus @default(SCHEDULED)
+  createdAt        DateTime          @default(now()) @map("created_at")
+  updatedAt        DateTime          @default(now()) @updatedAt @map("updated_at")
+  doneAt           DateTime?         @map("done_at")
+  cancelledAt      DateTime?         @map("cancelled_at")
 
   establishment      Establishment              @relation("EstablishmentAppointments", fields: [establishmentId], references: [id], onDelete: Restrict)
   customer           Customer                   @relation(fields: [customerId], references: [id], onDelete: Restrict)
