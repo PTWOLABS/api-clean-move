@@ -607,9 +607,109 @@ export class CreateAppointmentBodyDto {
   discountInCents?: number | null;
 }
 
+export class UpdateAppointmentBodyDto {
+  @ApiPropertyOptional({
+    example: "5f588c8b-ef0f-4193-aec0-2926e77c1d09",
+    format: "uuid",
+    description:
+      "Active customer identifier owned by the authenticated establishment.",
+  })
+  customerId?: string;
+
+  @ApiPropertyOptional({
+    type: [String],
+    example: ["11cf3860-d512-47db-b9d1-c9044be6250d"],
+    description:
+      "One or more active service identifiers owned by the authenticated establishment.",
+  })
+  serviceIds?: string[];
+
+  @ApiPropertyOptional({
+    type: String,
+    example: "d4051bc0-3f48-4700-8208-ec64d1031618",
+    nullable: true,
+    format: "uuid",
+    description:
+      "Optional vehicle identifier. Send null to clear the appointment vehicle.",
+  })
+  vehicleId?: string | null;
+
+  @ApiPropertyOptional({
+    type: String,
+    example: "2026-04-22T14:00:00.000Z",
+    format: "date-time",
+    description: "Appointment start date-time.",
+  })
+  startsAt?: string;
+
+  @ApiPropertyOptional({
+    type: String,
+    example: "2026-04-22T14:45:00.000Z",
+    nullable: true,
+    format: "date-time",
+    description:
+      "Optional appointment end date-time. Send null to clear the end date.",
+  })
+  endsAt?: string | null;
+
+  @ApiPropertyOptional({
+    type: String,
+    example: "Cliente prefere lavagem externa.",
+    nullable: true,
+    description: "Send null or a blank string to clear the description.",
+  })
+  description?: string | null;
+
+  @ApiPropertyOptional({
+    type: Number,
+    example: 500,
+    nullable: true,
+    minimum: 0,
+    description:
+      "Optional non-negative integer discount in cents. Send null to clear it.",
+  })
+  discountInCents?: number | null;
+}
+
 export class UpdateAppointmentStatusBodyDto {
   @ApiProperty({ enum: ["SCHEDULED", "DONE", "CANCELLED"] })
   status!: "SCHEDULED" | "DONE" | "CANCELLED";
+}
+
+export class AppointmentStatusUpdateDto {
+  @ApiProperty({ example: "63f1d0ee-e8a4-47a8-8a73-0f3764b8731e" })
+  id!: string;
+
+  @ApiProperty({ enum: ["SCHEDULED", "DONE", "CANCELLED"] })
+  status!: "SCHEDULED" | "DONE" | "CANCELLED";
+
+  @ApiProperty({
+    type: String,
+    example: "2026-04-20T10:05:00.000Z",
+    format: "date-time",
+  })
+  updatedAt!: string;
+
+  @ApiProperty({
+    type: String,
+    example: null,
+    nullable: true,
+    format: "date-time",
+  })
+  doneAt!: string | null;
+
+  @ApiProperty({
+    type: String,
+    example: null,
+    nullable: true,
+    format: "date-time",
+  })
+  cancelledAt!: string | null;
+}
+
+export class UpdateAppointmentStatusResponseDto {
+  @ApiProperty({ type: AppointmentStatusUpdateDto })
+  appointment!: AppointmentStatusUpdateDto;
 }
 
 export class AppointmentServiceDto {

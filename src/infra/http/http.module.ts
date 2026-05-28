@@ -3,6 +3,7 @@ import { Module } from "@nestjs/common";
 import { CreateAppointmentUseCase } from "../../modules/application/use-cases/appointment/create-appointment";
 import { ListAppointmentsUseCase } from "../../modules/application/use-cases/appointment/list-appointments";
 import { ListCalendarAppointmentsUseCase } from "../../modules/application/use-cases/appointment/list-calendar-appointments";
+import { UpdateAppointmentUseCase } from "../../modules/application/use-cases/appointment/update-appointment";
 import { UpdateAppointmentStatusUseCase } from "../../modules/application/use-cases/appointment/update-appointment-status";
 import { AuthenticateWithOAuthUseCase } from "../../modules/application/use-cases/auth/authenticate-with-oauth";
 import { AuthSessionService } from "../../modules/application/services/auth-session.service";
@@ -74,6 +75,7 @@ import { SignOutController } from "./controllers/sign-out.controller";
 import { RefreshSessionController } from "./controllers/refresh-session.controller";
 import { RegisterEmployeeController } from "./controllers/register-employee.controller";
 import { RegisterEstablishmentController } from "./controllers/register-establishment.controller";
+import { UpdateAppointmentController } from "./controllers/update-appointment.controller";
 import { UpdateAppointmentStatusController } from "./controllers/update-appointment-status.controller";
 import { UpdateCustomerController } from "./controllers/update-customer.controller";
 import { UpdateCustomerVehicleController } from "./controllers/update-customer-vehicle.controller";
@@ -111,6 +113,7 @@ import { UploadVehicleImageController } from "./controllers/media/upload-vehicle
     CreateAppointmentController,
     ListAppointmentsController,
     ListCalendarAppointmentsController,
+    UpdateAppointmentController,
     UpdateAppointmentStatusController,
     DashboardMetricsOverviewController,
     DashboardMetricsRevenueController,
@@ -148,6 +151,7 @@ import { UploadVehicleImageController } from "./controllers/media/upload-vehicle
     CreateAppointmentUseCase,
     ListAppointmentsUseCase,
     ListCalendarAppointmentsUseCase,
+    UpdateAppointmentUseCase,
     UpdateAppointmentStatusUseCase,
     GetEstablishmentDashboardOverviewUseCase,
     GetEstablishmentAppointmentsCountUseCase,

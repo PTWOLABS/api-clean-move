@@ -32,10 +32,9 @@ import { CurrentUser } from "../../auth/current-user";
 import { EmployeeFeatures } from "../../auth/employee-features";
 import { Roles } from "../../auth/roles";
 import {
-  AppointmentResponseDto,
+  UpdateAppointmentStatusResponseDto,
   UpdateAppointmentStatusBodyDto,
 } from "../docs/domain-swagger.dto";
-import { AppointmentPresenter } from "../presenters/appointment-presenter";
 import { ZodValidationPipe } from "../pipes/zod-validation.pipe";
 
 const updateAppointmentStatusBodySchema = z.object({
@@ -71,7 +70,7 @@ export class UpdateAppointmentStatusController {
   @ApiBody({ type: UpdateAppointmentStatusBodyDto })
   @ApiOkResponse({
     description: "Appointment status updated successfully.",
-    type: AppointmentResponseDto,
+    type: UpdateAppointmentStatusResponseDto,
   })
   @ApiBadRequestResponse({
     description: "Invalid appointment id or invalid status.",
@@ -122,7 +121,14 @@ export class UpdateAppointmentStatusController {
     }
 
     return {
-      appointment: AppointmentPresenter.toHTTP(result.value.appointment),
+      appointment: {
+        id: result.value.appointment.id.toString(),
+        status: result.value.appointment.status,
+        updatedAt: result.value.appointment.updatedAt.toISOString(),
+        doneAt: result.value.appointment.doneAt?.toISOString() ?? null,
+        cancelledAt:
+          result.value.appointment.cancelledAt?.toISOString() ?? null,
+      },
     };
   }
 }
