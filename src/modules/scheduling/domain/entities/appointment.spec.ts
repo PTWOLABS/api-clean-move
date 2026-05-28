@@ -153,4 +153,103 @@ describe("Appointment", () => {
     expect(appointment.doneAt).toBeNull();
     expect(appointment.cancelledAt).toBeNull();
   });
+
+  it("should update editable appointment fields", () => {
+    const discountInCents = Money.create(750);
+    const doneAt = new Date("2026-04-27T12:00:00.000Z");
+    const appointment = Appointment.create({
+      ...baseProps,
+      status: "DONE",
+      doneAt,
+    });
+    const updatedService = {
+      serviceId: new UniqueEntityId("service-2"),
+      serviceName: "Lavagem completa",
+      category: "AUTOMATIVE_DETAILING" as const,
+      durationInMinutes: 120,
+      priceInCents: 12000,
+    };
+    const vehicleId = new UniqueEntityId("vehicle-1");
+
+    appointment.update({
+      customerId: new UniqueEntityId("customer-2"),
+      vehicleId,
+      services: [updatedService],
+      vehicle: {
+        plate: "DEF4G56",
+        brand: "Toyota",
+        model: "Corolla",
+        color: "Prata",
+        year: 2022,
+      },
+      startsAt: new Date("2026-04-28T14:00:00.000Z"),
+      endsAt: new Date("2026-04-28T16:00:00.000Z"),
+      description: "  Cliente prefere lavagem interna.  ",
+      discountInCents,
+    });
+
+    expect(appointment.customerId.toString()).toBe("customer-2");
+    expect(appointment.vehicleId).toEqual(vehicleId);
+    expect(appointment.services).toEqual([updatedService]);
+    expect(appointment.vehicle).toEqual({
+      plate: "DEF4G56",
+      brand: "Toyota",
+      model: "Corolla",
+      color: "Prata",
+      year: 2022,
+    });
+    expect(appointment.startsAt).toEqual(new Date("2026-04-28T14:00:00.000Z"));
+    expect(appointment.endsAt).toEqual(new Date("2026-04-28T16:00:00.000Z"));
+    expect(appointment.description).toBe("Cliente prefere lavagem interna.");
+    expect(appointment.discountInCents).toEqual(discountInCents);
+    expect(appointment.status).toBe("DONE");
+    expect(appointment.doneAt).toEqual(doneAt);
+  });
+
+  it("should clear nullable appointment fields", () => {
+    const appointment = Appointment.create({
+      ...baseProps,
+      vehicleId: new UniqueEntityId("vehicle-1"),
+      vehicle: {
+        plate: "ABC1D23",
+        brand: "Honda",
+        model: "HR-V",
+        color: "Branco",
+        year: 2025,
+      },
+      endsAt: new Date("2026-04-27T11:00:00.000Z"),
+      description: "Observacao",
+      discountInCents: Money.create(500),
+    });
+
+    appointment.update({
+      vehicleId: null,
+      vehicle: null,
+      endsAt: null,
+      description: "   ",
+      discountInCents: null,
+    });
+
+    expect(appointment.vehicleId).toBeNull();
+    expect(appointment.vehicle).toBeNull();
+    expect(appointment.endsAt).toBeNull();
+    expect(appointment.description).toBeNull();
+    expect(appointment.discountInCents).toBeNull();
+  });
+
+  it("should not keep invalid update state", () => {
+    const appointment = Appointment.create({
+      ...baseProps,
+      endsAt: new Date("2026-04-27T11:00:00.000Z"),
+    });
+
+    expect(() =>
+      appointment.update({
+        startsAt: new Date("2026-04-27T12:00:00.000Z"),
+      }),
+    ).toThrow(InvalidAppointmentInputError);
+
+    expect(appointment.startsAt).toEqual(new Date("2026-04-27T10:00:00.000Z"));
+    expect(appointment.endsAt).toEqual(new Date("2026-04-27T11:00:00.000Z"));
+  });
 });
