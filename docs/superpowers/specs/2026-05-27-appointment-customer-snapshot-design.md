@@ -48,7 +48,7 @@ For existing rows, the migration should backfill from the current `customers.ful
 ```ts
 customer: {
   fullName: string;
-};
+}
 ```
 
 No query parameters or endpoint paths change. Existing fields remain in place.

@@ -78,6 +78,9 @@ describe("Create appointment", () => {
     );
     expect(result.value.appointment.endsAt).toBeNull();
     expect(result.value.appointment.status).toBe("SCHEDULED");
+    expect(result.value.appointment.customer).toEqual({
+      fullName: customer.fullName,
+    });
     expect(result.value.appointment.services[0]?.serviceId).toEqual(service.id);
   });
 

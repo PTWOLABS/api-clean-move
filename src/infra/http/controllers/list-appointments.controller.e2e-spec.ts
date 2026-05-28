@@ -238,6 +238,12 @@ describe("ListAppointmentsController (e2e)", () => {
       expect.arrayContaining([firstAppointment.id, secondAppointment.id]),
     );
     expect(customerBody.appointments).toHaveLength(2);
+    expect(
+      customerBody.appointments.map((appointment) => appointment.customer),
+    ).toEqual([
+      { fullName: "Ana Maria Souza" },
+      { fullName: "Ana Maria Souza" },
+    ]);
     expect(serviceResponse.status).toBe(200);
     expect(
       serviceBody.appointments.map((appointment) => appointment.id),
@@ -296,6 +302,58 @@ describe("ListAppointmentsController (e2e)", () => {
       expect.arrayContaining([firstAppointment.id, secondAppointment.id]),
     );
     expect(searchBody.appointments).toHaveLength(2);
+  });
+
+  it("should return the persisted customer snapshot", async () => {
+    const { accessToken, establishment } = await makeEstablishmentAuth({
+      app,
+      prisma,
+      userFactory,
+      establishmentFactory,
+      envService,
+    });
+    const customer = await customerFactory.makePrismaCustomer({
+      establishmentId: establishment.id,
+      cpfCnpj: null,
+      fullName: "Nome Original",
+    });
+    const service = await serviceFactory.makePrismaService({
+      establishmentId: establishment.id,
+    });
+    const createResponse = await request(getHttpServer(app))
+      .post("/appointments")
+      .set("Authorization", `Bearer ${accessToken}`)
+      .send(
+        appointmentPayload({
+          customerId: customer.id.toString(),
+          serviceIds: [service.id.toString()],
+        }),
+      );
+    const appointment = appointmentResponseSchema.parse(
+      createResponse.body,
+    ).appointment;
+
+    await prisma.customer.update({
+      where: {
+        id: customer.id.toString(),
+      },
+      data: {
+        fullName: "Nome Atualizado",
+      },
+    });
+
+    const response = await request(getHttpServer(app))
+      .get("/appointments")
+      .set("Authorization", `Bearer ${accessToken}`)
+      .query({ customerId: customer.id.toString() });
+    const body = listAppointmentsResponseSchema.parse(response.body);
+
+    expect(response.status).toBe(200);
+    expect(body.appointments).toHaveLength(1);
+    expect(body.appointments[0]?.id).toBe(appointment.id);
+    expect(body.appointments[0]?.customer).toEqual({
+      fullName: "Nome Original",
+    });
   });
 
   it("should enforce authentication and establishment role", async () => {
