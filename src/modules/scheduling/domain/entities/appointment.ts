@@ -46,6 +46,20 @@ type AppointmentCreateProps = Optional<
   "status" | "createdAt" | "updatedAt" | "doneAt" | "cancelledAt"
 >;
 
+type AppointmentUpdateProps = Partial<
+  Pick<
+    AppointmentProps,
+    | "customerId"
+    | "vehicleId"
+    | "services"
+    | "vehicle"
+    | "startsAt"
+    | "endsAt"
+    | "description"
+    | "discountInCents"
+  >
+>;
+
 export class Appointment extends AggregateRoot<AppointmentProps> {
   get establishmentId() {
     return this.props.establishmentId;
@@ -145,6 +159,27 @@ export class Appointment extends AggregateRoot<AppointmentProps> {
     if (status === "SCHEDULED") {
       this.props.doneAt = null;
       this.props.cancelledAt = null;
+    }
+
+    this.touch();
+  }
+
+  update(props: AppointmentUpdateProps) {
+    const previousProps = this.props;
+
+    this.props = {
+      ...this.props,
+      ...props,
+      ...(props.description !== undefined
+        ? { description: Appointment.normalizeDescription(props.description) }
+        : {}),
+    };
+
+    try {
+      this.assertValidState();
+    } catch (error) {
+      this.props = previousProps;
+      throw error;
     }
 
     this.touch();
