@@ -7,6 +7,9 @@ export class AppointmentPresenter {
       id: appointment.id.toString(),
       establishmentId: appointment.establishmentId.toString(),
       customerId: appointment.customerId.toString(),
+      customer: {
+        fullName: appointment.customer.fullName,
+      },
       vehicleId: appointment.vehicleId?.toString() ?? null,
       services: appointment.services.map((service) => ({
         id: service.serviceId.toString(),
