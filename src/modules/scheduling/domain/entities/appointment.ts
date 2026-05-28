@@ -16,6 +16,10 @@ export type AppointmentServiceSnapshot = {
   priceInCents: number;
 };
 
+export type AppointmentCustomerSnapshot = {
+  fullName: string;
+};
+
 export type AppointmentVehicleSnapshot = {
   plate: string | null;
   brand: string | null;
@@ -27,6 +31,7 @@ export type AppointmentVehicleSnapshot = {
 export type AppointmentProps = {
   establishmentId: UniqueEntityId;
   customerId: UniqueEntityId;
+  customer: AppointmentCustomerSnapshot;
   vehicleId: UniqueEntityId | null;
   services: AppointmentServiceSnapshot[];
   vehicle: AppointmentVehicleSnapshot;
@@ -53,6 +58,10 @@ export class Appointment extends AggregateRoot<AppointmentProps> {
 
   get customerId() {
     return this.props.customerId;
+  }
+
+  get customer() {
+    return this.props.customer;
   }
 
   get vehicleId() {
@@ -175,6 +184,10 @@ export class Appointment extends AggregateRoot<AppointmentProps> {
       throw new InvalidAppointmentInputError(
         "At least one service is required.",
       );
+    }
+
+    if (!this.props.customer?.fullName?.trim()) {
+      throw new InvalidAppointmentInputError("customer.fullName is required.");
     }
 
     const serviceIds = new Set<string>();
