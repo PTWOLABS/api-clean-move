@@ -12,6 +12,9 @@ export function makeAppointment(
     {
       establishmentId: new UniqueEntityId(),
       customerId: new UniqueEntityId(),
+      customer: {
+        fullName: "Maria Silva",
+      },
       vehicleId: null,
       services: [
         {

@@ -95,6 +95,9 @@ export class CreateAppointmentFromQuoteUseCase {
       appointment = Appointment.create({
         establishmentId: scope.value.establishment.id,
         customerId: customer.id,
+        customer: {
+          fullName: customer.fullName,
+        },
         vehicleId: quote.vehicleId,
         vehicle: quote.vehicle,
         services: quote.services.map((service) => ({
