@@ -2,12 +2,20 @@ import {
   CustomerVehicleFilters,
   CustomerVehicleOptionsFilters,
   CustomerVehiclesRepository,
+  EstablishmentCustomerVehicleFilters,
   PaginatedCustomerVehicles,
 } from "../../src/modules/application/repositories/customer-vehicles-repository";
+import { Customer } from "../../src/modules/customer/domain/entities/customer";
 import { CustomerVehicle } from "../../src/modules/customer/domain/entities/customer-vehicle";
 
 export class InMemoryCustomerVehiclesRepository implements CustomerVehiclesRepository {
   public items: CustomerVehicle[] = [];
+
+  constructor(
+    private readonly customersRepository?: {
+      items: Customer[];
+    },
+  ) {}
 
   async create(vehicle: CustomerVehicle): Promise<void> {
     this.items.push(vehicle);
@@ -88,6 +96,46 @@ export class InMemoryCustomerVehiclesRepository implements CustomerVehiclesRepos
           item.establishmentId.toString() === establishmentId,
       )
       .filter((item) => filters?.includeDeleted || !item.isDeleted());
+
+    const totalItems = filteredVehicles.length;
+    const start = (page - 1) * size;
+    const end = start + size;
+
+    return {
+      vehicles: filteredVehicles.slice(start, end),
+      totalItems,
+    };
+  }
+
+  async findManyByEstablishmentId(
+    establishmentId: string,
+    filters?: EstablishmentCustomerVehicleFilters,
+  ): Promise<PaginatedCustomerVehicles> {
+    const page = filters?.page ?? 1;
+    const size = filters?.size ?? 20;
+    const customerName = filters?.customerName?.trim().toLowerCase();
+
+    const filteredVehicles = this.items
+      .slice()
+      .sort((a, b) => a.createdAt!.getTime() - b.createdAt!.getTime())
+      .filter((item) => item.establishmentId.toString() === establishmentId)
+      .filter((item) => !item.isDeleted())
+      .filter((item) =>
+        filters?.customerId
+          ? item.customerId.toString() === filters.customerId
+          : true,
+      )
+      .filter((item) => {
+        if (!customerName) {
+          return true;
+        }
+
+        const fullName = this.customersRepository?.items.find(
+          (customer) => customer.id.toString() === item.customerId.toString(),
+        )?.fullName;
+
+        return fullName?.toLowerCase().includes(customerName) ?? false;
+      });
 
     const totalItems = filteredVehicles.length;
     const start = (page - 1) * size;
