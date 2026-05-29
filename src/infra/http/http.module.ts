@@ -19,6 +19,7 @@ import { ListCustomerOptionsUseCase } from "../../modules/application/use-cases/
 import { ListCustomerVehicleOptionsUseCase } from "../../modules/application/use-cases/customer/list-customer-vehicle-options";
 import { ListCustomersUseCase } from "../../modules/application/use-cases/customer/list-customers";
 import { ListCustomerVehiclesUseCase } from "../../modules/application/use-cases/customer/list-customer-vehicles";
+import { ListVehiclesUseCase } from "../../modules/application/use-cases/customer/list-vehicles";
 import { UpdateCustomerUseCase } from "../../modules/application/use-cases/customer/update-customer";
 import { UpdateCustomerVehicleUseCase } from "../../modules/application/use-cases/customer/update-customer-vehicle";
 import { DeleteEmployeeUseCase } from "../../modules/application/use-cases/employee/delete-employee";
@@ -69,6 +70,7 @@ import { ListCustomerOptionsController } from "./controllers/list-customer-optio
 import { ListCustomerVehicleOptionsController } from "./controllers/list-customer-vehicle-options.controller";
 import { ListCustomersController } from "./controllers/list-customers.controller";
 import { ListCustomerVehiclesController } from "./controllers/list-customer-vehicles.controller";
+import { ListVehiclesController } from "./controllers/list-vehicles.controller";
 import { ListEmployeesController } from "./controllers/list-employees.controller";
 import { LoginWithCredentialsController } from "./controllers/login-with-credentials.controller";
 import { SignOutController } from "./controllers/sign-out.controller";
@@ -107,6 +109,7 @@ import { UploadVehicleImageController } from "./controllers/media/upload-vehicle
     DeleteCustomerController,
     CreateCustomerVehicleController,
     ListCustomerVehicleOptionsController,
+    ListVehiclesController,
     ListCustomerVehiclesController,
     UpdateCustomerVehicleController,
     DeleteCustomerVehicleController,
@@ -146,6 +149,7 @@ import { UploadVehicleImageController } from "./controllers/media/upload-vehicle
     CreateCustomerVehicleUseCase,
     ListCustomerVehicleOptionsUseCase,
     ListCustomerVehiclesUseCase,
+    ListVehiclesUseCase,
     UpdateCustomerVehicleUseCase,
     DeleteCustomerVehicleUseCase,
     CreateAppointmentUseCase,
