@@ -59,6 +59,8 @@ const DEFAULT_PASSWORD = "123456";
 const REFERENCE_DATE = new Date();
 const ESTABLISHMENT_SLUG = "clean-move";
 const OWNER_EMAIL = "felipe@cleanmove.com.br";
+const MULTI_VEHICLE_MIN_COUNT = 5;
+const MULTI_VEHICLE_MAX_COUNT = 10;
 const TIME_SLOTS = [
   { hour: 8, minute: 0 },
   { hour: 9, minute: 30 },
@@ -431,11 +433,14 @@ async function main() {
   });
   const services = await seedServices(establishment.id);
   const customers = await seedCustomers(establishment.id);
-  const vehicles = await seedVehicles(establishment.id, customers);
+  const { vehicles, vehiclesByCustomerId } = await seedVehicles(
+    establishment.id,
+    customers,
+  );
   const appointmentsCreated = await seedAppointments({
     establishmentId: establishment.id,
     customers,
-    vehicles,
+    vehiclesByCustomerId,
     services,
   });
 
@@ -561,56 +566,112 @@ async function seedCustomers(establishmentId: string) {
   return customers;
 }
 
+type SeededCustomerVehicle = Awaited<
+  ReturnType<typeof prisma.customerVehicle.create>
+>;
+
+function resolveVehicleCountForCustomer(
+  customerIndex: number,
+  totalCustomers: number,
+) {
+  const multiVehicleCustomerCount = Math.floor(totalCustomers / 2) + 1;
+
+  if (customerIndex < multiVehicleCustomerCount) {
+    const vehicleRange =
+      MULTI_VEHICLE_MAX_COUNT - MULTI_VEHICLE_MIN_COUNT + 1;
+
+    return (
+      MULTI_VEHICLE_MIN_COUNT + (customerIndex % vehicleRange)
+    );
+  }
+
+  return 1 + (customerIndex % 3);
+}
+
+function buildVehicleSeedData(
+  customerIndex: number,
+  vehicleIndex: number,
+  plateSequence: number,
+): CustomerVehicleSeedData {
+  const fleetIndex =
+    (customerIndex * 3 + vehicleIndex) % VEHICLE_FLEET.length;
+  const baseVehicle = VEHICLE_FLEET[fleetIndex]!;
+  const globalVehicleIndex = plateSequence;
+
+  return {
+    imageUrl:
+      globalVehicleIndex % 4 === 0
+        ? `https://example.com/vehicles/vehicle-${globalVehicleIndex + 1}.png`
+        : null,
+    plate:
+      globalVehicleIndex % 11 === 0
+        ? null
+        : buildPlate(globalVehicleIndex),
+    brand: baseVehicle.brand,
+    model:
+      vehicleIndex === 0
+        ? baseVehicle.model
+        : `${baseVehicle.model} ${vehicleIndex + 1}`,
+    color: globalVehicleIndex % 6 === 0 ? null : baseVehicle.color,
+    year: globalVehicleIndex % 5 === 0 ? null : 2014 + (globalVehicleIndex % 11),
+    notes:
+      vehicleIndex % 3 === 0
+        ? "Cliente costuma pedir atencao extra nos detalhes internos."
+        : vehicleIndex % 4 === 0
+          ? "Verificar rodas, retrovisores e acabamento final."
+          : null,
+  };
+}
+
 async function seedVehicles(
   establishmentId: string,
   customers: Awaited<ReturnType<typeof prisma.customer.create>>[],
 ) {
-  const vehicles: Awaited<ReturnType<typeof prisma.customerVehicle.create>>[] =
-    [];
+  const vehicles: SeededCustomerVehicle[] = [];
+  const vehiclesByCustomerId = new Map<string, SeededCustomerVehicle[]>();
+  let plateSequence = 0;
 
-  for (const [index, customer] of customers.entries()) {
-    const baseVehicle = VEHICLE_FLEET[index % VEHICLE_FLEET.length]!;
-    const vehicleData: CustomerVehicleSeedData = {
-      imageUrl:
-        index % 4 === 0
-          ? `https://example.com/vehicles/vehicle-${index + 1}.png`
-          : null,
-      plate: index % 7 === 0 ? null : buildPlate(index),
-      brand: baseVehicle.brand,
-      model: baseVehicle.model,
-      color: index % 6 === 0 ? null : baseVehicle.color,
-      year: index % 5 === 0 ? null : 2014 + (index % 11),
-      notes:
-        index % 3 === 0
-          ? "Cliente costuma pedir atencao extra nos detalhes internos."
-          : index % 4 === 0
-            ? "Verificar rodas, retrovisores e acabamento final."
-            : null,
-    };
+  for (const [customerIndex, customer] of customers.entries()) {
+    const vehicleCount = resolveVehicleCountForCustomer(
+      customerIndex,
+      customers.length,
+    );
+    const customerVehicles: SeededCustomerVehicle[] = [];
 
-    const vehicle = await prisma.customerVehicle.create({
-      data: {
-        establishmentId,
-        customerId: customer.id,
-        ...vehicleData,
-      },
-    });
+    for (let vehicleIndex = 0; vehicleIndex < vehicleCount; vehicleIndex += 1) {
+      const vehicle = await prisma.customerVehicle.create({
+        data: {
+          establishmentId,
+          customerId: customer.id,
+          ...buildVehicleSeedData(
+            customerIndex,
+            vehicleIndex,
+            plateSequence,
+          ),
+        },
+      });
 
-    vehicles.push(vehicle);
+      plateSequence += 1;
+
+      customerVehicles.push(vehicle);
+      vehicles.push(vehicle);
+    }
+
+    vehiclesByCustomerId.set(customer.id, customerVehicles);
   }
 
-  return vehicles;
+  return { vehicles, vehiclesByCustomerId };
 }
 
 async function seedAppointments({
   establishmentId,
   customers,
-  vehicles,
+  vehiclesByCustomerId,
   services,
 }: {
   establishmentId: string;
   customers: Awaited<ReturnType<typeof prisma.customer.create>>[];
-  vehicles: Awaited<ReturnType<typeof prisma.customerVehicle.create>>[];
+  vehiclesByCustomerId: Map<string, SeededCustomerVehicle[]>;
   services: SeededService[];
 }) {
   let createdAppointments = 0;
@@ -623,7 +684,18 @@ async function seedAppointments({
       const customerIndex =
         (appointmentIndex * 7 + slotIndex * 3) % customers.length;
       const customer = customers[customerIndex]!;
-      const vehicle = vehicles[customerIndex]!;
+      const customerVehicles = vehiclesByCustomerId.get(customer.id);
+
+      if (!customerVehicles?.length) {
+        throw new Error(
+          `Customer ${customer.id} has no seeded vehicles for appointments.`,
+        );
+      }
+
+      const vehicle =
+        customerVehicles[
+          (appointmentIndex + slotIndex) % customerVehicles.length
+        ]!;
       const bookedServices = selectAppointmentServices(
         services,
         appointmentIndex,
@@ -871,13 +943,25 @@ function calculateCpfCheckDigit(value: string, weights: number[]) {
   return remainder < 2 ? 0 : 11 - remainder;
 }
 
-function buildPlate(index: number) {
+function buildPlate(sequence: number) {
   const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-  const first = letters[index % letters.length]!;
-  const second = letters[(index + 5) % letters.length]!;
-  const third = letters[(index + 11) % letters.length]!;
+  let remaining = sequence;
 
-  return `${first}${second}${third}${index % 10}${letters[(index + 3) % letters.length]}${(index + 1) % 10}${(index + 2) % 10}`;
+  const digit1 = remaining % 10;
+  remaining = Math.floor(remaining / 10);
+  const letter4 = letters[remaining % 26]!;
+  remaining = Math.floor(remaining / 26);
+  const digit2 = remaining % 10;
+  remaining = Math.floor(remaining / 10);
+  const digit3 = remaining % 10;
+  remaining = Math.floor(remaining / 10);
+  const letter3 = letters[remaining % 26]!;
+  remaining = Math.floor(remaining / 26);
+  const letter2 = letters[remaining % 26]!;
+  remaining = Math.floor(remaining / 26);
+  const letter1 = letters[remaining % 26]!;
+
+  return `${letter1}${letter2}${letter3}${digit1}${letter4}${digit2}${digit3}`;
 }
 
 function slugify(value: string) {
