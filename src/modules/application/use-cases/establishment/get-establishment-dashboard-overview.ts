@@ -87,77 +87,54 @@ export class GetEstablishmentDashboardOverviewUseCase {
       return left(new ResourceNotFoundError({ resource: "establishment" }));
     }
 
-    const currentAppointments = await findAllAppointmentsByEstablishment(
-      this.appointmentsRepository,
-      establishment.id.toString(),
-      {
-        startsAt: range.current.startsAt,
-        endsAt: range.current.endsAt,
-        ...(filters?.categories !== undefined
-          ? { categories: filters.categories }
-          : {}),
-        ...(filters?.status !== undefined ? { status: filters.status } : {}),
-      },
-    );
-    const comparisonAppointments = await findAllAppointmentsByEstablishment(
-      this.appointmentsRepository,
-      establishment.id.toString(),
-      {
-        startsAt: range.comparison.startsAt,
-        endsAt: range.comparison.endsAt,
-        ...(filters?.categories !== undefined
-          ? { categories: filters.categories }
-          : {}),
-        ...(filters?.status !== undefined ? { status: filters.status } : {}),
-      },
-    );
+    const establishmentId = establishment.id.toString();
+    const currentFilters = buildOverviewFilters(range.current, filters);
+    const comparisonFilters = buildOverviewFilters(range.comparison, filters);
+    const currentCancellationRateFilters = omitStatusFilter(currentFilters);
+    const comparisonCancellationRateFilters =
+      omitStatusFilter(comparisonFilters);
+
+    const [
+      currentAppointments,
+      comparisonAppointments,
+      currentCancellationRateAppointments,
+      comparisonCancellationRateAppointments,
+    ] = await Promise.all([
+      findAllAppointmentsByEstablishment(
+        this.appointmentsRepository,
+        establishmentId,
+        currentFilters,
+      ),
+      findAllAppointmentsByEstablishment(
+        this.appointmentsRepository,
+        establishmentId,
+        comparisonFilters,
+      ),
+      findAllAppointmentsByEstablishment(
+        this.appointmentsRepository,
+        establishmentId,
+        currentCancellationRateFilters,
+      ),
+      findAllAppointmentsByEstablishment(
+        this.appointmentsRepository,
+        establishmentId,
+        comparisonCancellationRateFilters,
+      ),
+    ]);
 
     const currentSummary = summarizeAppointments(currentAppointments);
     const comparisonSummary = summarizeAppointments(comparisonAppointments);
-    const buckets = buildDashboardOverviewBuckets(range.current);
-    const pointAccumulators = new Map(
-      buckets.map((bucket) => [
-        bucket.date,
-        {
-          date: bucket.date,
-          label: bucket.label,
-          appointmentsCount: 0,
-          cancelledCount: 0,
-          totalRevenueInCents: 0,
-        },
-      ]),
+    const currentCancellationRateSummary = summarizeAppointments(
+      currentCancellationRateAppointments,
     );
-
-    for (const appointment of currentAppointments) {
-      const bucketKey = getDashboardMetricBucketKey(
-        appointment.startsAt,
-        buckets,
-      );
-
-      if (!bucketKey) {
-        continue;
-      }
-
-      const accumulator = pointAccumulators.get(bucketKey);
-
-      if (!accumulator) {
-        continue;
-      }
-
-      pointAccumulators.set(bucketKey, {
-        ...accumulator,
-        appointmentsCount: accumulator.appointmentsCount + 1,
-        cancelledCount:
-          accumulator.cancelledCount +
-          (appointment.status === "CANCELLED" ? 1 : 0),
-        totalRevenueInCents:
-          accumulator.totalRevenueInCents +
-          getAppointmentNetRevenueInCents(appointment),
-      });
-    }
-
-    const pointSummaries = buckets.map((bucket) =>
-      toPointSummary(pointAccumulators.get(bucket.date)!),
+    const comparisonCancellationRateSummary = summarizeAppointments(
+      comparisonCancellationRateAppointments,
+    );
+    const buckets = buildDashboardOverviewBuckets(range.current);
+    const pointSummaries = buildPointSummaries(currentAppointments, buckets);
+    const cancellationRatePointSummaries = buildPointSummaries(
+      currentCancellationRateAppointments,
+      buckets,
     );
 
     return right({
@@ -186,18 +163,20 @@ export class GetEstablishmentDashboardOverviewUseCase {
         })),
       },
       cancellationRate: {
-        value: currentSummary.cancellationRate,
+        value: currentCancellationRateSummary.cancellationRate,
         variationInPercentagePoints: calculatePercentPointDifference(
-          currentSummary.cancellationRate,
-          comparisonSummary.appointmentsCount === 0
+          currentCancellationRateSummary.cancellationRate,
+          comparisonCancellationRateSummary.appointmentsCount === 0
             ? null
-            : comparisonSummary.cancellationRate,
+            : comparisonCancellationRateSummary.cancellationRate,
         ),
-        points: pointSummaries.map(({ cancellationRate, date, label }) => ({
-          date,
-          label,
-          value: cancellationRate,
-        })),
+        points: cancellationRatePointSummaries.map(
+          ({ cancellationRate, date, label }) => ({
+            date,
+            label,
+            value: cancellationRate,
+          }),
+        ),
       },
       totalRevenue: {
         valueInCents: currentSummary.totalRevenueInCents,
@@ -213,6 +192,28 @@ export class GetEstablishmentDashboardOverviewUseCase {
       },
     });
   }
+}
+
+function buildOverviewFilters(
+  range: ResolvedDashboardMetricsRange["current"],
+  filters?: EstablishmentMetricsFilters,
+): EstablishmentMetricsFilters {
+  return {
+    startsAt: range.startsAt,
+    endsAt: range.endsAt,
+    ...(filters?.categories !== undefined
+      ? { categories: filters.categories }
+      : {}),
+    ...(filters?.status !== undefined ? { status: filters.status } : {}),
+  };
+}
+
+function omitStatusFilter(
+  filters: EstablishmentMetricsFilters,
+): EstablishmentMetricsFilters {
+  const { status: _status, ...filtersWithoutStatus } = filters;
+
+  return filtersWithoutStatus;
 }
 
 function summarizeAppointments(
@@ -240,6 +241,56 @@ function summarizeAppointments(
       appointmentsCount,
     ),
   };
+}
+
+function buildPointSummaries(
+  appointments: Awaited<ReturnType<typeof findAllAppointmentsByEstablishment>>,
+  buckets: ReturnType<typeof buildDashboardOverviewBuckets>,
+) {
+  const pointAccumulators = new Map(
+    buckets.map((bucket) => [
+      bucket.date,
+      {
+        date: bucket.date,
+        label: bucket.label,
+        appointmentsCount: 0,
+        cancelledCount: 0,
+        totalRevenueInCents: 0,
+      },
+    ]),
+  );
+
+  for (const appointment of appointments) {
+    const bucketKey = getDashboardMetricBucketKey(
+      appointment.startsAt,
+      buckets,
+    );
+
+    if (!bucketKey) {
+      continue;
+    }
+
+    const accumulator = pointAccumulators.get(bucketKey);
+
+    if (!accumulator) {
+      continue;
+    }
+
+    pointAccumulators.set(bucketKey, {
+      ...accumulator,
+      appointmentsCount: accumulator.appointmentsCount + 1,
+      cancelledCount:
+        accumulator.cancelledCount +
+        (appointment.status === "CANCELLED" ? 1 : 0),
+      totalRevenueInCents:
+        accumulator.totalRevenueInCents +
+        getAppointmentNetRevenueInCents(appointment),
+    });
+  }
+
+  return buckets.map((bucket) =>
+    toPointSummary(pointAccumulators.get(bucket.date)!),
+  );
 }
 
 function toPointSummary(accumulator: {
