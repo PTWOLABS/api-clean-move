@@ -5,6 +5,7 @@ import {
   CustomerVehicleOption,
   CustomerVehicleOptionsFilters,
   CustomerVehiclesRepository,
+  EstablishmentCustomerVehicleFilters,
   PaginatedCustomerVehicles,
 } from "../../../../modules/application/repositories/customer-vehicles-repository";
 import { Prisma } from "../../../../generated/prisma/client";
@@ -139,6 +140,53 @@ export class PrismaCustomerVehiclesRepository implements CustomerVehiclesReposit
       customerId,
       establishmentId,
       ...(filters?.includeDeleted ? {} : { deletedAt: null }),
+    };
+
+    try {
+      const client = PrismaUnitOfWork.getClient(this.prisma);
+
+      const [totalItems, vehicles] = await Promise.all([
+        client.customerVehicle.count({ where }),
+        client.customerVehicle.findMany({
+          where,
+          orderBy: {
+            createdAt: "asc",
+          },
+          skip: (page - 1) * size,
+          take: size,
+        }),
+      ]);
+
+      return {
+        vehicles: vehicles.map((vehicle) =>
+          PrismaCustomerVehicleMapper.toDomain(vehicle),
+        ),
+        totalItems,
+      };
+    } catch (error) {
+      rethrowPrismaRepositoryError(error);
+    }
+  }
+
+  async findManyByEstablishmentId(
+    establishmentId: string,
+    filters?: EstablishmentCustomerVehicleFilters,
+  ): Promise<PaginatedCustomerVehicles> {
+    const page = filters?.page ?? 1;
+    const size = filters?.size ?? 20;
+    const customerName = filters?.customerName?.trim();
+
+    const where: Prisma.CustomerVehicleWhereInput = {
+      establishmentId,
+      deletedAt: null,
+      ...(filters?.customerId ? { customerId: filters.customerId } : {}),
+      ...(customerName
+        ? {
+            customer: {
+              fullName: { contains: customerName, mode: "insensitive" },
+            },
+          }
+        : {}),
     };
 
     try {
