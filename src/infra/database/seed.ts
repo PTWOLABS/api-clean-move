@@ -577,12 +577,9 @@ function resolveVehicleCountForCustomer(
   const multiVehicleCustomerCount = Math.floor(totalCustomers / 2) + 1;
 
   if (customerIndex < multiVehicleCustomerCount) {
-    const vehicleRange =
-      MULTI_VEHICLE_MAX_COUNT - MULTI_VEHICLE_MIN_COUNT + 1;
+    const vehicleRange = MULTI_VEHICLE_MAX_COUNT - MULTI_VEHICLE_MIN_COUNT + 1;
 
-    return (
-      MULTI_VEHICLE_MIN_COUNT + (customerIndex % vehicleRange)
-    );
+    return MULTI_VEHICLE_MIN_COUNT + (customerIndex % vehicleRange);
   }
 
   return 1 + (customerIndex % 3);
@@ -593,8 +590,7 @@ function buildVehicleSeedData(
   vehicleIndex: number,
   plateSequence: number,
 ): CustomerVehicleSeedData {
-  const fleetIndex =
-    (customerIndex * 3 + vehicleIndex) % VEHICLE_FLEET.length;
+  const fleetIndex = (customerIndex * 3 + vehicleIndex) % VEHICLE_FLEET.length;
   const baseVehicle = VEHICLE_FLEET[fleetIndex]!;
   const globalVehicleIndex = plateSequence;
 
@@ -604,16 +600,15 @@ function buildVehicleSeedData(
         ? `https://example.com/vehicles/vehicle-${globalVehicleIndex + 1}.png`
         : null,
     plate:
-      globalVehicleIndex % 11 === 0
-        ? null
-        : buildPlate(globalVehicleIndex),
+      globalVehicleIndex % 11 === 0 ? null : buildPlate(globalVehicleIndex),
     brand: baseVehicle.brand,
     model:
       vehicleIndex === 0
         ? baseVehicle.model
         : `${baseVehicle.model} ${vehicleIndex + 1}`,
     color: globalVehicleIndex % 6 === 0 ? null : baseVehicle.color,
-    year: globalVehicleIndex % 5 === 0 ? null : 2014 + (globalVehicleIndex % 11),
+    year:
+      globalVehicleIndex % 5 === 0 ? null : 2014 + (globalVehicleIndex % 11),
     notes:
       vehicleIndex % 3 === 0
         ? "Cliente costuma pedir atencao extra nos detalhes internos."
@@ -643,11 +638,7 @@ async function seedVehicles(
         data: {
           establishmentId,
           customerId: customer.id,
-          ...buildVehicleSeedData(
-            customerIndex,
-            vehicleIndex,
-            plateSequence,
-          ),
+          ...buildVehicleSeedData(customerIndex, vehicleIndex, plateSequence),
         },
       });
 
