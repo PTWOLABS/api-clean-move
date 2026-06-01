@@ -44,6 +44,41 @@ export class PrismaAppointmentsRepository implements AppointmentsRepository {
     };
   }
 
+  private static buildVehicleDisplaySearchWhere(
+    search: string,
+  ): Prisma.AppointmentWhereInput {
+    const terms = search
+      .split(/\s+/)
+      .map((term) => term.trim())
+      .filter((term) => term.length > 0);
+
+    if (terms.length === 0) {
+      return {};
+    }
+
+    return {
+      AND: terms.map((term) => ({
+        OR: [
+          {
+            vehicleBrand:
+              PrismaAppointmentsRepository.containsInsensitive(term),
+          },
+          {
+            vehicleModel:
+              PrismaAppointmentsRepository.containsInsensitive(term),
+          },
+          ...(Number.isInteger(Number(term))
+            ? [
+                {
+                  vehicleYear: Number(term),
+                },
+              ]
+            : []),
+        ],
+      })),
+    };
+  }
+
   private static buildStatusWhere(status?: AppointmentFilters["status"]) {
     if (!status) {
       return {};
@@ -135,6 +170,8 @@ export class PrismaAppointmentsRepository implements AppointmentsRepository {
     }
 
     if (search) {
+      const vehicleDisplayWhere =
+        PrismaAppointmentsRepository.buildVehicleDisplaySearchWhere(search);
       const searchOr: Prisma.AppointmentWhereInput[] = [
         {
           bookedServices: {
@@ -152,6 +189,9 @@ export class PrismaAppointmentsRepository implements AppointmentsRepository {
           vehicleModel:
             PrismaAppointmentsRepository.containsInsensitive(search),
         },
+        ...(Object.keys(vehicleDisplayWhere).length > 0
+          ? [vehicleDisplayWhere]
+          : []),
         {
           customer: {
             fullName: PrismaAppointmentsRepository.containsInsensitive(search),

@@ -38,6 +38,21 @@ export class InMemoryAppointmentsRepository implements AppointmentsRepository {
     return value?.toLowerCase().includes(filter.toLowerCase()) ?? false;
   }
 
+  private static buildVehicleDisplayName(appointment: Appointment) {
+    const vehicle = appointment.vehicle;
+
+    if (!vehicle) {
+      return null;
+    }
+
+    const parts = [vehicle.brand, vehicle.model, vehicle.year]
+      .filter((part) => part !== null && part !== undefined)
+      .map((part) => String(part).trim())
+      .filter((part) => part.length > 0);
+
+    return parts.length > 0 ? parts.join(" ") : null;
+  }
+
   private static matchesStatusFilter(
     appointment: Appointment,
     filters?: AppointmentFilters,
@@ -199,6 +214,7 @@ export class InMemoryAppointmentsRepository implements AppointmentsRepository {
       ...appointment.services.map((service) => service.serviceName),
       appointment.vehicle?.brand,
       appointment.vehicle?.model,
+      InMemoryAppointmentsRepository.buildVehicleDisplayName(appointment),
       customerSearchData?.fullName,
       customerSearchData?.nickname,
       normalizedSearchPlate ? appointment.vehicle?.plate : null,
