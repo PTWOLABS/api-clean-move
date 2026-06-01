@@ -3,14 +3,18 @@ import { Injectable } from "@nestjs/common";
 import { Either, left, right } from "../../../../shared/either";
 import { ResourceNotFoundError } from "../../../../shared/errors/resource-not-found-error";
 import { CustomerVehicle } from "../../../customer/domain/entities/customer-vehicle";
-import { CustomerVehiclesRepository } from "../../repositories/customer-vehicles-repository";
+import {
+  CustomerVehiclesRepository,
+  VehicleListSearchType,
+} from "../../repositories/customer-vehicles-repository";
 import { CustomersRepository } from "../../repositories/customers-repository";
 import { EstablishmentsRepository } from "../../repositories/establishment-repository";
 
 type ListVehiclesUseCaseRequest = {
   establishmentOwnerId: string;
   customerId?: string;
-  customerName?: string;
+  search?: string;
+  searchType?: VehicleListSearchType;
   page?: number;
   size?: number;
 };
@@ -34,7 +38,8 @@ export class ListVehiclesUseCase {
   async execute({
     establishmentOwnerId,
     customerId,
-    customerName,
+    search,
+    searchType,
     page,
     size,
   }: ListVehiclesUseCaseRequest): Promise<ListVehiclesUseCaseResponse> {
@@ -64,7 +69,9 @@ export class ListVehiclesUseCase {
         establishmentId,
         {
           ...(customerId !== undefined ? { customerId } : {}),
-          ...(customerName !== undefined ? { customerName } : {}),
+          ...(search !== undefined && searchType !== undefined
+            ? { search, searchType }
+            : {}),
           ...(page !== undefined ? { page } : {}),
           ...(size !== undefined ? { size } : {}),
         },
