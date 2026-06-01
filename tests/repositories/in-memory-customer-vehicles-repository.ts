@@ -266,8 +266,7 @@ function matchesVehicleListSearch(
     }
     case "name": {
       const fullName = customers?.find(
-        (customer) =>
-          customer.id.toString() === vehicle.customerId.toString(),
+        (customer) => customer.id.toString() === vehicle.customerId.toString(),
       )?.fullName;
 
       return fullName?.toLowerCase().includes(normalizedSearch) ?? false;

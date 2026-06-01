@@ -38,20 +38,16 @@ const listVehiclesQuerySchema = z
     page: z.coerce.number().int().positive().optional(),
     size: z.coerce.number().int().positive().optional(),
   })
-  .refine(
-    (value) => {
-      const hasSearch =
-        value.search !== undefined && value.search.length > 0;
-      const hasType = value.type !== undefined;
+  .refine((value) => {
+    const hasSearch = value.search !== undefined && value.search.length > 0;
+    const hasType = value.type !== undefined;
 
-      if (!hasSearch && !hasType) {
-        return true;
-      }
+    if (!hasSearch && !hasType) {
+      return true;
+    }
 
-      return hasSearch && hasType;
-    },
-    "search and type must be provided together.",
-  );
+    return hasSearch && hasType;
+  }, "search and type must be provided together.");
 
 type ListVehiclesQuerySchema = z.infer<typeof listVehiclesQuerySchema>;
 
@@ -131,16 +127,18 @@ export class ListVehiclesController {
     @Query(new ZodValidationPipe(listVehiclesQuerySchema))
     query: ListVehiclesQuerySchema,
   ) {
-    const hasSearch =
-      query.search !== undefined && query.search.length > 0;
+    const search =
+      query.search !== undefined && query.search.length > 0
+        ? query.search
+        : undefined;
 
     const result = await this.listVehicles.execute({
       establishmentOwnerId: user.userId,
       ...(query.customerId !== undefined
         ? { customerId: query.customerId }
         : {}),
-      ...(hasSearch && query.type !== undefined
-        ? { search: query.search, searchType: query.type }
+      ...(search !== undefined && query.type !== undefined
+        ? { search, searchType: query.type }
         : {}),
       ...(query.page !== undefined ? { page: query.page } : {}),
       ...(query.size !== undefined ? { size: query.size } : {}),

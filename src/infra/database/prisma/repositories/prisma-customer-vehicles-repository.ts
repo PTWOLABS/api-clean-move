@@ -373,9 +373,7 @@ function buildVehicleListSearchWhere(
 ): Prisma.CustomerVehicleWhereInput | null {
   switch (searchType) {
     case "plate": {
-      const plateSearch = search
-        .replace(/[^a-zA-Z0-9]/g, "")
-        .toUpperCase();
+      const plateSearch = search.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
 
       if (!plateSearch) {
         return null;

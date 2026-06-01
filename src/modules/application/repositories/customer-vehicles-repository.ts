@@ -14,8 +14,7 @@ export const VEHICLE_LIST_SEARCH_TYPES = [
   "year",
 ] as const;
 
-export type VehicleListSearchType =
-  (typeof VEHICLE_LIST_SEARCH_TYPES)[number];
+export type VehicleListSearchType = (typeof VEHICLE_LIST_SEARCH_TYPES)[number];
 
 export type EstablishmentCustomerVehicleFilters = {
   customerId?: string;
