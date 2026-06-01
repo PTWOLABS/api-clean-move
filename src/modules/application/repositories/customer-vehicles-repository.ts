@@ -5,9 +5,22 @@ export type CustomerVehicleFilters = {
   includeDeleted?: boolean;
 } & PaginationParams;
 
+export const VEHICLE_LIST_SEARCH_TYPES = [
+  "plate",
+  "name",
+  "model",
+  "brand",
+  "color",
+  "year",
+] as const;
+
+export type VehicleListSearchType =
+  (typeof VEHICLE_LIST_SEARCH_TYPES)[number];
+
 export type EstablishmentCustomerVehicleFilters = {
   customerId?: string;
-  customerName?: string;
+  search?: string;
+  searchType?: VehicleListSearchType;
 } & PaginationParams;
 
 export type CustomerVehicleOption = {

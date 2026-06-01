@@ -110,7 +110,7 @@ describe("ListVehiclesController (e2e)", () => {
     expect(paginatedBody.totalItems).toBe(2);
   });
 
-  it("should filter by customerId and customer name", async () => {
+  it("should filter by customerId and typed search", async () => {
     const { accessToken, establishment } = await makeEstablishmentAuth({
       app,
       prisma,
@@ -150,7 +150,7 @@ describe("ListVehiclesController (e2e)", () => {
     const byNameResponse = await request(getHttpServer(app))
       .get("/vehicles")
       .set("Authorization", `Bearer ${accessToken}`)
-      .query({ name: "Maria" });
+      .query({ search: "Maria", type: "name" });
     const byCustomerIdBody = listVehiclesResponseSchema.parse(
       byCustomerIdResponse.body,
     );
@@ -166,6 +166,111 @@ describe("ListVehiclesController (e2e)", () => {
       mariaVehicle.id,
     ]);
     expect(byNameBody.totalItems).toBe(1);
+  });
+
+  it("should filter by plate, model, brand, color, and year", async () => {
+    const { accessToken, establishment } = await makeEstablishmentAuth({
+      app,
+      prisma,
+      userFactory,
+      establishmentFactory,
+      envService,
+    });
+    const customer = await customerFactory.makePrismaCustomer({
+      establishmentId: establishment.id,
+      cpfCnpj: null,
+    });
+    const targetVehicle = await prisma.customerVehicle.create({
+      data: {
+        establishmentId: establishment.id.toString(),
+        customerId: customer.id.toString(),
+        plate: "ABC1D23",
+        model: "Gol",
+        brand: "Volkswagen",
+        color: "Branco",
+        year: 2020,
+      },
+    });
+    await prisma.customerVehicle.create({
+      data: {
+        establishmentId: establishment.id.toString(),
+        customerId: customer.id.toString(),
+        plate: "XYZ9A87",
+        model: "Onix",
+        brand: "Chevrolet",
+        color: "Preto",
+        year: 2018,
+      },
+    });
+
+    const assertSingleMatch = async (
+      query: Record<string, string>,
+      expectedId: string,
+    ) => {
+      const response = await request(getHttpServer(app))
+        .get("/vehicles")
+        .set("Authorization", `Bearer ${accessToken}`)
+        .query(query);
+      const body = listVehiclesResponseSchema.parse(response.body);
+
+      expect(response.status).toBe(200);
+      expect(body.vehicles.map((vehicle) => vehicle.id)).toEqual([expectedId]);
+      expect(body.totalItems).toBe(1);
+    };
+
+    await assertSingleMatch(
+      { search: "abc-1d23", type: "plate" },
+      targetVehicle.id,
+    );
+    await assertSingleMatch({ search: "gol", type: "model" }, targetVehicle.id);
+    await assertSingleMatch(
+      { search: "volks", type: "brand" },
+      targetVehicle.id,
+    );
+    await assertSingleMatch(
+      { search: "branco", type: "color" },
+      targetVehicle.id,
+    );
+    await assertSingleMatch({ search: "2020", type: "year" }, targetVehicle.id);
+
+    const invalidYearResponse = await request(getHttpServer(app))
+      .get("/vehicles")
+      .set("Authorization", `Bearer ${accessToken}`)
+      .query({ search: "not-a-year", type: "year" });
+    const invalidYearBody = listVehiclesResponseSchema.parse(
+      invalidYearResponse.body,
+    );
+
+    expect(invalidYearResponse.status).toBe(200);
+    expect(invalidYearBody.vehicles).toHaveLength(0);
+    expect(invalidYearBody.totalItems).toBe(0);
+  });
+
+  it("should reject search and type when only one is provided", async () => {
+    const { accessToken } = await makeEstablishmentAuth({
+      app,
+      prisma,
+      userFactory,
+      establishmentFactory,
+      envService,
+    });
+
+    const searchOnlyResponse = await request(getHttpServer(app))
+      .get("/vehicles")
+      .set("Authorization", `Bearer ${accessToken}`)
+      .query({ search: "Maria" });
+    const typeOnlyResponse = await request(getHttpServer(app))
+      .get("/vehicles")
+      .set("Authorization", `Bearer ${accessToken}`)
+      .query({ type: "name" });
+    const invalidTypeResponse = await request(getHttpServer(app))
+      .get("/vehicles")
+      .set("Authorization", `Bearer ${accessToken}`)
+      .query({ search: "Maria", type: "invalid" });
+
+    expect(searchOnlyResponse.status).toBe(400);
+    expect(typeOnlyResponse.status).toBe(400);
+    expect(invalidTypeResponse.status).toBe(400);
   });
 
   it("should enforce authentication and establishment role", async () => {
@@ -231,6 +336,10 @@ describe("ListVehiclesController (e2e)", () => {
       .get("/vehicles")
       .set("Authorization", `Bearer ${accessToken}`)
       .query({ page: 0 });
+    const legacyNameParamResponse = await request(getHttpServer(app))
+      .get("/vehicles")
+      .set("Authorization", `Bearer ${accessToken}`)
+      .query({ name: "Maria" });
     const unknownCustomerResponse = await request(getHttpServer(app))
       .get("/vehicles")
       .set("Authorization", `Bearer ${accessToken}`)
@@ -242,6 +351,7 @@ describe("ListVehiclesController (e2e)", () => {
 
     expect(invalidCustomerIdResponse.status).toBe(400);
     expect(invalidPageResponse.status).toBe(400);
+    expect(legacyNameParamResponse.status).toBe(200);
     expect(unknownCustomerResponse.status).toBe(200);
     expect(crossEstablishmentResponse.status).toBe(404);
   });

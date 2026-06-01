@@ -20,6 +20,7 @@ import {
 import z from "zod";
 
 import { ListVehiclesUseCase } from "../../../modules/application/use-cases/customer/list-vehicles";
+import { VEHICLE_LIST_SEARCH_TYPES } from "../../../modules/application/repositories/customer-vehicles-repository";
 import { ResourceNotFoundError } from "../../../shared/errors/resource-not-found-error";
 import { UnexpectedDomainError } from "../../../shared/errors/unexpected-domain-error";
 import { AuthenticatedUser } from "../../auth/authenticated-user";
@@ -29,12 +30,28 @@ import { ListCustomerVehiclesResponseDto } from "../docs/domain-swagger.dto";
 import { ZodValidationPipe } from "../pipes/zod-validation.pipe";
 import { CustomerVehiclePresenter } from "../presenters/customer-vehicle-presenter";
 
-const listVehiclesQuerySchema = z.object({
-  customerId: z.uuid().optional(),
-  name: z.string().trim().optional(),
-  page: z.coerce.number().int().positive().optional(),
-  size: z.coerce.number().int().positive().optional(),
-});
+const listVehiclesQuerySchema = z
+  .object({
+    customerId: z.uuid().optional(),
+    search: z.string().trim().optional(),
+    type: z.enum(VEHICLE_LIST_SEARCH_TYPES).optional(),
+    page: z.coerce.number().int().positive().optional(),
+    size: z.coerce.number().int().positive().optional(),
+  })
+  .refine(
+    (value) => {
+      const hasSearch =
+        value.search !== undefined && value.search.length > 0;
+      const hasType = value.type !== undefined;
+
+      if (!hasSearch && !hasType) {
+        return true;
+      }
+
+      return hasSearch && hasType;
+    },
+    "search and type must be provided together.",
+  );
 
 type ListVehiclesQuerySchema = z.infer<typeof listVehiclesQuerySchema>;
 
@@ -49,7 +66,7 @@ export class ListVehiclesController {
   @ApiOperation({
     summary: "List active vehicles for the authenticated establishment.",
     description:
-      "Returns active vehicles owned by the establishment. Optional customerId limits results to one customer. Optional name filters by customer full name (case-insensitive).",
+      "Returns active vehicles owned by the establishment. Optional customerId limits results to one customer. Optional search and type filter by plate, customer name, model, brand, color, or year.",
   })
   @ApiQuery({
     name: "customerId",
@@ -60,11 +77,20 @@ export class ListVehiclesController {
       "Optional active customer identifier used to limit listed vehicles.",
   })
   @ApiQuery({
-    name: "name",
+    name: "search",
     required: false,
     type: String,
-    description: "Search by customer full name (case-insensitive).",
+    description:
+      "Search term. Must be sent together with type. Supported fields depend on type.",
     example: "Maria",
+  })
+  @ApiQuery({
+    name: "type",
+    required: false,
+    enum: VEHICLE_LIST_SEARCH_TYPES,
+    description:
+      "Field to search in: plate, name (customer full name), model, brand, color, or year. Must be sent together with search.",
+    example: "name",
   })
   @ApiQuery({
     name: "page",
@@ -105,12 +131,17 @@ export class ListVehiclesController {
     @Query(new ZodValidationPipe(listVehiclesQuerySchema))
     query: ListVehiclesQuerySchema,
   ) {
+    const hasSearch =
+      query.search !== undefined && query.search.length > 0;
+
     const result = await this.listVehicles.execute({
       establishmentOwnerId: user.userId,
       ...(query.customerId !== undefined
         ? { customerId: query.customerId }
         : {}),
-      ...(query.name !== undefined ? { customerName: query.name } : {}),
+      ...(hasSearch && query.type !== undefined
+        ? { search: query.search, searchType: query.type }
+        : {}),
       ...(query.page !== undefined ? { page: query.page } : {}),
       ...(query.size !== undefined ? { size: query.size } : {}),
     });
