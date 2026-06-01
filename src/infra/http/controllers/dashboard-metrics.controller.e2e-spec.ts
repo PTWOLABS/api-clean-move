@@ -478,7 +478,7 @@ describe("Dashboard metrics controller (e2e)", () => {
         ],
       },
       cancellationRate: {
-        value: 25,
+        value: 20,
         variationInPercentagePoints: null,
         points: [
           {

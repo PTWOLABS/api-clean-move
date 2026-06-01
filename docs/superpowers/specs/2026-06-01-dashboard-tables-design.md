@@ -123,7 +123,7 @@ Group appointments by `customerId` and customer snapshot name.
 `totalSpentInCents` uses the same net revenue rule already used by dashboard revenue metrics:
 
 ```ts
-max(sum(appointment.services.priceInCents) - appointment.discountInCents, 0)
+max(sum(appointment.services.priceInCents) - appointment.discountInCents, 0);
 ```
 
 Sort order:
