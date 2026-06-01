@@ -39,6 +39,23 @@ export type PopularServiceUsageMetrics = {
   totalUsages: number;
 };
 
+export type TopCustomerMetric = {
+  customerId: string;
+  customerName: string;
+  completedAppointmentsCount: number;
+  totalSpentInCents: number;
+};
+
+export type TopCustomerMetrics = {
+  items: TopCustomerMetric[];
+  totalCustomers: number;
+};
+
+export type TopCustomersFilters = {
+  startsAt?: Date;
+  endsAt?: Date;
+} & PaginationParams;
+
 export abstract class AppointmentsRepository {
   abstract create(appointment: Appointment): Promise<void>;
   abstract findById(id: string): Promise<Appointment | null>;
@@ -58,5 +75,9 @@ export abstract class AppointmentsRepository {
     establishmentId: string,
     filters?: AppointmentFilters,
   ): Promise<PopularServiceUsageMetrics>;
+  abstract findTopCustomersByEstablishmentId(
+    establishmentId: string,
+    filters?: TopCustomersFilters,
+  ): Promise<TopCustomerMetrics>;
   abstract save(appointment: Appointment): Promise<void>;
 }

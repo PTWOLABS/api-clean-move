@@ -3,6 +3,8 @@ import {
   AppointmentsRepository,
   CalendarAppointmentFilters,
   PopularServiceUsageMetrics,
+  TopCustomerMetrics,
+  TopCustomersFilters,
 } from "../../src/modules/application/repositories/appointments-repository";
 import { Customer } from "../../src/modules/customer/domain/entities/customer";
 import { Appointment } from "../../src/modules/scheduling/domain/entities/appointment";
@@ -51,6 +53,13 @@ export class InMemoryAppointmentsRepository implements AppointmentsRepository {
       .filter((part) => part.length > 0);
 
     return parts.length > 0 ? parts.join(" ") : null;
+  }
+
+  private static getNetRevenueInCents(appointment: Appointment) {
+    const gross = Appointment.totalServicesPriceInCents(appointment.services);
+    const discountInCents = appointment.discountInCents?.amountInCents ?? 0;
+
+    return Math.max(gross - discountInCents, 0);
   }
 
   private static matchesStatusFilter(
@@ -277,6 +286,27 @@ export class InMemoryAppointmentsRepository implements AppointmentsRepository {
       });
   }
 
+  private filterDoneByEstablishmentId(
+    establishmentId: string,
+    filters?: TopCustomersFilters,
+  ) {
+    return this.items
+      .slice()
+      .filter((item) => item.establishmentId.toString() === establishmentId)
+      .filter((item) => item.status === "DONE")
+      .filter((item) => {
+        if (filters?.startsAt && item.startsAt < filters.startsAt) {
+          return false;
+        }
+
+        if (filters?.endsAt && item.startsAt > filters.endsAt) {
+          return false;
+        }
+
+        return true;
+      });
+  }
+
   async create(appointment: Appointment): Promise<void> {
     this.items.push(appointment);
   }
@@ -410,6 +440,79 @@ export class InMemoryAppointmentsRepository implements AppointmentsRepository {
     return {
       items,
       totalUsages,
+    };
+  }
+
+  async findTopCustomersByEstablishmentId(
+    establishmentId: string,
+    filters?: TopCustomersFilters,
+  ): Promise<TopCustomerMetrics> {
+    const page = filters?.page ?? 1;
+    const size = filters?.size ?? 5;
+    const appointments = this.filterDoneByEstablishmentId(
+      establishmentId,
+      filters,
+    );
+    const groupedByCustomer = new Map<
+      string,
+      {
+        customerId: string;
+        customerName: string;
+        completedAppointmentsCount: number;
+        totalSpentInCents: number;
+      }
+    >();
+
+    for (const appointment of appointments) {
+      const customerId = appointment.customerId.toString();
+      const current = groupedByCustomer.get(customerId);
+
+      if (!current) {
+        groupedByCustomer.set(customerId, {
+          customerId,
+          customerName: appointment.customer.fullName,
+          completedAppointmentsCount: 1,
+          totalSpentInCents:
+            InMemoryAppointmentsRepository.getNetRevenueInCents(appointment),
+        });
+
+        continue;
+      }
+
+      groupedByCustomer.set(customerId, {
+        ...current,
+        completedAppointmentsCount: current.completedAppointmentsCount + 1,
+        totalSpentInCents:
+          current.totalSpentInCents +
+          InMemoryAppointmentsRepository.getNetRevenueInCents(appointment),
+      });
+    }
+
+    const rankedCustomers = Array.from(groupedByCustomer.values()).sort(
+      (a, b) => {
+        if (b.completedAppointmentsCount !== a.completedAppointmentsCount) {
+          return b.completedAppointmentsCount - a.completedAppointmentsCount;
+        }
+
+        if (b.totalSpentInCents !== a.totalSpentInCents) {
+          return b.totalSpentInCents - a.totalSpentInCents;
+        }
+
+        const nameComparison = a.customerName.localeCompare(b.customerName);
+
+        if (nameComparison !== 0) {
+          return nameComparison;
+        }
+
+        return a.customerId.localeCompare(b.customerId);
+      },
+    );
+    const start = (page - 1) * size;
+    const end = start + size;
+
+    return {
+      items: rankedCustomers.slice(start, end),
+      totalCustomers: rankedCustomers.length,
     };
   }
 
