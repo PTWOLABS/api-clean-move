@@ -4,6 +4,7 @@ import {
   CustomerVehiclesRepository,
   EstablishmentCustomerVehicleFilters,
   PaginatedCustomerVehicles,
+  VehicleListSearchType,
 } from "../../src/modules/application/repositories/customer-vehicles-repository";
 import { Customer } from "../../src/modules/customer/domain/entities/customer";
 import { CustomerVehicle } from "../../src/modules/customer/domain/entities/customer-vehicle";
@@ -113,7 +114,8 @@ export class InMemoryCustomerVehiclesRepository implements CustomerVehiclesRepos
   ): Promise<PaginatedCustomerVehicles> {
     const page = filters?.page ?? 1;
     const size = filters?.size ?? 20;
-    const customerName = filters?.customerName?.trim().toLowerCase();
+    const search = filters?.search?.trim();
+    const searchType = filters?.searchType;
 
     const filteredVehicles = this.items
       .slice()
@@ -126,15 +128,16 @@ export class InMemoryCustomerVehiclesRepository implements CustomerVehiclesRepos
           : true,
       )
       .filter((item) => {
-        if (!customerName) {
+        if (!search || !searchType) {
           return true;
         }
 
-        const fullName = this.customersRepository?.items.find(
-          (customer) => customer.id.toString() === item.customerId.toString(),
-        )?.fullName;
-
-        return fullName?.toLowerCase().includes(customerName) ?? false;
+        return matchesVehicleListSearch(
+          item,
+          search,
+          searchType,
+          this.customersRepository?.items,
+        );
       });
 
     const totalItems = filteredVehicles.length;
@@ -242,6 +245,44 @@ export class InMemoryCustomerVehiclesRepository implements CustomerVehiclesRepos
     }
 
     this.items[vehicleIndex] = vehicle;
+  }
+}
+
+function matchesVehicleListSearch(
+  vehicle: CustomerVehicle,
+  search: string,
+  searchType: VehicleListSearchType,
+  customers?: Customer[],
+): boolean {
+  const normalizedSearch = search.toLowerCase();
+
+  switch (searchType) {
+    case "plate": {
+      const plateSearch = search.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+
+      return plateSearch
+        ? (vehicle.plate?.includes(plateSearch) ?? false)
+        : false;
+    }
+    case "name": {
+      const fullName = customers?.find(
+        (customer) =>
+          customer.id.toString() === vehicle.customerId.toString(),
+      )?.fullName;
+
+      return fullName?.toLowerCase().includes(normalizedSearch) ?? false;
+    }
+    case "model":
+      return vehicle.model?.toLowerCase().includes(normalizedSearch) ?? false;
+    case "brand":
+      return vehicle.brand?.toLowerCase().includes(normalizedSearch) ?? false;
+    case "color":
+      return vehicle.color?.toLowerCase().includes(normalizedSearch) ?? false;
+    case "year": {
+      const year = Number.parseInt(search, 10);
+
+      return Number.isInteger(year) && vehicle.year === year;
+    }
   }
 }
 

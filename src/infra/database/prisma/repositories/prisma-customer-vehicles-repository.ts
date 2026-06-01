@@ -7,6 +7,7 @@ import {
   CustomerVehiclesRepository,
   EstablishmentCustomerVehicleFilters,
   PaginatedCustomerVehicles,
+  VehicleListSearchType,
 } from "../../../../modules/application/repositories/customer-vehicles-repository";
 import { Prisma } from "../../../../generated/prisma/client";
 import { CustomerVehicle } from "../../../../modules/customer/domain/entities/customer-vehicle";
@@ -174,19 +175,53 @@ export class PrismaCustomerVehiclesRepository implements CustomerVehiclesReposit
   ): Promise<PaginatedCustomerVehicles> {
     const page = filters?.page ?? 1;
     const size = filters?.size ?? 20;
-    const customerName = filters?.customerName?.trim();
+    const search = filters?.search?.trim();
+    const searchType = filters?.searchType;
+
+    if (search && searchType) {
+      const searchWhere = buildVehicleListSearchWhere(search, searchType);
+
+      if (searchWhere === null) {
+        return { vehicles: [], totalItems: 0 };
+      }
+
+      const where: Prisma.CustomerVehicleWhereInput = {
+        establishmentId,
+        deletedAt: null,
+        ...(filters?.customerId ? { customerId: filters.customerId } : {}),
+        ...searchWhere,
+      };
+
+      try {
+        const client = PrismaUnitOfWork.getClient(this.prisma);
+
+        const [totalItems, vehicles] = await Promise.all([
+          client.customerVehicle.count({ where }),
+          client.customerVehicle.findMany({
+            where,
+            orderBy: {
+              createdAt: "asc",
+            },
+            skip: (page - 1) * size,
+            take: size,
+          }),
+        ]);
+
+        return {
+          vehicles: vehicles.map((vehicle) =>
+            PrismaCustomerVehicleMapper.toDomain(vehicle),
+          ),
+          totalItems,
+        };
+      } catch (error) {
+        rethrowPrismaRepositoryError(error);
+      }
+    }
 
     const where: Prisma.CustomerVehicleWhereInput = {
       establishmentId,
       deletedAt: null,
       ...(filters?.customerId ? { customerId: filters.customerId } : {}),
-      ...(customerName
-        ? {
-            customer: {
-              fullName: { contains: customerName, mode: "insensitive" },
-            },
-          }
-        : {}),
     };
 
     try {
@@ -328,6 +363,46 @@ export class PrismaCustomerVehiclesRepository implements CustomerVehiclesReposit
       });
     } catch (error) {
       rethrowPrismaRepositoryError(error);
+    }
+  }
+}
+
+function buildVehicleListSearchWhere(
+  search: string,
+  searchType: VehicleListSearchType,
+): Prisma.CustomerVehicleWhereInput | null {
+  switch (searchType) {
+    case "plate": {
+      const plateSearch = search
+        .replace(/[^a-zA-Z0-9]/g, "")
+        .toUpperCase();
+
+      if (!plateSearch) {
+        return null;
+      }
+
+      return { plate: { contains: plateSearch } };
+    }
+    case "name":
+      return {
+        customer: {
+          fullName: { contains: search, mode: "insensitive" },
+        },
+      };
+    case "model":
+      return { model: { contains: search, mode: "insensitive" } };
+    case "brand":
+      return { brand: { contains: search, mode: "insensitive" } };
+    case "color":
+      return { color: { contains: search, mode: "insensitive" } };
+    case "year": {
+      const year = Number.parseInt(search, 10);
+
+      if (!Number.isInteger(year)) {
+        return null;
+      }
+
+      return { year };
     }
   }
 }
