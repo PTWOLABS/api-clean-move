@@ -7,7 +7,6 @@ import {
   CustomerVehiclesRepository,
   EstablishmentCustomerVehicleFilters,
   PaginatedCustomerVehicles,
-  VehicleListSearchType,
 } from "../../../../modules/application/repositories/customer-vehicles-repository";
 import { Prisma } from "../../../../generated/prisma/client";
 import { CustomerVehicle } from "../../../../modules/customer/domain/entities/customer-vehicle";
@@ -175,53 +174,17 @@ export class PrismaCustomerVehiclesRepository implements CustomerVehiclesReposit
   ): Promise<PaginatedCustomerVehicles> {
     const page = filters?.page ?? 1;
     const size = filters?.size ?? 20;
-    const search = filters?.search?.trim();
-    const searchType = filters?.searchType;
+    const filterWhere = buildVehicleListFiltersWhere(filters);
 
-    if (search && searchType) {
-      const searchWhere = buildVehicleListSearchWhere(search, searchType);
-
-      if (searchWhere === null) {
-        return { vehicles: [], totalItems: 0 };
-      }
-
-      const where: Prisma.CustomerVehicleWhereInput = {
-        establishmentId,
-        deletedAt: null,
-        ...(filters?.customerId ? { customerId: filters.customerId } : {}),
-        ...searchWhere,
-      };
-
-      try {
-        const client = PrismaUnitOfWork.getClient(this.prisma);
-
-        const [totalItems, vehicles] = await Promise.all([
-          client.customerVehicle.count({ where }),
-          client.customerVehicle.findMany({
-            where,
-            orderBy: {
-              createdAt: "asc",
-            },
-            skip: (page - 1) * size,
-            take: size,
-          }),
-        ]);
-
-        return {
-          vehicles: vehicles.map((vehicle) =>
-            PrismaCustomerVehicleMapper.toDomain(vehicle),
-          ),
-          totalItems,
-        };
-      } catch (error) {
-        rethrowPrismaRepositoryError(error);
-      }
+    if (filterWhere === null) {
+      return { vehicles: [], totalItems: 0 };
     }
 
     const where: Prisma.CustomerVehicleWhereInput = {
       establishmentId,
       deletedAt: null,
       ...(filters?.customerId ? { customerId: filters.customerId } : {}),
+      ...filterWhere,
     };
 
     try {
@@ -367,40 +330,54 @@ export class PrismaCustomerVehiclesRepository implements CustomerVehiclesReposit
   }
 }
 
-function buildVehicleListSearchWhere(
-  search: string,
-  searchType: VehicleListSearchType,
+function buildVehicleListFiltersWhere(
+  filters?: EstablishmentCustomerVehicleFilters,
 ): Prisma.CustomerVehicleWhereInput | null {
-  switch (searchType) {
-    case "plate": {
-      const plateSearch = search.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+  const where: Prisma.CustomerVehicleWhereInput = {};
+  const plate = filters?.plate?.trim();
+  const name = filters?.name?.trim();
+  const model = filters?.model?.trim();
+  const brand = filters?.brand?.trim();
+  const color = filters?.color?.trim();
+  const year = filters?.year?.trim();
 
-      if (!plateSearch) {
-        return null;
-      }
+  if (plate !== undefined) {
+    const plateSearch = plate.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
 
-      return { plate: { contains: plateSearch } };
+    if (!plateSearch) {
+      return null;
     }
-    case "name":
-      return {
-        customer: {
-          fullName: { contains: search, mode: "insensitive" },
-        },
-      };
-    case "model":
-      return { model: { contains: search, mode: "insensitive" } };
-    case "brand":
-      return { brand: { contains: search, mode: "insensitive" } };
-    case "color":
-      return { color: { contains: search, mode: "insensitive" } };
-    case "year": {
-      const year = Number.parseInt(search, 10);
 
-      if (!Number.isInteger(year)) {
-        return null;
-      }
-
-      return { year };
-    }
+    where.plate = { contains: plateSearch };
   }
+
+  if (name !== undefined) {
+    where.customer = {
+      fullName: { contains: name, mode: "insensitive" },
+    };
+  }
+
+  if (model !== undefined) {
+    where.model = { contains: model, mode: "insensitive" };
+  }
+
+  if (brand !== undefined) {
+    where.brand = { contains: brand, mode: "insensitive" };
+  }
+
+  if (color !== undefined) {
+    where.color = { contains: color, mode: "insensitive" };
+  }
+
+  if (year !== undefined) {
+    const parsedYear = Number.parseInt(year, 10);
+
+    if (!Number.isInteger(parsedYear)) {
+      return null;
+    }
+
+    where.year = parsedYear;
+  }
+
+  return where;
 }

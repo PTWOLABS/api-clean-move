@@ -20,7 +20,6 @@ import {
 import z from "zod";
 
 import { ListVehiclesUseCase } from "../../../modules/application/use-cases/customer/list-vehicles";
-import { VEHICLE_LIST_SEARCH_TYPES } from "../../../modules/application/repositories/customer-vehicles-repository";
 import { ResourceNotFoundError } from "../../../shared/errors/resource-not-found-error";
 import { UnexpectedDomainError } from "../../../shared/errors/unexpected-domain-error";
 import { AuthenticatedUser } from "../../auth/authenticated-user";
@@ -30,24 +29,25 @@ import { ListCustomerVehiclesResponseDto } from "../docs/domain-swagger.dto";
 import { ZodValidationPipe } from "../pipes/zod-validation.pipe";
 import { CustomerVehiclePresenter } from "../presenters/customer-vehicle-presenter";
 
-const listVehiclesQuerySchema = z
-  .object({
-    customerId: z.uuid().optional(),
-    search: z.string().trim().optional(),
-    type: z.enum(VEHICLE_LIST_SEARCH_TYPES).optional(),
-    page: z.coerce.number().int().positive().optional(),
-    size: z.coerce.number().int().positive().optional(),
-  })
-  .refine((value) => {
-    const hasSearch = value.search !== undefined && value.search.length > 0;
-    const hasType = value.type !== undefined;
+const optionalFilterString = z
+  .string()
+  .trim()
+  .optional()
+  .transform((value) =>
+    value === undefined || value.length === 0 ? undefined : value,
+  );
 
-    if (!hasSearch && !hasType) {
-      return true;
-    }
-
-    return hasSearch && hasType;
-  }, "search and type must be provided together.");
+const listVehiclesQuerySchema = z.object({
+  customerId: z.uuid().optional(),
+  plate: optionalFilterString,
+  name: optionalFilterString,
+  model: optionalFilterString,
+  brand: optionalFilterString,
+  color: optionalFilterString,
+  year: optionalFilterString,
+  page: z.coerce.number().int().positive().optional(),
+  size: z.coerce.number().int().positive().optional(),
+});
 
 type ListVehiclesQuerySchema = z.infer<typeof listVehiclesQuerySchema>;
 
@@ -62,7 +62,7 @@ export class ListVehiclesController {
   @ApiOperation({
     summary: "List active vehicles for the authenticated establishment.",
     description:
-      "Returns active vehicles owned by the establishment. Optional customerId limits results to one customer. Optional search and type filter by plate, customer name, model, brand, color, or year.",
+      "Returns active vehicles owned by the establishment. Optional customerId limits results to one customer. Optional plate, name, model, brand, color, and year filters can be combined with AND logic.",
   })
   @ApiQuery({
     name: "customerId",
@@ -73,20 +73,46 @@ export class ListVehiclesController {
       "Optional active customer identifier used to limit listed vehicles.",
   })
   @ApiQuery({
-    name: "search",
+    name: "plate",
     required: false,
     type: String,
-    description:
-      "Search term. Must be sent together with type. Supported fields depend on type.",
+    description: "Filter by plate. Supports punctuation in the input value.",
+    example: "ABC1D23",
+  })
+  @ApiQuery({
+    name: "name",
+    required: false,
+    type: String,
+    description: "Filter by customer full name (case-insensitive).",
     example: "Maria",
   })
   @ApiQuery({
-    name: "type",
+    name: "model",
     required: false,
-    enum: VEHICLE_LIST_SEARCH_TYPES,
-    description:
-      "Field to search in: plate, name (customer full name), model, brand, color, or year. Must be sent together with search.",
-    example: "name",
+    type: String,
+    description: "Filter by vehicle model (case-insensitive).",
+    example: "Gol",
+  })
+  @ApiQuery({
+    name: "brand",
+    required: false,
+    type: String,
+    description: "Filter by vehicle brand (case-insensitive).",
+    example: "Volkswagen",
+  })
+  @ApiQuery({
+    name: "color",
+    required: false,
+    type: String,
+    description: "Filter by vehicle color (case-insensitive).",
+    example: "Branco",
+  })
+  @ApiQuery({
+    name: "year",
+    required: false,
+    type: String,
+    description: "Filter by exact vehicle year.",
+    example: "2020",
   })
   @ApiQuery({
     name: "page",
@@ -127,19 +153,17 @@ export class ListVehiclesController {
     @Query(new ZodValidationPipe(listVehiclesQuerySchema))
     query: ListVehiclesQuerySchema,
   ) {
-    const search =
-      query.search !== undefined && query.search.length > 0
-        ? query.search
-        : undefined;
-
     const result = await this.listVehicles.execute({
       establishmentOwnerId: user.userId,
       ...(query.customerId !== undefined
         ? { customerId: query.customerId }
         : {}),
-      ...(search !== undefined && query.type !== undefined
-        ? { search, searchType: query.type }
-        : {}),
+      ...(query.plate !== undefined ? { plate: query.plate } : {}),
+      ...(query.name !== undefined ? { name: query.name } : {}),
+      ...(query.model !== undefined ? { model: query.model } : {}),
+      ...(query.brand !== undefined ? { brand: query.brand } : {}),
+      ...(query.color !== undefined ? { color: query.color } : {}),
+      ...(query.year !== undefined ? { year: query.year } : {}),
       ...(query.page !== undefined ? { page: query.page } : {}),
       ...(query.size !== undefined ? { size: query.size } : {}),
     });

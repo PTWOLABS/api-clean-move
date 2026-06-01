@@ -149,8 +149,7 @@ describe("List vehicles", () => {
 
     const result = await sut.execute({
       establishmentOwnerId: establishment.ownerId.toString(),
-      search: "maria",
-      searchType: "name",
+      name: "maria",
     });
 
     expect(result.isRight()).toBe(true);
@@ -194,33 +193,27 @@ describe("List vehicles", () => {
 
     const byPlate = await sut.execute({
       establishmentOwnerId: ownerId,
-      search: "abc-1d23",
-      searchType: "plate",
+      plate: "abc-1d23",
     });
     const byModel = await sut.execute({
       establishmentOwnerId: ownerId,
-      search: "gol",
-      searchType: "model",
+      model: "gol",
     });
     const byBrand = await sut.execute({
       establishmentOwnerId: ownerId,
-      search: "volks",
-      searchType: "brand",
+      brand: "volks",
     });
     const byColor = await sut.execute({
       establishmentOwnerId: ownerId,
-      search: "branco",
-      searchType: "color",
+      color: "branco",
     });
     const byYear = await sut.execute({
       establishmentOwnerId: ownerId,
-      search: "2020",
-      searchType: "year",
+      year: "2020",
     });
     const byInvalidYear = await sut.execute({
       establishmentOwnerId: ownerId,
-      search: "not-a-year",
-      searchType: "year",
+      year: "not-a-year",
     });
 
     for (const result of [byPlate, byModel, byBrand, byColor, byYear]) {
@@ -242,6 +235,45 @@ describe("List vehicles", () => {
 
     expect(byInvalidYear.value.vehicles).toEqual([]);
     expect(byInvalidYear.value.totalItems).toBe(0);
+  });
+
+  it("should combine filters with AND logic", async () => {
+    const establishment = makeEstablishment();
+    const customer = makeCustomer({ establishmentId: establishment.id });
+    const targetVehicle = makeCustomerVehicle({
+      establishmentId: establishment.id,
+      customerId: customer.id,
+      plate: "ABC1D23",
+      model: "Gol",
+      brand: "Volkswagen",
+    });
+    const otherVehicle = makeCustomerVehicle({
+      establishmentId: establishment.id,
+      customerId: customer.id,
+      plate: "XYZ9A87",
+      model: "Gol",
+      brand: "Chevrolet",
+    });
+
+    await inMemoryEstablishmentsRepository.create(establishment);
+    await inMemoryCustomersRepository.create(customer);
+    await inMemoryCustomerVehiclesRepository.create(targetVehicle);
+    await inMemoryCustomerVehiclesRepository.create(otherVehicle);
+
+    const result = await sut.execute({
+      establishmentOwnerId: establishment.ownerId.toString(),
+      brand: "volks",
+      model: "gol",
+    });
+
+    expect(result.isRight()).toBe(true);
+
+    if (result.isLeft()) {
+      throw result.value;
+    }
+
+    expect(result.value.vehicles).toEqual([targetVehicle]);
+    expect(result.value.totalItems).toBe(1);
   });
 
   it("should return totalItems across all pages when paginating", async () => {

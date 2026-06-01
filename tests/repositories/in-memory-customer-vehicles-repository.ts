@@ -4,7 +4,6 @@ import {
   CustomerVehiclesRepository,
   EstablishmentCustomerVehicleFilters,
   PaginatedCustomerVehicles,
-  VehicleListSearchType,
 } from "../../src/modules/application/repositories/customer-vehicles-repository";
 import { Customer } from "../../src/modules/customer/domain/entities/customer";
 import { CustomerVehicle } from "../../src/modules/customer/domain/entities/customer-vehicle";
@@ -114,8 +113,10 @@ export class InMemoryCustomerVehiclesRepository implements CustomerVehiclesRepos
   ): Promise<PaginatedCustomerVehicles> {
     const page = filters?.page ?? 1;
     const size = filters?.size ?? 20;
-    const search = filters?.search?.trim();
-    const searchType = filters?.searchType;
+
+    if (hasInvalidVehicleListFilters(filters)) {
+      return { vehicles: [], totalItems: 0 };
+    }
 
     const filteredVehicles = this.items
       .slice()
@@ -127,18 +128,13 @@ export class InMemoryCustomerVehiclesRepository implements CustomerVehiclesRepos
           ? item.customerId.toString() === filters.customerId
           : true,
       )
-      .filter((item) => {
-        if (!search || !searchType) {
-          return true;
-        }
-
-        return matchesVehicleListSearch(
+      .filter((item) =>
+        matchesVehicleListFilters(
           item,
-          search,
-          searchType,
+          filters,
           this.customersRepository?.items,
-        );
-      });
+        ),
+      );
 
     const totalItems = filteredVehicles.length;
     const start = (page - 1) * size;
@@ -248,41 +244,96 @@ export class InMemoryCustomerVehiclesRepository implements CustomerVehiclesRepos
   }
 }
 
-function matchesVehicleListSearch(
-  vehicle: CustomerVehicle,
-  search: string,
-  searchType: VehicleListSearchType,
-  customers?: Customer[],
+function hasInvalidVehicleListFilters(
+  filters?: EstablishmentCustomerVehicleFilters,
 ): boolean {
-  const normalizedSearch = search.toLowerCase();
+  const plate = filters?.plate?.trim();
+  const year = filters?.year?.trim();
 
-  switch (searchType) {
-    case "plate": {
-      const plateSearch = search.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+  if (year !== undefined) {
+    const parsedYear = Number.parseInt(year, 10);
 
-      return plateSearch
-        ? (vehicle.plate?.includes(plateSearch) ?? false)
-        : false;
-    }
-    case "name": {
-      const fullName = customers?.find(
-        (customer) => customer.id.toString() === vehicle.customerId.toString(),
-      )?.fullName;
-
-      return fullName?.toLowerCase().includes(normalizedSearch) ?? false;
-    }
-    case "model":
-      return vehicle.model?.toLowerCase().includes(normalizedSearch) ?? false;
-    case "brand":
-      return vehicle.brand?.toLowerCase().includes(normalizedSearch) ?? false;
-    case "color":
-      return vehicle.color?.toLowerCase().includes(normalizedSearch) ?? false;
-    case "year": {
-      const year = Number.parseInt(search, 10);
-
-      return Number.isInteger(year) && vehicle.year === year;
+    if (!Number.isInteger(parsedYear)) {
+      return true;
     }
   }
+
+  if (plate !== undefined) {
+    const plateSearch = plate.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+
+    if (!plateSearch) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function matchesVehicleListFilters(
+  vehicle: CustomerVehicle,
+  filters?: EstablishmentCustomerVehicleFilters,
+  customers?: Customer[],
+): boolean {
+  const plate = filters?.plate?.trim();
+  const name = filters?.name?.trim();
+  const model = filters?.model?.trim();
+  const brand = filters?.brand?.trim();
+  const color = filters?.color?.trim();
+  const year = filters?.year?.trim();
+
+  if (year !== undefined) {
+    const parsedYear = Number.parseInt(year, 10);
+
+    if (vehicle.year !== parsedYear) {
+      return false;
+    }
+  }
+
+  if (plate !== undefined) {
+    const plateSearch = plate.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+
+    if (!(vehicle.plate?.includes(plateSearch) ?? false)) {
+      return false;
+    }
+  }
+
+  if (name !== undefined) {
+    const fullName = customers?.find(
+      (customer) =>
+        customer.id.toString() === vehicle.customerId.toString(),
+    )?.fullName;
+    const normalizedName = name.toLowerCase();
+
+    if (!(fullName?.toLowerCase().includes(normalizedName) ?? false)) {
+      return false;
+    }
+  }
+
+  if (model !== undefined) {
+    const normalizedModel = model.toLowerCase();
+
+    if (!(vehicle.model?.toLowerCase().includes(normalizedModel) ?? false)) {
+      return false;
+    }
+  }
+
+  if (brand !== undefined) {
+    const normalizedBrand = brand.toLowerCase();
+
+    if (!(vehicle.brand?.toLowerCase().includes(normalizedBrand) ?? false)) {
+      return false;
+    }
+  }
+
+  if (color !== undefined) {
+    const normalizedColor = color.toLowerCase();
+
+    if (!(vehicle.color?.toLowerCase().includes(normalizedColor) ?? false)) {
+      return false;
+    }
+  }
+
+  return true;
 }
 
 function compareStrings(a: string, b: string) {
