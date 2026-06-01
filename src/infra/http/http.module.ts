@@ -31,6 +31,7 @@ import { GetEstablishmentCancellationRateUseCase } from "../../modules/applicati
 import { GetEstablishmentDashboardOverviewUseCase } from "../../modules/application/use-cases/establishment/get-establishment-dashboard-overview";
 import { GetEstablishmentPopularServicesUseCase } from "../../modules/application/use-cases/establishment/get-establishment-popular-services";
 import { GetEstablishmentRevenueVsAppointmentsUseCase } from "../../modules/application/use-cases/establishment/get-establishment-revenue-vs-appointments";
+import { GetEstablishmentTopCustomersUseCase } from "../../modules/application/use-cases/establishment/get-establishment-top-customers";
 import { RegisterEstablishmentUseCase } from "../../modules/application/use-cases/establishment/register-establishment";
 import { UploadDomainImageUseCase } from "../../modules/application/use-cases/media/upload-domain-image";
 import { CreateServiceUseCase } from "../../modules/application/use-cases/service/create-service";
@@ -58,6 +59,7 @@ import { DashboardMetricsAppointmentsController } from "./controllers/dashboard-
 import { DashboardMetricsOverviewController } from "./controllers/dashboard-metrics-overview.controller";
 import { DashboardMetricsPopularServicesController } from "./controllers/dashboard-metrics-popular-services.controller";
 import { DashboardMetricsRevenueController } from "./controllers/dashboard-metrics-revenue.controller";
+import { DashboardMetricsTopCustomersController } from "./controllers/dashboard-metrics-top-customers.controller";
 import { DeleteCustomerController } from "./controllers/delete-customer.controller";
 import { DeleteCustomerVehicleController } from "./controllers/delete-customer-vehicle.controller";
 import { DeleteEmployeeController } from "./controllers/delete-employee.controller";
@@ -119,6 +121,7 @@ import { UploadVehicleImageController } from "./controllers/media/upload-vehicle
     DashboardMetricsRevenueController,
     DashboardMetricsAppointmentsController,
     DashboardMetricsPopularServicesController,
+    DashboardMetricsTopCustomersController,
     RegisterEmployeeController,
     GetEmployeeController,
     ListEmployeesController,
@@ -158,6 +161,7 @@ import { UploadVehicleImageController } from "./controllers/media/upload-vehicle
     GetEstablishmentCancellationRateUseCase,
     GetEstablishmentRevenueVsAppointmentsUseCase,
     GetEstablishmentPopularServicesUseCase,
+    GetEstablishmentTopCustomersUseCase,
     RegisterEmployeeUseCase,
     GetEmployeeUseCase,
     ListEmployeesUseCase,

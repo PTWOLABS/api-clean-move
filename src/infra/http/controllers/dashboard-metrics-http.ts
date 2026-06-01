@@ -215,6 +215,19 @@ export const dashboardPopularServicesMetricsQuerySchema =
       );
     });
 
+export const dashboardTopCustomersMetricsQuerySchema =
+  dashboardDynamicMetricsQueryBaseSchema
+    .pick({
+      period: true,
+      startsAt: true,
+      endsAt: true,
+    })
+    .extend({
+      page: z.coerce.number().int().positive().default(1),
+      size: z.coerce.number().int().positive().default(5),
+    })
+    .superRefine(validateMetricsDateRange);
+
 export type DashboardMetricsQuerySchema = z.infer<
   typeof dashboardMetricsQuerySchema
 >;
@@ -233,6 +246,10 @@ export type DashboardOverviewMetricsQuerySchema = z.infer<
 
 export type DashboardPopularServicesMetricsQuerySchema = z.infer<
   typeof dashboardPopularServicesMetricsQuerySchema
+>;
+
+export type DashboardTopCustomersMetricsQuerySchema = z.infer<
+  typeof dashboardTopCustomersMetricsQuerySchema
 >;
 
 type DashboardMetricsFiltersQuery = {
@@ -384,6 +401,64 @@ export function ApiDashboardPopularServicesPaginationQueries() {
         default: 5,
       },
       description: "Page size for popular services results. Defaults to 5.",
+      example: 5,
+    }),
+  );
+}
+
+export function ApiDashboardTopCustomersFilterQueries() {
+  return applyDecorators(
+    ApiQuery({
+      name: "period",
+      required: false,
+      enum: DASHBOARD_METRIC_PERIODS,
+      description:
+        "Predefined dashboard period. Ignored when startsAt is provided.",
+      example: "this-month",
+    }),
+    ApiQuery({
+      name: "startsAt",
+      required: false,
+      type: String,
+      format: "date-time",
+      description:
+        "Filter appointments starting at or after this ISO 8601 date-time with offset.",
+      example: "2026-04-01T00:00:00.000Z",
+    }),
+    ApiQuery({
+      name: "endsAt",
+      required: false,
+      type: String,
+      format: "date-time",
+      description:
+        "Filter appointments starting at or before this ISO 8601 date-time with offset.",
+      example: "2026-04-30T23:59:59.999Z",
+    }),
+  );
+}
+
+export function ApiDashboardTopCustomersPaginationQueries() {
+  return applyDecorators(
+    ApiQuery({
+      name: "page",
+      required: false,
+      schema: {
+        type: "integer",
+        minimum: 1,
+        default: 1,
+      },
+      description: "Page number for top customers results. Defaults to 1.",
+      example: 1,
+    }),
+    ApiQuery({
+      name: "size",
+      required: false,
+      schema: {
+        type: "integer",
+        minimum: 1,
+        default: 5,
+      },
+      description: "Page size for top customers results. Defaults to 5.",
       example: 5,
     }),
   );

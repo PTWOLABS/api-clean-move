@@ -68,6 +68,14 @@ type DashboardPopularService = {
   percent: number;
 };
 
+type DashboardTopCustomer = {
+  position: number;
+  customerId: string;
+  customerName: string;
+  completedAppointmentsCount: number;
+  totalSpentInCents: number;
+};
+
 export class DashboardMetricsPresenter {
   static toOverview(metrics: DashboardOverviewMetrics) {
     return metrics;
@@ -96,6 +104,16 @@ export class DashboardMetricsPresenter {
     return {
       popularServices,
       totalServices,
+    };
+  }
+
+  static toTopCustomers(
+    customers: DashboardTopCustomer[],
+    totalCustomers: number,
+  ) {
+    return {
+      customers,
+      totalCustomers,
     };
   }
 }
