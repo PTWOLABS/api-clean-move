@@ -43,6 +43,7 @@ export type AppointmentItemDTO = {
 
 export type AppointmentListDTO = {
   appointments: AppointmentItemDTO[];
+  totalItems: number;
 };
 
 export type AppointmentSingleResponseDTO = {
