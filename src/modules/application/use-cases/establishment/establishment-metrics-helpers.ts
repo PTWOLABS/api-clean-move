@@ -35,10 +35,11 @@ export async function findAllAppointmentsByEstablishment(
       size: PAGE_SIZE,
     };
 
-    const appointments = await appointmentsRepository.findManyByEstablishmentId(
-      establishmentId,
-      appointmentFilters,
-    );
+    const { appointments } =
+      await appointmentsRepository.findManyByEstablishmentId(
+        establishmentId,
+        appointmentFilters,
+      );
 
     if (appointments.length === 0) {
       break;

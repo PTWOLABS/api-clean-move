@@ -22,6 +22,7 @@ type ListCalendarAppointmentsUseCaseResponse = Either<
   ResourceNotFoundError | NotAllowedError,
   {
     appointments: Appointment[];
+    totalItems: number;
   }
 >;
 
@@ -44,7 +45,7 @@ export class ListCalendarAppointmentsUseCase {
 
     const { establishment } = scopeResult.value;
 
-    const appointments =
+    const { appointments, totalItems } =
       await this.appointmentsRepository.findManyByEstablishmentIdInCalendarRange(
         establishment.id.toString(),
         filters,
@@ -52,6 +53,7 @@ export class ListCalendarAppointmentsUseCase {
 
     return right({
       appointments,
+      totalItems,
     });
   }
 }
