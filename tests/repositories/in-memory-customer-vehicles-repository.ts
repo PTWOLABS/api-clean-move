@@ -299,8 +299,7 @@ function matchesVehicleListFilters(
 
   if (name !== undefined) {
     const fullName = customers?.find(
-      (customer) =>
-        customer.id.toString() === vehicle.customerId.toString(),
+      (customer) => customer.id.toString() === vehicle.customerId.toString(),
     )?.fullName;
     const normalizedName = name.toLowerCase();
 
