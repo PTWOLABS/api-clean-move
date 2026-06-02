@@ -63,6 +63,7 @@ describe("List calendar appointments", () => {
     expect(result.isRight()).toBe(true);
     if (result.isLeft()) throw result.value;
     expect(result.value.appointments).toEqual([]);
+    expect(result.value.totalItems).toBe(0);
   });
 
   it("should list appointments that intersect the requested range", async () => {
@@ -120,6 +121,7 @@ describe("List calendar appointments", () => {
       fullyInside,
       startsWithinEndsAfter,
     ]);
+    expect(result.value.totalItems).toBe(3);
   });
 
   it("should filter appointments by status", async () => {
@@ -156,6 +158,7 @@ describe("List calendar appointments", () => {
     expect(result.isRight()).toBe(true);
     if (result.isLeft()) throw result.value;
     expect(result.value.appointments).toEqual([doneAppointment]);
+    expect(result.value.totalItems).toBe(1);
   });
 
   it("should order appointments by startsAt ascending", async () => {
@@ -192,6 +195,7 @@ describe("List calendar appointments", () => {
       earlierAppointment,
       laterAppointment,
     ]);
+    expect(result.value.totalItems).toBe(2);
   });
 
   it("should reject a missing establishment", async () => {
@@ -235,5 +239,6 @@ describe("List calendar appointments", () => {
     expect(result.isRight()).toBe(true);
     if (result.isLeft()) throw result.value;
     expect(result.value.appointments).toEqual([appointment]);
+    expect(result.value.totalItems).toBe(1);
   });
 });

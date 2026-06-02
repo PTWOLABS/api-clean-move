@@ -94,11 +94,18 @@ const overviewResponseSchema = z
 
 const appointmentsResponseSchema = z
   .object({
-    appointmentsCount: z.number(),
-    cancellationRate: z
+    total: z.number(),
+    byStatus: z
       .object({
-        currentPercent: z.number(),
-        comparisonPercentPoints: z.number().nullable(),
+        scheduled: z.number(),
+        done: z.number(),
+        cancelled: z.number(),
+      })
+      .strict(),
+    rates: z
+      .object({
+        completion: z.number(),
+        cancellation: z.number(),
       })
       .strict(),
   })
@@ -692,10 +699,15 @@ describe("Dashboard metrics controller (e2e)", () => {
 
     expect(response.status).toBe(200);
     expect(appointmentsResponseSchema.parse(response.body)).toEqual({
-      appointmentsCount: 5,
-      cancellationRate: {
-        currentPercent: 20,
-        comparisonPercentPoints: -5,
+      total: 5,
+      byStatus: {
+        scheduled: 0,
+        done: 4,
+        cancelled: 1,
+      },
+      rates: {
+        completion: 80,
+        cancellation: 20,
       },
     });
   });

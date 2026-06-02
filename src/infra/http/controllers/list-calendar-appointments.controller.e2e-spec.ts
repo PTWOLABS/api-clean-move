@@ -147,6 +147,7 @@ describe("ListCalendarAppointmentsController (e2e)", () => {
       fullyInside.id,
       startsWithinEndsAfter.id,
     ]);
+    expect(body.totalItems).toBe(3);
     expect(
       body.appointments.map((appointment) => appointment.startsAt),
     ).toEqual([
@@ -183,6 +184,7 @@ describe("ListCalendarAppointmentsController (e2e)", () => {
 
     expect(response.status).toBe(200);
     expect(body.appointments).toEqual([]);
+    expect(body.totalItems).toBe(0);
   });
 
   it("should filter appointments by status", async () => {
@@ -235,6 +237,7 @@ describe("ListCalendarAppointmentsController (e2e)", () => {
     expect(body.appointments.map((appointment) => appointment.id)).toEqual([
       doneAppointment.id,
     ]);
+    expect(body.totalItems).toBe(1);
     expect(body.appointments[0]?.status).toBe("DONE");
     expect(
       body.appointments.some(
@@ -395,6 +398,7 @@ describe("ListCalendarAppointmentsController (e2e)", () => {
 
     expect(response.status).toBe(200);
     expect(body.appointments).toHaveLength(0);
+    expect(body.totalItems).toBe(0);
   });
 
   it("should allow employee with read appointments feature", async () => {
@@ -439,5 +443,6 @@ describe("ListCalendarAppointmentsController (e2e)", () => {
 
     expect(response.status).toBe(200);
     expect(body.appointments.map((item) => item.id)).toEqual([appointment.id]);
+    expect(body.totalItems).toBe(1);
   });
 });

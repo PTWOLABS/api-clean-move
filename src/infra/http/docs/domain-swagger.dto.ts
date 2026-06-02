@@ -874,6 +874,13 @@ export class AppointmentResponseDto {
 export class ListAppointmentsResponseDto {
   @ApiProperty({ type: AppointmentDto, isArray: true })
   appointments!: AppointmentDto[];
+
+  @ApiProperty({
+    example: 24,
+    description:
+      "Total number of appointments matching the current filters (across all pages when pagination is used).",
+  })
+  totalItems!: number;
 }
 
 export class CreateServiceEstimatedDurationBodyDto {
@@ -1283,31 +1290,52 @@ export class DashboardMetricsRevenueResponseDto {
   summary!: DashboardMetricsRevenueSummaryDto;
 }
 
-export class DashboardMetricsCancellationRateDto {
+export class DashboardMetricsAppointmentsByStatusDto {
   @ApiProperty({
-    example: 25,
-    description: "Cancellation rate percentage for the selected period.",
+    example: 12,
+    description: "Scheduled appointments for the selected period.",
   })
-  currentPercent!: number;
+  scheduled!: number;
 
   @ApiProperty({
-    example: 4.5,
-    nullable: true,
-    description:
-      "Cancellation rate change in percentage points compared with the previous equivalent period.",
+    example: 9,
+    description: "Completed appointments for the selected period.",
   })
-  comparisonPercentPoints!: number | null;
+  done!: number;
+
+  @ApiProperty({
+    example: 3,
+    description: "Cancelled appointments for the selected period.",
+  })
+  cancelled!: number;
+}
+
+export class DashboardMetricsAppointmentRatesDto {
+  @ApiProperty({
+    example: 37.5,
+    description: "Completed appointments percentage for the selected period.",
+  })
+  completion!: number;
+
+  @ApiProperty({
+    example: 12.5,
+    description: "Cancelled appointments percentage for the selected period.",
+  })
+  cancellation!: number;
 }
 
 export class DashboardMetricsAppointmentsResponseDto {
   @ApiProperty({
-    example: 4,
+    example: 24,
     description: "Total appointments for the selected period.",
   })
-  appointmentsCount!: number;
+  total!: number;
 
-  @ApiProperty({ type: DashboardMetricsCancellationRateDto })
-  cancellationRate!: DashboardMetricsCancellationRateDto;
+  @ApiProperty({ type: DashboardMetricsAppointmentsByStatusDto })
+  byStatus!: DashboardMetricsAppointmentsByStatusDto;
+
+  @ApiProperty({ type: DashboardMetricsAppointmentRatesDto })
+  rates!: DashboardMetricsAppointmentRatesDto;
 }
 
 export class DashboardMetricsPopularServiceDto {

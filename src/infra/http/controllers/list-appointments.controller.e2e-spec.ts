@@ -238,6 +238,7 @@ describe("ListAppointmentsController (e2e)", () => {
     expect(doneBody.appointments.map((appointment) => appointment.id)).toEqual([
       firstAppointment.id,
     ]);
+    expect(doneBody.totalItems).toBe(1);
     expect(customerResponse.status).toBe(200);
     expect(
       customerBody.appointments.map((appointment) => appointment.id),
@@ -245,6 +246,7 @@ describe("ListAppointmentsController (e2e)", () => {
       expect.arrayContaining([firstAppointment.id, secondAppointment.id]),
     );
     expect(customerBody.appointments).toHaveLength(2);
+    expect(customerBody.totalItems).toBe(2);
     expect(
       customerBody.appointments.map((appointment) => appointment.customer),
     ).toEqual([
@@ -258,10 +260,12 @@ describe("ListAppointmentsController (e2e)", () => {
       expect.arrayContaining([firstAppointment.id, thirdAppointment.id]),
     );
     expect(serviceBody.appointments).toHaveLength(2);
+    expect(serviceBody.totalItems).toBe(2);
     expect(vehicleResponse.status).toBe(200);
     expect(
       vehicleBody.appointments.map((appointment) => appointment.id),
     ).toEqual([firstAppointment.id]);
+    expect(vehicleBody.totalItems).toBe(1);
     expect(dateRangeResponse.status).toBe(200);
     expect(
       dateRangeBody.appointments.map((appointment) => appointment.id),
@@ -269,6 +273,7 @@ describe("ListAppointmentsController (e2e)", () => {
       expect.arrayContaining([firstAppointment.id, secondAppointment.id]),
     );
     expect(dateRangeBody.appointments).toHaveLength(2);
+    expect(dateRangeBody.totalItems).toBe(2);
     expect(customerNameResponse.status).toBe(200);
     expect(
       customerNameBody.appointments.map((appointment) => appointment.id),
@@ -364,6 +369,7 @@ describe("ListAppointmentsController (e2e)", () => {
 
     expect(response.status).toBe(200);
     expect(body.appointments).toHaveLength(1);
+    expect(body.totalItems).toBe(1);
     expect(body.appointments[0]?.id).toBe(appointment.id);
     expect(body.appointments[0]?.customer).toEqual({
       fullName: "Nome Original",
@@ -489,6 +495,7 @@ describe("ListAppointmentsController (e2e)", () => {
 
     expect(response.status).toBe(200);
     expect(body.appointments).toHaveLength(0);
+    expect(body.totalItems).toBe(0);
   });
 
   it("should allow employee with read appointments feature", async () => {
@@ -531,5 +538,6 @@ describe("ListAppointmentsController (e2e)", () => {
 
     expect(response.status).toBe(200);
     expect(body.appointments).toHaveLength(1);
+    expect(body.totalItems).toBe(1);
   });
 });

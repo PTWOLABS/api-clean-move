@@ -28,6 +28,11 @@ export type AppointmentFilters = {
   endsAt?: Date;
 } & PaginationParams;
 
+export type AppointmentListResult = {
+  appointments: Appointment[];
+  totalItems: number;
+};
+
 export type PopularServiceUsageMetric = {
   serviceId: string;
   serviceName: string;
@@ -66,11 +71,11 @@ export abstract class AppointmentsRepository {
   abstract findManyByEstablishmentId(
     establishmentId: string,
     filters?: AppointmentFilters,
-  ): Promise<Appointment[]>;
+  ): Promise<AppointmentListResult>;
   abstract findManyByEstablishmentIdInCalendarRange(
     establishmentId: string,
     filters: CalendarAppointmentFilters,
-  ): Promise<Appointment[]>;
+  ): Promise<AppointmentListResult>;
   abstract findPopularServiceUsagesByEstablishmentId(
     establishmentId: string,
     filters?: AppointmentFilters,

@@ -1,5 +1,6 @@
 import {
   AppointmentFilters,
+  AppointmentListResult,
   AppointmentsRepository,
   CalendarAppointmentFilters,
   PopularServiceUsageMetrics,
@@ -341,8 +342,8 @@ export class InMemoryAppointmentsRepository implements AppointmentsRepository {
   async findManyByEstablishmentIdInCalendarRange(
     establishmentId: string,
     filters: CalendarAppointmentFilters,
-  ): Promise<Appointment[]> {
-    return this.items
+  ): Promise<AppointmentListResult> {
+    const appointments = this.items
       .slice()
       .sort((a, b) => a.startsAt.getTime() - b.startsAt.getTime())
       .filter((item) => item.establishmentId.toString() === establishmentId)
@@ -358,12 +359,17 @@ export class InMemoryAppointmentsRepository implements AppointmentsRepository {
           filters.endsAt,
         );
       });
+
+    return {
+      appointments,
+      totalItems: appointments.length,
+    };
   }
 
   async findManyByEstablishmentId(
     establishmentId: string,
     filters?: AppointmentFilters,
-  ): Promise<Appointment[]> {
+  ): Promise<AppointmentListResult> {
     const page = filters?.page ?? 1;
     const size = filters?.size ?? 20;
     const filteredAppointments = this.filterByEstablishmentId(
@@ -374,7 +380,10 @@ export class InMemoryAppointmentsRepository implements AppointmentsRepository {
     const start = (page - 1) * size;
     const end = start + size;
 
-    return filteredAppointments.slice(start, end);
+    return {
+      appointments: filteredAppointments.slice(start, end),
+      totalItems: filteredAppointments.length,
+    };
   }
 
   async findPopularServiceUsagesByEstablishmentId(

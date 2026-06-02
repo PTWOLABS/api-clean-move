@@ -2,7 +2,6 @@ import { Injectable } from "@nestjs/common";
 
 import { Either, left, right } from "../../../../shared/either";
 import { ResourceNotFoundError } from "../../../../shared/errors/resource-not-found-error";
-import { calculatePercentPointDifference } from "../../services/dashboard-metrics-bucket-builder";
 import { ResolvedDashboardMetricsRange } from "../../services/dashboard-metrics-range-resolver";
 import { AppointmentsRepository } from "../../repositories/appointments-repository";
 import { EstablishmentsRepository } from "../../repositories/establishment-repository";
@@ -20,10 +19,15 @@ type GetEstablishmentCancellationRateUseCaseRequest = {
 type GetEstablishmentCancellationRateUseCaseResponse = Either<
   ResourceNotFoundError,
   {
-    appointmentsCount: number;
-    cancellationRate: {
-      currentPercent: number;
-      comparisonPercentPoints: number | null;
+    total: number;
+    byStatus: {
+      scheduled: number;
+      done: number;
+      cancelled: number;
+    };
+    rates: {
+      completion: number;
+      cancellation: number;
     };
   }
 >;
@@ -58,47 +62,36 @@ export class GetEstablishmentCancellationRateUseCase {
           : {}),
       },
     );
-    const comparisonAppointments = await findAllAppointmentsByEstablishment(
-      this.appointmentsRepository,
-      establishment.id.toString(),
-      {
-        startsAt: range.comparison.startsAt,
-        endsAt: range.comparison.endsAt,
-        ...(filters?.categories !== undefined
-          ? { categories: filters.categories }
-          : {}),
-      },
-    );
-
-    const currentPercent = calculateCancellationPercent(currentAppointments);
-    const previousPercent =
-      comparisonAppointments.length === 0
-        ? null
-        : calculateCancellationPercent(comparisonAppointments);
+    const scheduled = currentAppointments.filter(
+      (appointment) => appointment.status === "SCHEDULED",
+    ).length;
+    const done = currentAppointments.filter(
+      (appointment) => appointment.status === "DONE",
+    ).length;
+    const cancelled = currentAppointments.filter(
+      (appointment) => appointment.status === "CANCELLED",
+    ).length;
+    const total = currentAppointments.length;
 
     return right({
-      appointmentsCount: currentAppointments.length,
-      cancellationRate: {
-        currentPercent,
-        comparisonPercentPoints: calculatePercentPointDifference(
-          currentPercent,
-          previousPercent,
-        ),
+      total,
+      byStatus: {
+        scheduled,
+        done,
+        cancelled,
+      },
+      rates: {
+        completion: calculateRate(done, total),
+        cancellation: calculateRate(cancelled, total),
       },
     });
   }
 }
 
-function calculateCancellationPercent(
-  appointments: Awaited<ReturnType<typeof findAllAppointmentsByEstablishment>>,
-) {
-  if (appointments.length === 0) {
+function calculateRate(count: number, total: number) {
+  if (total === 0) {
     return 0;
   }
 
-  const cancelledCount = appointments.filter(
-    (appointment) => appointment.status === "CANCELLED",
-  ).length;
-
-  return Math.round((cancelledCount / appointments.length) * 1000) / 10;
+  return Math.round((count / total) * 1000) / 10;
 }

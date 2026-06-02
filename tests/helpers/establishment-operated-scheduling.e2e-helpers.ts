@@ -140,6 +140,7 @@ export const appointmentResponseSchema = z.object({
 
 export const listAppointmentsResponseSchema = z.object({
   appointments: z.array(appointmentResponseSchema.shape.appointment),
+  totalItems: z.number().int().nonnegative(),
 });
 
 type CustomerPayloadOverrides = {
