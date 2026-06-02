@@ -174,19 +174,17 @@ export class PrismaCustomerVehiclesRepository implements CustomerVehiclesReposit
   ): Promise<PaginatedCustomerVehicles> {
     const page = filters?.page ?? 1;
     const size = filters?.size ?? 20;
-    const customerName = filters?.customerName?.trim();
+    const filterWhere = buildVehicleListFiltersWhere(filters);
+
+    if (filterWhere === null) {
+      return { vehicles: [], totalItems: 0 };
+    }
 
     const where: Prisma.CustomerVehicleWhereInput = {
       establishmentId,
       deletedAt: null,
       ...(filters?.customerId ? { customerId: filters.customerId } : {}),
-      ...(customerName
-        ? {
-            customer: {
-              fullName: { contains: customerName, mode: "insensitive" },
-            },
-          }
-        : {}),
+      ...filterWhere,
     };
 
     try {
@@ -330,4 +328,56 @@ export class PrismaCustomerVehiclesRepository implements CustomerVehiclesReposit
       rethrowPrismaRepositoryError(error);
     }
   }
+}
+
+function buildVehicleListFiltersWhere(
+  filters?: EstablishmentCustomerVehicleFilters,
+): Prisma.CustomerVehicleWhereInput | null {
+  const where: Prisma.CustomerVehicleWhereInput = {};
+  const plate = filters?.plate?.trim();
+  const name = filters?.name?.trim();
+  const model = filters?.model?.trim();
+  const brand = filters?.brand?.trim();
+  const color = filters?.color?.trim();
+  const year = filters?.year?.trim();
+
+  if (plate !== undefined) {
+    const plateSearch = plate.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+
+    if (!plateSearch) {
+      return null;
+    }
+
+    where.plate = { contains: plateSearch };
+  }
+
+  if (name !== undefined) {
+    where.customer = {
+      fullName: { contains: name, mode: "insensitive" },
+    };
+  }
+
+  if (model !== undefined) {
+    where.model = { contains: model, mode: "insensitive" };
+  }
+
+  if (brand !== undefined) {
+    where.brand = { contains: brand, mode: "insensitive" };
+  }
+
+  if (color !== undefined) {
+    where.color = { contains: color, mode: "insensitive" };
+  }
+
+  if (year !== undefined) {
+    const parsedYear = Number.parseInt(year, 10);
+
+    if (!Number.isInteger(parsedYear)) {
+      return null;
+    }
+
+    where.year = parsedYear;
+  }
+
+  return where;
 }

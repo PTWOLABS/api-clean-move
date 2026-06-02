@@ -149,7 +149,7 @@ describe("List vehicles", () => {
 
     const result = await sut.execute({
       establishmentOwnerId: establishment.ownerId.toString(),
-      customerName: "maria",
+      name: "maria",
     });
 
     expect(result.isRight()).toBe(true);
@@ -159,6 +159,120 @@ describe("List vehicles", () => {
     }
 
     expect(result.value.vehicles).toEqual([mariaVehicle]);
+    expect(result.value.totalItems).toBe(1);
+  });
+
+  it("should filter vehicles by plate, model, brand, color, and year", async () => {
+    const establishment = makeEstablishment();
+    const customer = makeCustomer({ establishmentId: establishment.id });
+    const targetVehicle = makeCustomerVehicle({
+      establishmentId: establishment.id,
+      customerId: customer.id,
+      plate: "ABC1D23",
+      model: "Gol",
+      brand: "Volkswagen",
+      color: "Branco",
+      year: 2020,
+    });
+    const otherVehicle = makeCustomerVehicle({
+      establishmentId: establishment.id,
+      customerId: customer.id,
+      plate: "XYZ9A87",
+      model: "Onix",
+      brand: "Chevrolet",
+      color: "Preto",
+      year: 2018,
+    });
+
+    await inMemoryEstablishmentsRepository.create(establishment);
+    await inMemoryCustomersRepository.create(customer);
+    await inMemoryCustomerVehiclesRepository.create(targetVehicle);
+    await inMemoryCustomerVehiclesRepository.create(otherVehicle);
+
+    const ownerId = establishment.ownerId.toString();
+
+    const byPlate = await sut.execute({
+      establishmentOwnerId: ownerId,
+      plate: "abc-1d23",
+    });
+    const byModel = await sut.execute({
+      establishmentOwnerId: ownerId,
+      model: "gol",
+    });
+    const byBrand = await sut.execute({
+      establishmentOwnerId: ownerId,
+      brand: "volks",
+    });
+    const byColor = await sut.execute({
+      establishmentOwnerId: ownerId,
+      color: "branco",
+    });
+    const byYear = await sut.execute({
+      establishmentOwnerId: ownerId,
+      year: "2020",
+    });
+    const byInvalidYear = await sut.execute({
+      establishmentOwnerId: ownerId,
+      year: "not-a-year",
+    });
+
+    for (const result of [byPlate, byModel, byBrand, byColor, byYear]) {
+      expect(result.isRight()).toBe(true);
+
+      if (result.isLeft()) {
+        throw result.value;
+      }
+
+      expect(result.value.vehicles).toEqual([targetVehicle]);
+      expect(result.value.totalItems).toBe(1);
+    }
+
+    expect(byInvalidYear.isRight()).toBe(true);
+
+    if (byInvalidYear.isLeft()) {
+      throw byInvalidYear.value;
+    }
+
+    expect(byInvalidYear.value.vehicles).toEqual([]);
+    expect(byInvalidYear.value.totalItems).toBe(0);
+  });
+
+  it("should combine filters with AND logic", async () => {
+    const establishment = makeEstablishment();
+    const customer = makeCustomer({ establishmentId: establishment.id });
+    const targetVehicle = makeCustomerVehicle({
+      establishmentId: establishment.id,
+      customerId: customer.id,
+      plate: "ABC1D23",
+      model: "Gol",
+      brand: "Volkswagen",
+    });
+    const otherVehicle = makeCustomerVehicle({
+      establishmentId: establishment.id,
+      customerId: customer.id,
+      plate: "XYZ9A87",
+      model: "Gol",
+      brand: "Chevrolet",
+    });
+
+    await inMemoryEstablishmentsRepository.create(establishment);
+    await inMemoryCustomersRepository.create(customer);
+    await inMemoryCustomerVehiclesRepository.create(targetVehicle);
+    await inMemoryCustomerVehiclesRepository.create(otherVehicle);
+
+    const result = await sut.execute({
+      establishmentOwnerId: establishment.ownerId.toString(),
+      brand: "volks",
+      model: "gol",
+    });
+
+    expect(result.isRight()).toBe(true);
+
+    if (result.isLeft()) {
+      throw result.value;
+    }
+
+    expect(result.value.vehicles).toEqual([targetVehicle]);
     expect(result.value.totalItems).toBe(1);
   });
 

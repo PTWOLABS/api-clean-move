@@ -113,7 +113,10 @@ export class InMemoryCustomerVehiclesRepository implements CustomerVehiclesRepos
   ): Promise<PaginatedCustomerVehicles> {
     const page = filters?.page ?? 1;
     const size = filters?.size ?? 20;
-    const customerName = filters?.customerName?.trim().toLowerCase();
+
+    if (hasInvalidVehicleListFilters(filters)) {
+      return { vehicles: [], totalItems: 0 };
+    }
 
     const filteredVehicles = this.items
       .slice()
@@ -125,17 +128,13 @@ export class InMemoryCustomerVehiclesRepository implements CustomerVehiclesRepos
           ? item.customerId.toString() === filters.customerId
           : true,
       )
-      .filter((item) => {
-        if (!customerName) {
-          return true;
-        }
-
-        const fullName = this.customersRepository?.items.find(
-          (customer) => customer.id.toString() === item.customerId.toString(),
-        )?.fullName;
-
-        return fullName?.toLowerCase().includes(customerName) ?? false;
-      });
+      .filter((item) =>
+        matchesVehicleListFilters(
+          item,
+          filters,
+          this.customersRepository?.items,
+        ),
+      );
 
     const totalItems = filteredVehicles.length;
     const start = (page - 1) * size;
@@ -243,6 +242,97 @@ export class InMemoryCustomerVehiclesRepository implements CustomerVehiclesRepos
 
     this.items[vehicleIndex] = vehicle;
   }
+}
+
+function hasInvalidVehicleListFilters(
+  filters?: EstablishmentCustomerVehicleFilters,
+): boolean {
+  const plate = filters?.plate?.trim();
+  const year = filters?.year?.trim();
+
+  if (year !== undefined) {
+    const parsedYear = Number.parseInt(year, 10);
+
+    if (!Number.isInteger(parsedYear)) {
+      return true;
+    }
+  }
+
+  if (plate !== undefined) {
+    const plateSearch = plate.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+
+    if (!plateSearch) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function matchesVehicleListFilters(
+  vehicle: CustomerVehicle,
+  filters?: EstablishmentCustomerVehicleFilters,
+  customers?: Customer[],
+): boolean {
+  const plate = filters?.plate?.trim();
+  const name = filters?.name?.trim();
+  const model = filters?.model?.trim();
+  const brand = filters?.brand?.trim();
+  const color = filters?.color?.trim();
+  const year = filters?.year?.trim();
+
+  if (year !== undefined) {
+    const parsedYear = Number.parseInt(year, 10);
+
+    if (vehicle.year !== parsedYear) {
+      return false;
+    }
+  }
+
+  if (plate !== undefined) {
+    const plateSearch = plate.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+
+    if (!(vehicle.plate?.includes(plateSearch) ?? false)) {
+      return false;
+    }
+  }
+
+  if (name !== undefined) {
+    const fullName = customers?.find(
+      (customer) => customer.id.toString() === vehicle.customerId.toString(),
+    )?.fullName;
+    const normalizedName = name.toLowerCase();
+
+    if (!(fullName?.toLowerCase().includes(normalizedName) ?? false)) {
+      return false;
+    }
+  }
+
+  if (model !== undefined) {
+    const normalizedModel = model.toLowerCase();
+
+    if (!(vehicle.model?.toLowerCase().includes(normalizedModel) ?? false)) {
+      return false;
+    }
+  }
+
+  if (brand !== undefined) {
+    const normalizedBrand = brand.toLowerCase();
+
+    if (!(vehicle.brand?.toLowerCase().includes(normalizedBrand) ?? false)) {
+      return false;
+    }
+  }
+
+  if (color !== undefined) {
+    const normalizedColor = color.toLowerCase();
+
+    if (!(vehicle.color?.toLowerCase().includes(normalizedColor) ?? false)) {
+      return false;
+    }
+  }
+
+  return true;
 }
 
 function compareStrings(a: string, b: string) {

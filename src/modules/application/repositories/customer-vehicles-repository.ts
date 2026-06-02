@@ -7,7 +7,12 @@ export type CustomerVehicleFilters = {
 
 export type EstablishmentCustomerVehicleFilters = {
   customerId?: string;
-  customerName?: string;
+  plate?: string;
+  name?: string;
+  model?: string;
+  brand?: string;
+  color?: string;
+  year?: string;
 } & PaginationParams;
 
 export type CustomerVehicleOption = {

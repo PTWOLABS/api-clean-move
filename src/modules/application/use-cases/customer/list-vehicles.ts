@@ -10,7 +10,12 @@ import { EstablishmentsRepository } from "../../repositories/establishment-repos
 type ListVehiclesUseCaseRequest = {
   establishmentOwnerId: string;
   customerId?: string;
-  customerName?: string;
+  plate?: string;
+  name?: string;
+  model?: string;
+  brand?: string;
+  color?: string;
+  year?: string;
   page?: number;
   size?: number;
 };
@@ -34,7 +39,12 @@ export class ListVehiclesUseCase {
   async execute({
     establishmentOwnerId,
     customerId,
-    customerName,
+    plate,
+    name,
+    model,
+    brand,
+    color,
+    year,
     page,
     size,
   }: ListVehiclesUseCaseRequest): Promise<ListVehiclesUseCaseResponse> {
@@ -64,7 +74,12 @@ export class ListVehiclesUseCase {
         establishmentId,
         {
           ...(customerId !== undefined ? { customerId } : {}),
-          ...(customerName !== undefined ? { customerName } : {}),
+          ...(plate !== undefined ? { plate } : {}),
+          ...(name !== undefined ? { name } : {}),
+          ...(model !== undefined ? { model } : {}),
+          ...(brand !== undefined ? { brand } : {}),
+          ...(color !== undefined ? { color } : {}),
+          ...(year !== undefined ? { year } : {}),
           ...(page !== undefined ? { page } : {}),
           ...(size !== undefined ? { size } : {}),
         },

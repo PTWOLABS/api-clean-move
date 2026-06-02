@@ -29,9 +29,22 @@ import { ListCustomerVehiclesResponseDto } from "../docs/domain-swagger.dto";
 import { ZodValidationPipe } from "../pipes/zod-validation.pipe";
 import { CustomerVehiclePresenter } from "../presenters/customer-vehicle-presenter";
 
+const optionalFilterString = z
+  .string()
+  .trim()
+  .optional()
+  .transform((value) =>
+    value === undefined || value.length === 0 ? undefined : value,
+  );
+
 const listVehiclesQuerySchema = z.object({
   customerId: z.uuid().optional(),
-  name: z.string().trim().optional(),
+  plate: optionalFilterString,
+  name: optionalFilterString,
+  model: optionalFilterString,
+  brand: optionalFilterString,
+  color: optionalFilterString,
+  year: optionalFilterString,
   page: z.coerce.number().int().positive().optional(),
   size: z.coerce.number().int().positive().optional(),
 });
@@ -49,7 +62,7 @@ export class ListVehiclesController {
   @ApiOperation({
     summary: "List active vehicles for the authenticated establishment.",
     description:
-      "Returns active vehicles owned by the establishment. Optional customerId limits results to one customer. Optional name filters by customer full name (case-insensitive).",
+      "Returns active vehicles owned by the establishment. Optional customerId limits results to one customer. Optional plate, name, model, brand, color, and year filters can be combined with AND logic.",
   })
   @ApiQuery({
     name: "customerId",
@@ -60,11 +73,46 @@ export class ListVehiclesController {
       "Optional active customer identifier used to limit listed vehicles.",
   })
   @ApiQuery({
+    name: "plate",
+    required: false,
+    type: String,
+    description: "Filter by plate. Supports punctuation in the input value.",
+    example: "ABC1D23",
+  })
+  @ApiQuery({
     name: "name",
     required: false,
     type: String,
-    description: "Search by customer full name (case-insensitive).",
+    description: "Filter by customer full name (case-insensitive).",
     example: "Maria",
+  })
+  @ApiQuery({
+    name: "model",
+    required: false,
+    type: String,
+    description: "Filter by vehicle model (case-insensitive).",
+    example: "Gol",
+  })
+  @ApiQuery({
+    name: "brand",
+    required: false,
+    type: String,
+    description: "Filter by vehicle brand (case-insensitive).",
+    example: "Volkswagen",
+  })
+  @ApiQuery({
+    name: "color",
+    required: false,
+    type: String,
+    description: "Filter by vehicle color (case-insensitive).",
+    example: "Branco",
+  })
+  @ApiQuery({
+    name: "year",
+    required: false,
+    type: String,
+    description: "Filter by exact vehicle year.",
+    example: "2020",
   })
   @ApiQuery({
     name: "page",
@@ -110,7 +158,12 @@ export class ListVehiclesController {
       ...(query.customerId !== undefined
         ? { customerId: query.customerId }
         : {}),
-      ...(query.name !== undefined ? { customerName: query.name } : {}),
+      ...(query.plate !== undefined ? { plate: query.plate } : {}),
+      ...(query.name !== undefined ? { name: query.name } : {}),
+      ...(query.model !== undefined ? { model: query.model } : {}),
+      ...(query.brand !== undefined ? { brand: query.brand } : {}),
+      ...(query.color !== undefined ? { color: query.color } : {}),
+      ...(query.year !== undefined ? { year: query.year } : {}),
       ...(query.page !== undefined ? { page: query.page } : {}),
       ...(query.size !== undefined ? { size: query.size } : {}),
     });
