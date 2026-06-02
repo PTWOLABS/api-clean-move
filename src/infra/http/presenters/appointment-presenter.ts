@@ -1,6 +1,21 @@
 import { Appointment } from "../../../modules/scheduling/domain/entities/appointment";
 import { AppointmentItemDTO } from "../contracts/appointment.dto";
 
+export function buildAppointmentVehicleDisplayName(
+  vehicle: Appointment["vehicle"],
+) {
+  if (!vehicle) {
+    return null;
+  }
+
+  const parts = [vehicle.brand, vehicle.model, vehicle.year]
+    .filter((part) => part !== null && part !== undefined)
+    .map((part) => String(part).trim())
+    .filter((part) => part.length > 0);
+
+  return parts.length > 0 ? parts.join(" ") : null;
+}
+
 export class AppointmentPresenter {
   static toHTTP(appointment: Appointment): AppointmentItemDTO {
     return {
@@ -25,6 +40,9 @@ export class AppointmentPresenter {
             model: appointment.vehicle.model,
             color: appointment.vehicle.color,
             year: appointment.vehicle.year,
+            displayName: buildAppointmentVehicleDisplayName(
+              appointment.vehicle,
+            ),
           }
         : null,
       startsAt: appointment.startsAt.toISOString(),

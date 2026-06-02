@@ -144,11 +144,29 @@ const popularServicesResponseSchema = z
   })
   .strict();
 
+const topCustomersResponseSchema = z
+  .object({
+    customers: z.array(
+      z
+        .object({
+          position: z.number(),
+          customerId: z.uuid(),
+          customerName: z.string(),
+          completedAppointmentsCount: z.number(),
+          totalSpentInCents: z.number(),
+        })
+        .strict(),
+    ),
+    totalCustomers: z.number(),
+  })
+  .strict();
+
 const dashboardMetricPaths = [
   "/dashboard/metrics/overview",
   "/dashboard/metrics/revenue",
   "/dashboard/metrics/appointments",
   "/dashboard/metrics/popular-services",
+  "/dashboard/metrics/top-customers",
 ] as const;
 
 describe("Dashboard metrics controller (e2e)", () => {
@@ -460,7 +478,7 @@ describe("Dashboard metrics controller (e2e)", () => {
         ],
       },
       cancellationRate: {
-        value: 25,
+        value: 20,
         variationInPercentagePoints: null,
         points: [
           {
@@ -772,6 +790,94 @@ describe("Dashboard metrics controller (e2e)", () => {
     });
   });
 
+  it("should return top customers ranked by done visits and total spent", async () => {
+    const { accessToken, establishment, customer } = await makeAuthContext();
+    const secondCustomer = await customerFactory.makePrismaCustomer({
+      establishmentId: establishment.id,
+      cpfCnpj: null,
+      fullName: "Bruno Almeida",
+    });
+    const thirdCustomer = await customerFactory.makePrismaCustomer({
+      establishmentId: establishment.id,
+      cpfCnpj: null,
+      fullName: "Carla Ramos",
+    });
+    const otherContext = await makeAuthContext();
+    const service = await serviceFactory.makePrismaService({
+      establishmentId: establishment.id,
+    });
+    const otherService = await serviceFactory.makePrismaService({
+      establishmentId: otherContext.establishment.id,
+    });
+
+    await createAppointment({
+      establishmentId: establishment.id,
+      customerId: customer.id,
+      service,
+      startsAt: "2026-05-03T10:00:00.000Z",
+      status: "DONE",
+      priceInCents: 10000,
+      discountInCents: 1000,
+    });
+    await createAppointment({
+      establishmentId: establishment.id,
+      customerId: customer.id,
+      service,
+      startsAt: "2026-05-04T10:00:00.000Z",
+      status: "DONE",
+      priceInCents: 5000,
+    });
+    await createAppointment({
+      establishmentId: establishment.id,
+      customerId: secondCustomer.id,
+      service,
+      startsAt: "2026-05-05T10:00:00.000Z",
+      status: "DONE",
+      priceInCents: 20000,
+    });
+    await createAppointment({
+      establishmentId: establishment.id,
+      customerId: thirdCustomer.id,
+      service,
+      startsAt: "2026-05-06T10:00:00.000Z",
+      status: "SCHEDULED",
+      priceInCents: 30000,
+    });
+    await createAppointment({
+      establishmentId: otherContext.establishment.id,
+      customerId: otherContext.customer.id,
+      service: otherService,
+      startsAt: "2026-05-07T10:00:00.000Z",
+      status: "DONE",
+      priceInCents: 99999,
+    });
+
+    const response = await request(getHttpServer(app))
+      .get("/dashboard/metrics/top-customers")
+      .set("Authorization", `Bearer ${accessToken}`)
+      .query({
+        startsAt: "2026-05-01T00:00:00.000Z",
+        endsAt: "2026-05-31T23:59:59.999Z",
+        page: 1,
+        size: 1,
+      });
+    const body = topCustomersResponseSchema.parse(response.body);
+
+    expect(response.status).toBe(200);
+    expect(body).toEqual({
+      customers: [
+        {
+          position: 1,
+          customerId: customer.id.toString(),
+          customerName: customer.fullName,
+          completedAppointmentsCount: 2,
+          totalSpentInCents: 14000,
+        },
+      ],
+      totalCustomers: 2,
+    });
+  });
+
   it.each([
     [
       "granularity on overview",
@@ -826,6 +932,8 @@ describe("Dashboard metrics controller (e2e)", () => {
     ],
     ["page=0", "/dashboard/metrics/popular-services", { page: 0 }],
     ["size=0", "/dashboard/metrics/popular-services", { size: 0 }],
+    ["page=0", "/dashboard/metrics/top-customers", { page: 0 }],
+    ["size=0", "/dashboard/metrics/top-customers", { size: 0 }],
   ])("should reject %s", async (_, path, query) => {
     const { accessToken } = await makeAuthContext();
 

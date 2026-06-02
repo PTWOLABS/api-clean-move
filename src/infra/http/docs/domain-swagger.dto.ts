@@ -760,6 +760,13 @@ export class AppointmentVehicleSnapshotDto {
 
   @ApiProperty({ type: Number, example: 2022, nullable: true, minimum: 1900 })
   year!: number | null;
+
+  @ApiProperty({
+    example: "Toyota Corolla 2022",
+    nullable: true,
+    description: "Derived display name built from brand, model, and year.",
+  })
+  displayName!: string | null;
 }
 
 export class AppointmentCustomerSnapshotDto {
@@ -1334,4 +1341,41 @@ export class DashboardMetricsPopularServicesResponseDto {
       "Total number of service usages matching the selected filters.",
   })
   totalServices!: number;
+}
+
+export class DashboardMetricsTopCustomerDto {
+  @ApiProperty({
+    example: 1,
+    description: "Absolute ranking position in the filtered result.",
+  })
+  position!: number;
+
+  @ApiProperty({ example: "11cf3860-d512-47db-b9d1-c9044be6250d" })
+  customerId!: string;
+
+  @ApiProperty({ example: "Ana Maria Souza" })
+  customerName!: string;
+
+  @ApiProperty({
+    example: 8,
+    description: "Number of DONE appointments in the selected period.",
+  })
+  completedAppointmentsCount!: number;
+
+  @ApiProperty({
+    example: 132000,
+    description: "Total net spent in cents across DONE appointments.",
+  })
+  totalSpentInCents!: number;
+}
+
+export class DashboardMetricsTopCustomersResponseDto {
+  @ApiProperty({ type: DashboardMetricsTopCustomerDto, isArray: true })
+  customers!: DashboardMetricsTopCustomerDto[];
+
+  @ApiProperty({
+    example: 12,
+    description: "Total ranked customers before pagination.",
+  })
+  totalCustomers!: number;
 }

@@ -28,6 +28,7 @@ export type AppointmentItemDTO = {
     model: string | null;
     color: string | null;
     year: number | null;
+    displayName: string | null;
   } | null;
   startsAt: string;
   endsAt: string | null;

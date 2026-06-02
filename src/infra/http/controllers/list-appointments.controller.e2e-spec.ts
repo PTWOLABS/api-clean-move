@@ -187,6 +187,10 @@ describe("ListAppointmentsController (e2e)", () => {
       .get("/appointments")
       .set("Authorization", `Bearer ${accessToken}`)
       .query({ vehicleModel: "cor" });
+    const vehicleDisplayNameResponse = await request(getHttpServer(app))
+      .get("/appointments")
+      .set("Authorization", `Bearer ${accessToken}`)
+      .query({ search: "Toyota Corolla" });
     const searchResponse = await request(getHttpServer(app))
       .get("/appointments")
       .set("Authorization", `Bearer ${accessToken}`)
@@ -222,6 +226,9 @@ describe("ListAppointmentsController (e2e)", () => {
     );
     const vehicleModelBody = listAppointmentsResponseSchema.parse(
       vehicleModelResponse.body,
+    );
+    const vehicleDisplayNameBody = listAppointmentsResponseSchema.parse(
+      vehicleDisplayNameResponse.body,
     );
     const searchBody = listAppointmentsResponseSchema.parse(
       searchResponse.body,
@@ -295,6 +302,13 @@ describe("ListAppointmentsController (e2e)", () => {
     expect(
       vehicleModelBody.appointments.map((appointment) => appointment.id),
     ).toEqual([firstAppointment.id]);
+    expect(vehicleDisplayNameResponse.status).toBe(200);
+    expect(
+      vehicleDisplayNameBody.appointments.map((appointment) => appointment.id),
+    ).toEqual([firstAppointment.id]);
+    expect(vehicleDisplayNameBody.appointments[0]?.vehicle?.displayName).toBe(
+      "Toyota Corolla",
+    );
     expect(searchResponse.status).toBe(200);
     expect(
       searchBody.appointments.map((appointment) => appointment.id),

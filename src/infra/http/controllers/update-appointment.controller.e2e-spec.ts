@@ -130,6 +130,7 @@ describe("UpdateAppointmentController (e2e)", () => {
       plate: "DEF4G56",
       brand: "Honda",
       model: "Civic",
+      displayName: "Honda Civic 2024",
       color: "Preto",
       year: 2024,
     });

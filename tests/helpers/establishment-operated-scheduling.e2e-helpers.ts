@@ -123,6 +123,7 @@ export const appointmentResponseSchema = z.object({
         model: z.string().nullable(),
         color: z.string().nullable(),
         year: z.number().int().nullable(),
+        displayName: z.string().nullable(),
       })
       .nullable(),
     startsAt: z.string(),
