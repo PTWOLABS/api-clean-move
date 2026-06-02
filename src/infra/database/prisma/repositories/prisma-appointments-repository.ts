@@ -2,6 +2,7 @@ import { Injectable } from "@nestjs/common";
 
 import {
   AppointmentFilters,
+  AppointmentListResult,
   AppointmentsRepository,
   CalendarAppointmentFilters,
   PopularServiceUsageMetrics,
@@ -368,24 +369,31 @@ export class PrismaAppointmentsRepository implements AppointmentsRepository {
   async findManyByEstablishmentIdInCalendarRange(
     establishmentId: string,
     filters: CalendarAppointmentFilters,
-  ): Promise<Appointment[]> {
-    try {
-      const appointments = await PrismaUnitOfWork.getClient(
-        this.prisma,
-      ).appointment.findMany({
-        where: PrismaAppointmentsRepository.buildCalendarWhere(
-          establishmentId,
-          filters,
-        ),
-        include: bookedServicesInclude,
-        orderBy: {
-          startsAt: "asc",
-        },
-      });
+  ): Promise<AppointmentListResult> {
+    const where = PrismaAppointmentsRepository.buildCalendarWhere(
+      establishmentId,
+      filters,
+    );
 
-      return appointments.map((appointment) =>
-        PrismaAppointmentMapper.toDomain(appointment),
-      );
+    try {
+      const client = PrismaUnitOfWork.getClient(this.prisma);
+      const [totalItems, appointments] = await Promise.all([
+        client.appointment.count({ where }),
+        client.appointment.findMany({
+          where,
+          include: bookedServicesInclude,
+          orderBy: {
+            startsAt: "asc",
+          },
+        }),
+      ]);
+
+      return {
+        appointments: appointments.map((appointment) =>
+          PrismaAppointmentMapper.toDomain(appointment),
+        ),
+        totalItems,
+      };
     } catch (error) {
       rethrowPrismaRepositoryError(error);
     }
@@ -394,29 +402,35 @@ export class PrismaAppointmentsRepository implements AppointmentsRepository {
   async findManyByEstablishmentId(
     establishmentId: string,
     filters?: AppointmentFilters,
-  ): Promise<Appointment[]> {
+  ): Promise<AppointmentListResult> {
     const page = filters?.page ?? 1;
     const size = filters?.size ?? 20;
+    const where = PrismaAppointmentsRepository.buildWhere(
+      establishmentId,
+      filters,
+    );
 
     try {
-      const appointments = await PrismaUnitOfWork.getClient(
-        this.prisma,
-      ).appointment.findMany({
-        where: PrismaAppointmentsRepository.buildWhere(
-          establishmentId,
-          filters,
-        ),
-        include: bookedServicesInclude,
-        orderBy: {
-          startsAt: "asc",
-        },
-        skip: (page - 1) * size,
-        take: size,
-      });
+      const client = PrismaUnitOfWork.getClient(this.prisma);
+      const [totalItems, appointments] = await Promise.all([
+        client.appointment.count({ where }),
+        client.appointment.findMany({
+          where,
+          include: bookedServicesInclude,
+          orderBy: {
+            startsAt: "asc",
+          },
+          skip: (page - 1) * size,
+          take: size,
+        }),
+      ]);
 
-      return appointments.map((appointment) =>
-        PrismaAppointmentMapper.toDomain(appointment),
-      );
+      return {
+        appointments: appointments.map((appointment) =>
+          PrismaAppointmentMapper.toDomain(appointment),
+        ),
+        totalItems,
+      };
     } catch (error) {
       rethrowPrismaRepositoryError(error);
     }

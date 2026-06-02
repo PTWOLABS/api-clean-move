@@ -54,10 +54,15 @@ type DashboardRevenueSummary = {
 };
 
 type DashboardAppointmentMetrics = {
-  appointmentsCount: number;
-  cancellationRate: {
-    currentPercent: number;
-    comparisonPercentPoints: number | null;
+  total: number;
+  byStatus: {
+    scheduled: number;
+    done: number;
+    cancelled: number;
+  };
+  rates: {
+    completion: number;
+    cancellation: number;
   };
 };
 
