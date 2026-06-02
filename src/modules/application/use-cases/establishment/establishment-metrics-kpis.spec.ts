@@ -281,17 +281,21 @@ describe("Establishment metrics KPIs", () => {
     expect(totalRevenueResult.value.totalRevenueInCents).toBe(19000);
     expect(averageTicketResult.value.averageTicketInCents).toBe(9500);
     expect(appointmentsCountResult.value.appointmentsCount).toBe(2);
-    expect(typeof cancellationRateResult.value.appointmentsCount).toBe(
-      "number",
-    );
-    expect(cancellationRateResult.value.appointmentsCount).toBe(2);
-    expect(cancellationRateResult.value.cancellationRate).toEqual({
-      currentPercent: 50,
-      comparisonPercentPoints: 50,
+    expect(cancellationRateResult.value).toEqual({
+      total: 2,
+      byStatus: {
+        scheduled: 1,
+        done: 0,
+        cancelled: 1,
+      },
+      rates: {
+        completion: 0,
+        cancellation: 50,
+      },
     });
   });
 
-  it("should calculate cancellation rate percentages from current and comparison ranges", async () => {
+  it("should calculate appointment status summary from the current range", async () => {
     const repositories = makeRepositories();
     const { appointmentsRepository, establishmentsRepository } = repositories;
 
@@ -404,15 +408,21 @@ describe("Establishment metrics KPIs", () => {
       throw new Error("Expected cancellation rate to be calculated");
     }
 
-    expect(typeof result.value.appointmentsCount).toBe("number");
-    expect(result.value.appointmentsCount).toBe(3);
-    expect(result.value.cancellationRate).toEqual({
-      currentPercent: 33.3,
-      comparisonPercentPoints: 8.3,
+    expect(result.value).toEqual({
+      total: 3,
+      byStatus: {
+        scheduled: 1,
+        done: 1,
+        cancelled: 1,
+      },
+      rates: {
+        completion: 33.3,
+        cancellation: 33.3,
+      },
     });
   });
 
-  it("should return null comparison percent points when comparison has no appointments", async () => {
+  it("should return zero completion rate when there are no completed appointments", async () => {
     const repositories = makeRepositories();
     const { appointmentsRepository, establishmentsRepository } = repositories;
 
@@ -466,9 +476,17 @@ describe("Establishment metrics KPIs", () => {
       throw new Error("Expected cancellation rate to be calculated");
     }
 
-    expect(result.value.cancellationRate).toEqual({
-      currentPercent: 100,
-      comparisonPercentPoints: null,
+    expect(result.value).toEqual({
+      total: 1,
+      byStatus: {
+        scheduled: 0,
+        done: 0,
+        cancelled: 1,
+      },
+      rates: {
+        completion: 0,
+        cancellation: 100,
+      },
     });
   });
 
@@ -532,14 +550,16 @@ describe("Establishment metrics KPIs", () => {
     expect(totalRevenueResult.value.totalRevenueInCents).toBe(0);
     expect(averageTicketResult.value.averageTicketInCents).toBe(0);
     expect(appointmentsCountResult.value.appointmentsCount).toBe(0);
-    expect(typeof cancellationRateResult.value.appointmentsCount).toBe(
-      "number",
-    );
     expect(cancellationRateResult.value).toEqual({
-      appointmentsCount: 0,
-      cancellationRate: {
-        currentPercent: 0,
-        comparisonPercentPoints: null,
+      total: 0,
+      byStatus: {
+        scheduled: 0,
+        done: 0,
+        cancelled: 0,
+      },
+      rates: {
+        completion: 0,
+        cancellation: 0,
       },
     });
   });
