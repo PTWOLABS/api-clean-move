@@ -26,7 +26,7 @@ export class InMemoryEstablishmentsRepository implements EstablishmentsRepositor
 
   async findByCnpj(cnpj: string): Promise<Establishment | null> {
     const establishment = this.items.find(
-      (item) => item.cnpj.toString() === cnpj,
+      (item) => item.cnpj?.toString() === cnpj,
     );
 
     if (!establishment) {
@@ -59,7 +59,7 @@ export class InMemoryEstablishmentsRepository implements EstablishmentsRepositor
   }
 
   async findBySlug(slug: string): Promise<Establishment | null> {
-    const establishment = this.items.find((item) => item.slug.value === slug);
+    const establishment = this.items.find((item) => item.slug?.value === slug);
 
     if (!establishment) {
       return null;
@@ -70,7 +70,8 @@ export class InMemoryEstablishmentsRepository implements EstablishmentsRepositor
 
   async findBySlugOrCnpj(slug: string, cnpj: string) {
     const establishment = this.items.find(
-      (item) => item.slug.value === slug || item.cnpj.value === cnpj,
+      (item) =>
+        item.slug?.value === slug || item.cnpj?.toString() === cnpj,
     );
 
     if (!establishment) return null;

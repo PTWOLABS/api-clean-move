@@ -34,4 +34,11 @@ export class AuthenticateWithGoogleBodyDto {
     description: "Google ID token returned by the frontend OAuth flow.",
   })
   idToken!: string;
+
+  @ApiProperty({
+    enum: ["CUSTOMER", "ESTABLISHMENT"],
+    example: "ESTABLISHMENT",
+    description: "Role assigned when creating a new user via OAuth.",
+  })
+  role!: string;
 }

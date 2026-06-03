@@ -83,13 +83,23 @@ describe("AuthenticateWithGoogleController (e2e)", () => {
       },
     ],
     [
-      "new-user-token",
+      "new-customer-token",
       {
         provider: "GOOGLE",
-        subjectId: "google-sub-new",
-        email: "new-user@example.com",
+        subjectId: "google-sub-customer-new",
+        email: "new-customer@example.com",
         emailVerified: true,
-        name: "New OAuth User",
+        name: "New OAuth Customer",
+      },
+    ],
+    [
+      "new-establishment-token",
+      {
+        provider: "GOOGLE",
+        subjectId: "google-sub-establishment-new",
+        email: "new-establishment@example.com",
+        emailVerified: true,
+        name: "New OAuth Establishment",
       },
     ],
   ]);
@@ -136,7 +146,7 @@ describe("AuthenticateWithGoogleController (e2e)", () => {
       .post("/auth/google")
       .set("User-Agent", "Mozilla/5.0 OAuth Browser")
       .set("X-Forwarded-For", "198.51.100.20, 203.0.113.20")
-      .send({ idToken: "linked-account-token" });
+      .send({ idToken: "linked-account-token", role: "CUSTOMER" });
 
     const responseBody = authenticateWithGoogleResponseSchema.parse(
       response.body,
@@ -198,7 +208,7 @@ describe("AuthenticateWithGoogleController (e2e)", () => {
 
     const loginResponse = await request(getHttpServer(app))
       .post("/auth/google")
-      .send({ idToken: "refresh-after-google-token" });
+      .send({ idToken: "refresh-after-google-token", role: "CUSTOMER" });
 
     expect(loginResponse.status).toBe(200);
 
@@ -239,7 +249,7 @@ describe("AuthenticateWithGoogleController (e2e)", () => {
 
     const response = await request(getHttpServer(app))
       .post("/auth/google")
-      .send({ idToken: "link-by-email-token" });
+      .send({ idToken: "link-by-email-token", role: "CUSTOMER" });
 
     expect(response.status).toBe(200);
 
@@ -261,10 +271,10 @@ describe("AuthenticateWithGoogleController (e2e)", () => {
     expect(linkedAccount?.userId).toBe(existingUser.id);
   });
 
-  it("should create a new incomplete user when account does not exist", async () => {
+  it("should create a new customer without establishment when role is CUSTOMER", async () => {
     const response = await request(getHttpServer(app))
       .post("/auth/google")
-      .send({ idToken: "new-user-token" });
+      .send({ idToken: "new-customer-token", role: "CUSTOMER" });
 
     expect(response.status).toBe(200);
 
@@ -278,25 +288,63 @@ describe("AuthenticateWithGoogleController (e2e)", () => {
       },
       include: {
         socialAccounts: true,
+        ownedEstablishment: true,
       },
     });
 
     expect(createdUser).not.toBeNull();
-    expect(createdUser?.hashedPassword).toBeNull();
-    expect(createdUser?.phone).toBeNull();
-    expect(createdUser?.address).toBeNull();
+    expect(createdUser?.profileImageUrl).toBeNull();
+    expect(createdUser?.ownedEstablishment).toBeNull();
     expect(createdUser?.socialAccounts).toEqual([
       expect.objectContaining({
         provider: "GOOGLE",
-        subjectId: "google-sub-new",
+        subjectId: "google-sub-customer-new",
       }),
     ]);
+  });
+
+  it("should create establishment draft when role is ESTABLISHMENT", async () => {
+    const response = await request(getHttpServer(app))
+      .post("/auth/google")
+      .send({ idToken: "new-establishment-token", role: "ESTABLISHMENT" });
+
+    expect(response.status).toBe(200);
+
+    const responseBody = authenticateWithGoogleResponseSchema.parse(
+      response.body,
+    );
+
+    const createdUser = await prisma.user.findUnique({
+      where: {
+        id: responseBody.userId,
+      },
+      include: {
+        ownedEstablishment: true,
+      },
+    });
+
+    expect(createdUser?.ownedEstablishment).toEqual(
+      expect.objectContaining({
+        tradeName: null,
+        legalBusinessName: null,
+        slug: null,
+        cnpj: null,
+      }),
+    );
+  });
+
+  it("should return 400 when role is omitted", async () => {
+    const response = await request(getHttpServer(app))
+      .post("/auth/google")
+      .send({ idToken: "new-customer-token" });
+
+    expect(response.status).toBe(400);
   });
 
   it("should return 400 when OAuth email is not verified", async () => {
     const response = await request(getHttpServer(app))
       .post("/auth/google")
-      .send({ idToken: "unverified-email-token" });
+      .send({ idToken: "unverified-email-token", role: "CUSTOMER" });
 
     expect(response.status).toBe(400);
 
@@ -307,7 +355,7 @@ describe("AuthenticateWithGoogleController (e2e)", () => {
   it("should return 401 when OAuth token is invalid", async () => {
     const response = await request(getHttpServer(app))
       .post("/auth/google")
-      .send({ idToken: "invalid-token" });
+      .send({ idToken: "invalid-token", role: "CUSTOMER" });
 
     expect(response.status).toBe(401);
 
