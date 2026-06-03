@@ -82,4 +82,21 @@ describe("User", () => {
       }),
     ).toThrow(ProfileAlreadyCompleteError);
   });
+
+  it("should normalize profileImageUrl on create and update", () => {
+    const user = User.create({
+      name: "John Doe",
+      email: new Email("john@example.com"),
+      hashedPassword: "hashed-password",
+      role: "CUSTOMER",
+      phone: null,
+      address: null,
+      profileImageUrl: " https://cdn.example/avatar.png ",
+    });
+
+    expect(user.profileImageUrl).toBe("https://cdn.example/avatar.png");
+
+    user.update({ profileImageUrl: "   " });
+    expect(user.profileImageUrl).toBeNull();
+  });
 });

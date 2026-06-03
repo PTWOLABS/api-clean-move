@@ -415,10 +415,16 @@ async function main() {
     },
   });
 
+  await prisma.user.update({
+    where: { id: owner.id },
+    data: {
+      profileImageUrl: "https://example.com/images/clean-move-profile.png",
+    },
+  });
+
   const establishment = await prisma.establishment.create({
     data: {
       ownerId: owner.id,
-      profileImageUrl: "https://example.com/images/clean-move-profile.png",
       bannerImageUrl: "https://example.com/images/clean-move-banner.png",
       tradeName: "Clean Move Estetica Automotiva",
       legalBusinessName: "Clean Move Servicos Automotivos LTDA",

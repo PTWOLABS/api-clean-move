@@ -126,6 +126,7 @@ export class PrismaUsersRepository implements UsersRepository {
             email: user.email.toString(),
             hashedPassword: user.hashedPassword,
             role: user.role,
+            profileImageUrl: user.profileImageUrl,
             phone: user.phone?.toString() ?? null,
             address,
             socialAccounts: {
