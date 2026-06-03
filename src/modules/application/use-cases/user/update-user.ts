@@ -1,3 +1,4 @@
+import { Injectable } from "@nestjs/common";
 import { User } from "../../../accounts/domain/entities/user";
 import {
   AddressCreateInput,
@@ -36,6 +37,7 @@ type UpdateUserUseCaseResponse = Either<
   }
 >;
 
+@Injectable()
 export class UpdateUserUseCase {
   constructor(private usersRepository: UsersRepository) {}
 

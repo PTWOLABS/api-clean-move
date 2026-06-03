@@ -348,7 +348,7 @@ describe("Register employee controller (e2e)", () => {
     expect(duplicateResponse.status).toBe(409);
   });
 
-  it("should reject an establishment user without establishment profile", async () => {
+  it("should allow registering an employee for establishment owner with oauth draft profile", async () => {
     const { accessToken } =
       await makeEstablishmentUserWithoutProfileAccessToken({
         app,
@@ -361,6 +361,6 @@ describe("Register employee controller (e2e)", () => {
       .set("Authorization", `Bearer ${accessToken}`)
       .send(validEmployeePayload());
 
-    expect(response.status).toBe(404);
+    expect(response.status).toBe(201);
   });
 });

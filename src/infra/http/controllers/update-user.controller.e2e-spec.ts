@@ -4,8 +4,8 @@ import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import z from "zod";
 
-import { EstablishmentFactory } from "../../../../tests/factories/establishment-factory";
 import { UserFactory } from "../../../../tests/factories/user-factory";
+import { EstablishmentFactory } from "../../../../tests/factories/establishment-factory";
 import { HashGenerator } from "../../../modules/application/repositories/hash-generator";
 import { AppModule } from "../../app.module";
 import { PrismaService } from "../../database/prisma/prisma.service";
@@ -14,25 +14,24 @@ import {
   loginUser,
 } from "../../../../tests/helpers/auth-session.e2e-helpers";
 
-const addressSchema = z.object({
-  street: z.string(),
-  complement: z.string().nullable(),
-  country: z.string(),
-  state: z.string(),
-  zipCode: z.string(),
-  city: z.string(),
-});
-
-const getMeResponseSchema = z.object({
+const updateUserResponseSchema = z.object({
   user: z.object({
     id: z.uuid(),
     name: z.string(),
     email: z.string(),
     role: z.enum(["CUSTOMER", "ESTABLISHMENT", "ADMIN", "EMPLOYEE"]),
     profileImageUrl: z.string().nullable(),
-    establishmentId: z.uuid().nullable(),
     phone: z.string().nullable(),
-    address: addressSchema.nullable(),
+    address: z
+      .object({
+        street: z.string(),
+        complement: z.string().nullable(),
+        country: z.string(),
+        state: z.string(),
+        zipCode: z.string(),
+        city: z.string(),
+      })
+      .nullable(),
     socialAccounts: z.array(
       z.object({
         provider: z.string(),
@@ -45,7 +44,11 @@ const getMeResponseSchema = z.object({
   }),
 });
 
-describe("GetMeController (e2e)", () => {
+const messageResponseSchema = z.object({
+  message: z.union([z.string(), z.array(z.string())]),
+});
+
+describe("UpdateUserController (e2e)", () => {
   let app: INestApplication;
   let prisma: PrismaService;
   let hashGenerator: HashGenerator;
@@ -70,13 +73,64 @@ describe("GetMeController (e2e)", () => {
     await app.close();
   });
 
-  it("should reject get-me requests without an access token", async () => {
-    const response = await request(getHttpServer(app)).get("/user/me");
+  async function loginEstablishmentOwner() {
+    const { user, plainPassword } = await userFactory.makePrismaUser({
+      role: "ESTABLISHMENT",
+      plainPassword: "strong-password",
+    });
 
-    expect(response.status).toBe(401);
+    await establishmentFactory.makePrismaOAuthDraftEstablishment({
+      ownerId: user.id,
+    });
+
+    const { loginBody } = await loginUser({
+      app,
+      prisma,
+      userId: user.id.toString(),
+      email: user.email.toString(),
+      password: plainPassword ?? "",
+    });
+
+    return { accessToken: loginBody.accessToken };
+  }
+
+  it("should update user name with PATCH /user/me", async () => {
+    const { accessToken } = await loginEstablishmentOwner();
+
+    const response = await request(getHttpServer(app))
+      .patch("/user/me")
+      .set("Authorization", `Bearer ${accessToken}`)
+      .send({ name: "Novo Nome" });
+
+    expect(response.status).toBe(200);
+    const body = updateUserResponseSchema.parse(response.body);
+    expect(body.user.name).toBe("Novo Nome");
   });
 
-  it("should return the authenticated user without exposing the password hash", async () => {
+  it("should return 400 for empty body", async () => {
+    const { accessToken } = await loginEstablishmentOwner();
+
+    const response = await request(getHttpServer(app))
+      .patch("/user/me")
+      .set("Authorization", `Bearer ${accessToken}`)
+      .send({});
+
+    expect(response.status).toBe(400);
+    messageResponseSchema.parse(response.body);
+  });
+
+  it("should return 400 when profileImageUrl is sent", async () => {
+    const { accessToken } = await loginEstablishmentOwner();
+
+    const response = await request(getHttpServer(app))
+      .patch("/user/me")
+      .set("Authorization", `Bearer ${accessToken}`)
+      .send({ profileImageUrl: "https://example.com/avatar.png" });
+
+    expect(response.status).toBe(400);
+  });
+
+  it("should return 400 when customer sends establishment block", async () => {
     const { user, plainPassword } = await userFactory.makePrismaUser({
       role: "CUSTOMER",
       plainPassword: "strong-password",
@@ -90,44 +144,10 @@ describe("GetMeController (e2e)", () => {
     });
 
     const response = await request(getHttpServer(app))
-      .get("/user/me")
-      .set("Authorization", `Bearer ${loginBody.accessToken}`);
+      .patch("/user/me")
+      .set("Authorization", `Bearer ${loginBody.accessToken}`)
+      .send({ establishment: { tradeName: "Fail" } });
 
-    expect(response.status).toBe(200);
-
-    const body = getMeResponseSchema.parse(response.body);
-    expect(body.user.id).toBe(user.id.toString());
-    expect(body.user.email).toBe(user.email.toString());
-
-    expect(JSON.stringify(response.body)).not.toContain("hashedPassword");
-    expect("hashedPassword" in body.user).toBe(false);
-    expect(body.user.establishmentId).toBeNull();
-  });
-
-  it("should return establishment id for establishment owner with oauth draft", async () => {
-    const { user, plainPassword } = await userFactory.makePrismaUser({
-      role: "ESTABLISHMENT",
-      plainPassword: "strong-password",
-    });
-    const establishment =
-      await establishmentFactory.makePrismaOAuthDraftEstablishment({
-        ownerId: user.id,
-      });
-    const { loginBody } = await loginUser({
-      app,
-      prisma,
-      userId: user.id.toString(),
-      email: user.email.toString(),
-      password: plainPassword ?? "",
-    });
-
-    const response = await request(getHttpServer(app))
-      .get("/user/me")
-      .set("Authorization", `Bearer ${loginBody.accessToken}`);
-
-    expect(response.status).toBe(200);
-
-    const body = getMeResponseSchema.parse(response.body);
-    expect(body.user.establishmentId).toBe(establishment.id.toString());
+    expect(response.status).toBe(400);
   });
 });

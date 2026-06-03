@@ -34,6 +34,7 @@ import { GetEstablishmentPopularServicesUseCase } from "../../modules/applicatio
 import { GetEstablishmentRevenueVsAppointmentsUseCase } from "../../modules/application/use-cases/establishment/get-establishment-revenue-vs-appointments";
 import { GetEstablishmentTopCustomersUseCase } from "../../modules/application/use-cases/establishment/get-establishment-top-customers";
 import { RegisterEstablishmentUseCase } from "../../modules/application/use-cases/establishment/register-establishment";
+import { UpdateEstablishmentUseCase } from "../../modules/application/use-cases/establishment/update-establishment";
 import { UploadDomainImageUseCase } from "../../modules/application/use-cases/media/upload-domain-image";
 import { CreateServiceUseCase } from "../../modules/application/use-cases/service/create-service";
 import { ListAllServicesUseCase } from "../../modules/application/use-cases/service/list-all-services";
@@ -42,6 +43,7 @@ import { ListServiceOptionsUseCase } from "../../modules/application/use-cases/s
 import { UpdateServiceUseCase } from "../../modules/application/use-cases/service/update-service";
 import { DeleteServiceUseCase } from "../../modules/application/use-cases/service/delete-service";
 import { GetMeUseCase } from "../../modules/application/use-cases/user/get-me";
+import { UpdateUserUseCase } from "../../modules/application/use-cases/user/update-user";
 import { SessionCreationService } from "../../modules/accounts/domain/services/session-creation-service";
 import { AuthModule } from "../auth/auth.module";
 import { DatabaseModule } from "../database/database.module";
@@ -66,6 +68,7 @@ import { DeleteCustomerVehicleController } from "./controllers/delete-customer-v
 import { DeleteEmployeeController } from "./controllers/delete-employee.controller";
 import { GetEmployeeController } from "./controllers/get-employee.controller";
 import { GetMeController } from "./controllers/get-me.controller";
+import { UpdateUserController } from "./controllers/update-user.controller";
 import { ListAppointmentsController } from "./controllers/list-appointments.controller";
 import { ListCalendarAppointmentsController } from "./controllers/list-calendar-appointments.controller";
 import { ListCustomerOptionsController } from "./controllers/list-customer-options.controller";
@@ -98,6 +101,7 @@ import { UploadVehicleImageController } from "./controllers/media/upload-vehicle
     RefreshSessionController,
     SignOutController,
     GetMeController,
+    UpdateUserController,
     ListEstablishmentServicesController,
     ListAllServicesController,
     ListServiceOptionsController,
@@ -178,6 +182,8 @@ import { UploadVehicleImageController } from "./controllers/media/upload-vehicle
     RefreshSessionUseCase,
     SignOutUseCase,
     GetMeUseCase,
+    UpdateUserUseCase,
+    UpdateEstablishmentUseCase,
     SessionCreationService,
   ],
 })

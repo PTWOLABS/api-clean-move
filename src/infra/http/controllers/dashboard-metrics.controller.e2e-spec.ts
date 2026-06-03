@@ -1007,7 +1007,7 @@ describe("Dashboard metrics controller (e2e)", () => {
   );
 
   it.each(dashboardMetricPaths)(
-    "should return not found when establishment profile does not exist for %s",
+    "should return metrics when establishment has oauth draft profile for %s",
     async (path) => {
       const { accessToken } =
         await makeEstablishmentUserWithoutProfileAccessToken({
@@ -1020,7 +1020,7 @@ describe("Dashboard metrics controller (e2e)", () => {
         .get(path)
         .set("Authorization", `Bearer ${accessToken}`);
 
-      expect(response.status).toBe(404);
+      expect(response.status).toBe(200);
     },
   );
 });
