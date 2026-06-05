@@ -27,6 +27,7 @@ import { GetEmployeeUseCase } from "../../modules/application/use-cases/employee
 import { ListEmployeesUseCase } from "../../modules/application/use-cases/employee/list-employees";
 import { RegisterEmployeeUseCase } from "../../modules/application/use-cases/employee/register-employee";
 import { UpdateEmployeeUseCase } from "../../modules/application/use-cases/employee/update-employee";
+import { GetEstablishmentUseCase } from "../../modules/application/use-cases/establishment/get-establishment";
 import { GetEstablishmentAppointmentsCountUseCase } from "../../modules/application/use-cases/establishment/get-establishment-appointments-count";
 import { GetEstablishmentCancellationRateUseCase } from "../../modules/application/use-cases/establishment/get-establishment-cancellation-rate";
 import { GetEstablishmentDashboardOverviewUseCase } from "../../modules/application/use-cases/establishment/get-establishment-dashboard-overview";
@@ -67,6 +68,7 @@ import { DeleteCustomerController } from "./controllers/delete-customer.controll
 import { DeleteCustomerVehicleController } from "./controllers/delete-customer-vehicle.controller";
 import { DeleteEmployeeController } from "./controllers/delete-employee.controller";
 import { GetEmployeeController } from "./controllers/get-employee.controller";
+import { GetEstablishmentController } from "./controllers/get-establishment.controller";
 import { GetMeController } from "./controllers/get-me.controller";
 import { UpdateUserController } from "./controllers/update-user.controller";
 import { ListAppointmentsController } from "./controllers/list-appointments.controller";
@@ -102,6 +104,7 @@ import { UploadVehicleImageController } from "./controllers/media/upload-vehicle
     SignOutController,
     GetMeController,
     UpdateUserController,
+    GetEstablishmentController,
     ListEstablishmentServicesController,
     ListAllServicesController,
     ListServiceOptionsController,
@@ -183,6 +186,7 @@ import { UploadVehicleImageController } from "./controllers/media/upload-vehicle
     SignOutUseCase,
     GetMeUseCase,
     UpdateUserUseCase,
+    GetEstablishmentUseCase,
     UpdateEstablishmentUseCase,
     SessionCreationService,
   ],

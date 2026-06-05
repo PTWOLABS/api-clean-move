@@ -112,6 +112,7 @@ async function bootstrap(): Promise<void> {
     .addTag("appointments", "Establishment-operated appointment management")
     .addTag("dashboard metrics", "Authenticated dashboard metric read models")
     .addTag("service", "Service catalog management")
+    .addTag("establishment", "Establishment profile and commercial data")
     .addTag("media", "Image uploads and media")
     .addTag("user", "Authenticated user profile")
     .build();
