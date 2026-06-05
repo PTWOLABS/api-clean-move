@@ -73,6 +73,48 @@ export class RegisterEstablishmentResponseDto {
   establishmentId!: string;
 }
 
+export class EstablishmentDto {
+  @ApiProperty({ format: "uuid" })
+  id!: string;
+
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    example: "Clean Move",
+    description: "Trade name (nome fantasia).",
+  })
+  tradeName!: string | null;
+
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    example: "Clean Move Servicos LTDA",
+    description: "Legal business name (razão social).",
+  })
+  legalBusinessName!: string | null;
+
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    example: "61911322000187",
+    description: "CNPJ digits only.",
+  })
+  cnpj!: string | null;
+
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    example: "clean-move",
+    description: "Public slug.",
+  })
+  slug!: string | null;
+}
+
+export class GetEstablishmentResponseDto {
+  @ApiProperty({ type: EstablishmentDto })
+  establishment!: EstablishmentDto;
+}
+
 export class RegisterEmployeeBodyDto {
   @ApiProperty({ example: "Ana Silva", minLength: 1 })
   name!: string;

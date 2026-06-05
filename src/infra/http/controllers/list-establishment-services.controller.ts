@@ -1,21 +1,17 @@
 import {
   Controller,
-  ForbiddenException,
   Get,
   InternalServerErrorException,
   NotFoundException,
-  Param,
   Query,
 } from "@nestjs/common";
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
-  ApiForbiddenResponse,
   ApiInternalServerErrorResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
-  ApiParam,
   ApiQuery,
   ApiTags,
   ApiUnauthorizedResponse,
@@ -23,7 +19,6 @@ import {
 import z from "zod";
 
 import { ListEstablishmentServicesUseCase } from "../../../modules/application/use-cases/service/list-establishment-services";
-import { NotAllowedError } from "../../../shared/errors/not-allowed-error";
 import { ResourceNotFoundError } from "../../../shared/errors/resource-not-found-error";
 import type { ServiceFilters } from "../../../modules/application/repositories/services-repository";
 import { AuthenticatedUser } from "../../auth/authenticated-user";
@@ -32,8 +27,6 @@ import { Roles } from "../../auth/roles";
 import { ListServicesResponseDto } from "../docs/domain-swagger.dto";
 import { ZodValidationPipe } from "../pipes/zod-validation.pipe";
 import { ServicePresenter } from "../presenters/service-presenter";
-
-const ownerIdParamSchema = z.uuid();
 
 const listServicesQuerySchema = z.object({
   name: z.string().trim().optional(),
@@ -68,7 +61,7 @@ function buildServiceFiltersFromQuery(
 
 @ApiTags("service")
 @ApiBearerAuth("access-token")
-@Controller("/establishments/:ownerId")
+@Controller("/services/backoffice")
 @Roles(["ESTABLISHMENT"])
 export class ListEstablishmentServicesController {
   constructor(
@@ -77,15 +70,9 @@ export class ListEstablishmentServicesController {
 
   @Get()
   @ApiOperation({
-    summary: "List services for the establishment owned by a user id.",
+    summary: "List services for the authenticated establishment (backoffice).",
     description:
-      "The path parameter is the establishment owner's user id (UUID). It must match the authenticated user. The API resolves the establishment via findByOwnerId and returns its services. Omit query param isActive to include active and inactive services.",
-  })
-  @ApiParam({
-    name: "ownerId",
-    format: "uuid",
-    description:
-      "User id of the establishment owner (must match the access token subject).",
+      "Resolves the establishment from the authenticated owner user id and returns its services. Omit query param isActive to include active and inactive services.",
   })
   @ApiQuery({
     name: "name",
@@ -120,27 +107,20 @@ export class ListEstablishmentServicesController {
   @ApiUnauthorizedResponse({
     description: "Missing or invalid access token.",
   })
-  @ApiForbiddenResponse({
-    description:
-      "Path owner id does not match the authenticated user, or access is not allowed.",
-  })
   @ApiNotFoundResponse({
     description:
-      "No establishment found for the given owner user id, or resource not found.",
+      "No establishment found for the authenticated owner, or resource not found.",
   })
   @ApiInternalServerErrorResponse({
     description: "Unexpected failure while listing services.",
   })
   async handle(
     @CurrentUser() user: AuthenticatedUser,
-    @Param("ownerId", new ZodValidationPipe(ownerIdParamSchema))
-    ownerId: string,
     @Query(new ZodValidationPipe(listServicesQuerySchema))
     query: ListServicesQuerySchema,
   ) {
     const result = await this.listEstablishmentServices.execute({
-      authenticatedUserId: user.userId,
-      pathOwnerUserId: ownerId,
+      establishmentOwnerId: user.userId,
       filters: buildServiceFiltersFromQuery(query),
     });
 
@@ -150,8 +130,6 @@ export class ListEstablishmentServicesController {
       switch (error.constructor) {
         case ResourceNotFoundError:
           throw new NotFoundException(error.message);
-        case NotAllowedError:
-          throw new ForbiddenException(error.message);
         default:
           throw new InternalServerErrorException(
             error instanceof Error ? error.message : "Unexpected error.",
