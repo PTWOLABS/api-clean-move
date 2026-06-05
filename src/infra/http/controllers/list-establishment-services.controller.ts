@@ -1,17 +1,21 @@
 import {
   Controller,
+  ForbiddenException,
   Get,
   InternalServerErrorException,
   NotFoundException,
+  Param,
   Query,
 } from "@nestjs/common";
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
+  ApiForbiddenResponse,
   ApiInternalServerErrorResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
+  ApiParam,
   ApiQuery,
   ApiTags,
   ApiUnauthorizedResponse,
@@ -19,6 +23,7 @@ import {
 import z from "zod";
 
 import { ListEstablishmentServicesUseCase } from "../../../modules/application/use-cases/service/list-establishment-services";
+import { NotAllowedError } from "../../../shared/errors/not-allowed-error";
 import { ResourceNotFoundError } from "../../../shared/errors/resource-not-found-error";
 import type { ServiceFilters } from "../../../modules/application/repositories/services-repository";
 import { AuthenticatedUser } from "../../auth/authenticated-user";
@@ -27,6 +32,8 @@ import { Roles } from "../../auth/roles";
 import { ListServicesResponseDto } from "../docs/domain-swagger.dto";
 import { ZodValidationPipe } from "../pipes/zod-validation.pipe";
 import { ServicePresenter } from "../presenters/service-presenter";
+
+const establishmentIdParamSchema = z.uuid();
 
 const listServicesQuerySchema = z.object({
   name: z.string().trim().optional(),
@@ -61,8 +68,8 @@ function buildServiceFiltersFromQuery(
 
 @ApiTags("service")
 @ApiBearerAuth("access-token")
-@Controller("/services/backoffice")
-@Roles(["ESTABLISHMENT"])
+@Controller("/services/:establishmentId")
+@Roles(["ESTABLISHMENT", "EMPLOYEE"])
 export class ListEstablishmentServicesController {
   constructor(
     private readonly listEstablishmentServices: ListEstablishmentServicesUseCase,
@@ -70,9 +77,14 @@ export class ListEstablishmentServicesController {
 
   @Get()
   @ApiOperation({
-    summary: "List services for the authenticated establishment (backoffice).",
+    summary: "List services for an establishment (backoffice).",
     description:
-      "Resolves the establishment from the authenticated owner user id and returns its services. Omit query param isActive to include active and inactive services.",
+      "Lists services for the establishment id in the path. The authenticated user must be the owner or an employee of that establishment. Omit query param isActive to include active and inactive services.",
+  })
+  @ApiParam({
+    name: "establishmentId",
+    format: "uuid",
+    description: "Establishment id from GET /user/me (establishmentId).",
   })
   @ApiQuery({
     name: "name",
@@ -103,24 +115,33 @@ export class ListEstablishmentServicesController {
     description: "Services listed successfully.",
     type: ListServicesResponseDto,
   })
-  @ApiBadRequestResponse({ description: "Invalid query parameters." })
+  @ApiBadRequestResponse({ description: "Invalid path or query parameters." })
   @ApiUnauthorizedResponse({
     description: "Missing or invalid access token.",
   })
-  @ApiNotFoundResponse({
+  @ApiForbiddenResponse({
     description:
-      "No establishment found for the authenticated owner, or resource not found.",
+      "Authenticated user is not allowed to list services for this establishment.",
+  })
+  @ApiNotFoundResponse({
+    description: "Establishment not found.",
   })
   @ApiInternalServerErrorResponse({
     description: "Unexpected failure while listing services.",
   })
   async handle(
     @CurrentUser() user: AuthenticatedUser,
+    @Param("establishmentId", new ZodValidationPipe(establishmentIdParamSchema))
+    establishmentId: string,
     @Query(new ZodValidationPipe(listServicesQuerySchema))
     query: ListServicesQuerySchema,
   ) {
     const result = await this.listEstablishmentServices.execute({
-      establishmentOwnerId: user.userId,
+      actor: {
+        userId: user.userId,
+        role: user.role,
+      },
+      establishmentId,
       filters: buildServiceFiltersFromQuery(query),
     });
 
@@ -130,6 +151,8 @@ export class ListEstablishmentServicesController {
       switch (error.constructor) {
         case ResourceNotFoundError:
           throw new NotFoundException(error.message);
+        case NotAllowedError:
+          throw new ForbiddenException(error.message);
         default:
           throw new InternalServerErrorException(
             error instanceof Error ? error.message : "Unexpected error.",
