@@ -1,7 +1,6 @@
 import { Injectable } from "@nestjs/common";
 
 import { Either, left, right } from "../../../../shared/either";
-import { NotAllowedError } from "../../../../shared/errors/not-allowed-error";
 import { ResourceNotFoundError } from "../../../../shared/errors/resource-not-found-error";
 import { Service } from "../../../catalog/domain/entities/services";
 import { EstablishmentsRepository } from "../../repositories/establishment-repository";
@@ -11,13 +10,12 @@ import {
 } from "../../repositories/services-repository";
 
 type ListEstablishmentServicesUseCaseRequest = {
-  authenticatedUserId: string;
-  pathOwnerUserId: string;
+  establishmentOwnerId: string;
   filters?: ServiceFilters;
 };
 
 type ListEstablishmentServicesUseCaseResponse = Either<
-  ResourceNotFoundError | NotAllowedError,
+  ResourceNotFoundError,
   {
     items: Service[];
     totalItems: number;
@@ -32,16 +30,11 @@ export class ListEstablishmentServicesUseCase {
   ) {}
 
   async execute({
-    authenticatedUserId,
-    pathOwnerUserId,
+    establishmentOwnerId,
     filters,
   }: ListEstablishmentServicesUseCaseRequest): Promise<ListEstablishmentServicesUseCaseResponse> {
-    if (authenticatedUserId !== pathOwnerUserId) {
-      return left(new NotAllowedError());
-    }
-
     const establishment =
-      await this.establishmentsRepository.findByOwnerId(pathOwnerUserId);
+      await this.establishmentsRepository.findByOwnerId(establishmentOwnerId);
 
     if (!establishment) {
       return left(new ResourceNotFoundError({ resource: "establishment" }));
