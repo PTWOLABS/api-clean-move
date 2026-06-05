@@ -26,13 +26,15 @@ export class GetMeUserResponseDto {
   })
   role!: string;
 
-  @ApiPropertyOptional({
+  @ApiProperty({
+    type: String,
     format: "uuid",
     nullable: true,
+    example: null,
     description:
       "Establishment id when role is ESTABLISHMENT (owner) or EMPLOYEE.",
   })
-  establishmentId?: string | null;
+  establishmentId!: string | null;
 
   @ApiPropertyOptional({
     type: String,
