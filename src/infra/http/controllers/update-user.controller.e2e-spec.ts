@@ -130,24 +130,15 @@ describe("UpdateUserController (e2e)", () => {
     expect(response.status).toBe(400);
   });
 
-  it("should return 400 when customer sends establishment block", async () => {
-    const { user, plainPassword } = await userFactory.makePrismaUser({
-      role: "CUSTOMER",
-      plainPassword: "strong-password",
-    });
-    const { loginBody } = await loginUser({
-      app,
-      prisma,
-      userId: user.id.toString(),
-      email: user.email.toString(),
-      password: plainPassword ?? "",
-    });
+  it("should return 400 when establishment block is sent", async () => {
+    const { accessToken } = await loginEstablishmentOwner();
 
     const response = await request(getHttpServer(app))
       .patch("/user/me")
-      .set("Authorization", `Bearer ${loginBody.accessToken}`)
+      .set("Authorization", `Bearer ${accessToken}`)
       .send({ establishment: { tradeName: "Fail" } });
 
     expect(response.status).toBe(400);
+    messageResponseSchema.parse(response.body);
   });
 });
