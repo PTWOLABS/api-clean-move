@@ -4,7 +4,6 @@ import { Establishment } from "../../../establishments/domain/entities/establish
 import { makeUser } from "../../../../../tests/factories/user-factory";
 import { InMemoryEstablishmentsRepository } from "../../../../../tests/repositories/in-memory-establishment-repository";
 import { InMemoryServicesRepository } from "../../../../../tests/repositories/in-memory-services-repository";
-import { InMemoryUsersRepository } from "../../../../../tests/repositories/in-memory-users-repository";
 import { UpdateEstablishmentUseCase } from "./update-establishment";
 
 let inMemoryEstablishmentsRepository: InMemoryEstablishmentsRepository;

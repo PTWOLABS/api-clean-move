@@ -109,7 +109,9 @@ export class UpdateUserController {
     description: "Missing or invalid access token.",
   })
   @ApiNotFoundResponse({ description: "User or establishment not found." })
-  @ApiConflictResponse({ description: "Email or establishment already in use." })
+  @ApiConflictResponse({
+    description: "Email or establishment already in use.",
+  })
   @ApiInternalServerErrorResponse({
     description: "Unexpected failure while updating the user.",
   })
@@ -145,7 +147,7 @@ export class UpdateUserController {
       });
 
       if (userResult.isLeft()) {
-        throw this.mapUserError(userResult.value);
+        this.mapUserError(userResult.value);
       }
     }
 
@@ -167,7 +169,7 @@ export class UpdateUserController {
       });
 
       if (establishmentResult.isLeft()) {
-        throw this.mapEstablishmentError(establishmentResult.value);
+        this.mapEstablishmentError(establishmentResult.value);
       }
     }
 
@@ -176,7 +178,7 @@ export class UpdateUserController {
     });
 
     if (getMeResult.isLeft()) {
-      throw this.mapUserError(getMeResult.value);
+      this.mapUserError(getMeResult.value);
     }
 
     return {
@@ -190,7 +192,7 @@ export class UpdateUserController {
       | ResourceAlreadyExistsError
       | InvalidUserUpdateInputError
       | UnexpectedDomainError,
-  ) {
+  ): never {
     if (error instanceof ResourceNotFoundError) {
       throw new NotFoundException(error.message);
     }
@@ -212,7 +214,7 @@ export class UpdateUserController {
       | ResourceAlreadyExistsError
       | InvalidUpdateEstablishmentInputError
       | UnexpectedDomainError,
-  ) {
+  ): never {
     if (error instanceof ResourceNotFoundError) {
       throw new NotFoundException(error.message);
     }

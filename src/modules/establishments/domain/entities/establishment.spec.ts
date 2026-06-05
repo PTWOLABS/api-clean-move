@@ -1,5 +1,4 @@
 import { UniqueEntityId } from "../../../../shared/entities/unique-entity-id";
-import { Cnpj } from "../value-objects/cnpj";
 import { Establishment } from "./establishment";
 
 describe("Establishment", () => {

@@ -1,11 +1,11 @@
 import { ResourceNotFoundError } from "../../../../shared/errors/resource-not-found-error";
-import { UniqueEntityId } from "../../../../shared/entities/unique-entity-id";
 import { Establishment } from "../../../establishments/domain/entities/establishment";
 import { makeEmployee } from "../../../../../tests/factories/employee-factory";
 import { makeEstablishment } from "../../../../../tests/factories/establishment-factory";
 import { makeUser } from "../../../../../tests/factories/user-factory";
 import { InMemoryEmployeesRepository } from "../../../../../tests/repositories/in-memory-employees-repository";
 import { InMemoryEstablishmentsRepository } from "../../../../../tests/repositories/in-memory-establishment-repository";
+import { InMemoryServicesRepository } from "../../../../../tests/repositories/in-memory-services-repository";
 import { InMemoryUsersRepository } from "../../../../../tests/repositories/in-memory-users-repository";
 import { GetMeUseCase } from "./get-me";
 
@@ -18,7 +18,9 @@ let sut: GetMeUseCase;
 describe("Get me", () => {
   beforeEach(() => {
     inMemoryUsersRepository = new InMemoryUsersRepository();
-    inMemoryEstablishmentsRepository = new InMemoryEstablishmentsRepository();
+    inMemoryEstablishmentsRepository = new InMemoryEstablishmentsRepository(
+      new InMemoryServicesRepository(),
+    );
     inMemoryEmployeesRepository = new InMemoryEmployeesRepository();
 
     sut = new GetMeUseCase(

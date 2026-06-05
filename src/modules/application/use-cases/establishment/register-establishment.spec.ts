@@ -68,9 +68,9 @@ describe("Register an establishment", () => {
     expect(inMemoryUsersRepository.items[0]?.hashedPassword).toBe(
       "jondoe@123-hashed",
     );
-    expect(result.value.establishment.slug.value).toEqual(
-      "valid-establishment",
-    );
+    const slug = result.value.establishment.slug;
+    expect(slug).not.toBeNull();
+    expect(slug!.value).toEqual("valid-establishment");
   });
 
   it("not should be able to register an establishment with duplicated email", async () => {
@@ -130,9 +130,9 @@ describe("Register an establishment", () => {
       throw result.value;
     }
 
-    expect(result.value.establishment.slug.value).toBe(
-      "custom-establishment-slug",
-    );
+    const slug = result.value.establishment.slug;
+    expect(slug).not.toBeNull();
+    expect(slug!.value).toBe("custom-establishment-slug");
   });
 
   it("not should be able to register an establishment with duplicated cnpj", async () => {

@@ -70,8 +70,7 @@ export class InMemoryEstablishmentsRepository implements EstablishmentsRepositor
 
   async findBySlugOrCnpj(slug: string, cnpj: string) {
     const establishment = this.items.find(
-      (item) =>
-        item.slug?.value === slug || item.cnpj?.toString() === cnpj,
+      (item) => item.slug?.value === slug || item.cnpj?.toString() === cnpj,
     );
 
     if (!establishment) return null;
