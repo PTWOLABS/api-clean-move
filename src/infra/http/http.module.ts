@@ -69,6 +69,7 @@ import { DeleteCustomerVehicleController } from "./controllers/delete-customer-v
 import { DeleteEmployeeController } from "./controllers/delete-employee.controller";
 import { GetEmployeeController } from "./controllers/get-employee.controller";
 import { GetEstablishmentController } from "./controllers/get-establishment.controller";
+import { UpdateEstablishmentController } from "./controllers/update-establishment.controller";
 import { GetMeController } from "./controllers/get-me.controller";
 import { UpdateUserController } from "./controllers/update-user.controller";
 import { ListAppointmentsController } from "./controllers/list-appointments.controller";
@@ -105,6 +106,7 @@ import { UploadVehicleImageController } from "./controllers/media/upload-vehicle
     GetMeController,
     UpdateUserController,
     GetEstablishmentController,
+    UpdateEstablishmentController,
     ListEstablishmentServicesController,
     ListAllServicesController,
     ListServiceOptionsController,

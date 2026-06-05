@@ -115,6 +115,22 @@ export class GetEstablishmentResponseDto {
   establishment!: EstablishmentDto;
 }
 
+export class UpdateEstablishmentBodyDto {
+  @ApiPropertyOptional({ example: "Clean Move" })
+  tradeName?: string;
+
+  @ApiPropertyOptional({ example: "Clean Move Servicos LTDA" })
+  legalBusinessName?: string;
+
+  @ApiPropertyOptional({ example: "61911322000187" })
+  cnpj?: string;
+
+  @ApiPropertyOptional({ example: "clean-move" })
+  slug?: string;
+}
+
+export class UpdateEstablishmentResponseDto extends GetEstablishmentResponseDto {}
+
 export class RegisterEmployeeBodyDto {
   @ApiProperty({ example: "Ana Silva", minLength: 1 })
   name!: string;

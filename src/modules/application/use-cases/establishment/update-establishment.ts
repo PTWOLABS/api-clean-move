@@ -1,5 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { Either, left, right } from "../../../../shared/either";
+import { NotAllowedError } from "../../../../shared/errors/not-allowed-error";
 import { ResourceAlreadyExistsError } from "../../../../shared/errors/resource-already-exists-error";
 import { ResourceNotFoundError } from "../../../../shared/errors/resource-not-found-error";
 import { UnexpectedDomainError } from "../../../../shared/errors/unexpected-domain-error";
@@ -10,6 +11,7 @@ import { EstablishmentsRepository } from "../../repositories/establishment-repos
 
 type UpdateEstablishmentUseCaseRequest = {
   ownerId: string;
+  establishmentId: string;
   tradeName?: string;
   legalBusinessName?: string;
   cnpj?: string;
@@ -18,6 +20,7 @@ type UpdateEstablishmentUseCaseRequest = {
 
 type UpdateEstablishmentUseCaseResponse = Either<
   | ResourceNotFoundError
+  | NotAllowedError
   | ResourceAlreadyExistsError
   | InvalidUpdateEstablishmentInputError
   | UnexpectedDomainError,
@@ -30,16 +33,21 @@ export class UpdateEstablishmentUseCase {
 
   async execute({
     ownerId,
+    establishmentId,
     tradeName,
     legalBusinessName,
     cnpj,
     slug,
   }: UpdateEstablishmentUseCaseRequest): Promise<UpdateEstablishmentUseCaseResponse> {
     const establishment =
-      await this.establishmentsRepository.findByOwnerId(ownerId);
+      await this.establishmentsRepository.findById(establishmentId);
 
     if (!establishment) {
       return left(new ResourceNotFoundError({ resource: "establishment" }));
+    }
+
+    if (establishment.ownerId.toString() !== ownerId) {
+      return left(new NotAllowedError());
     }
 
     if (slug !== undefined) {

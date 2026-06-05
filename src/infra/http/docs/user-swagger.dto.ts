@@ -88,20 +88,6 @@ export class GetMeResponseDto {
   user!: GetMeUserResponseDto;
 }
 
-export class UpdateEstablishmentBodyDto {
-  @ApiPropertyOptional({ example: "Clean Move" })
-  tradeName?: string;
-
-  @ApiPropertyOptional({ example: "Clean Move Servicos LTDA" })
-  legalBusinessName?: string;
-
-  @ApiPropertyOptional({ example: "61911322000187" })
-  cnpj?: string;
-
-  @ApiPropertyOptional({ example: "clean-move" })
-  slug?: string;
-}
-
 export class UpdateUserBodyDto {
   @ApiPropertyOptional({ example: "Maria Silva" })
   name?: string;
@@ -114,9 +100,6 @@ export class UpdateUserBodyDto {
 
   @ApiPropertyOptional({ type: AddressDto, nullable: true })
   address?: AddressDto | null;
-
-  @ApiPropertyOptional({ type: UpdateEstablishmentBodyDto })
-  establishment?: UpdateEstablishmentBodyDto;
 }
 
 export class UpdateUserResponseDto {
