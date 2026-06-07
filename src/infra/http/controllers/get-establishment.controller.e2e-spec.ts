@@ -31,6 +31,10 @@ const establishmentResponseSchema = z.object({
   }),
 });
 
+const uploadResponseSchema = z.object({
+  url: z.url(),
+});
+
 const tinyPng = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
   "base64",
@@ -149,6 +153,7 @@ describe("GetEstablishmentController (e2e)", () => {
       .attach("file", tinyPng, "banner.png");
 
     expect(uploadResponse.status).toBe(201);
+    const uploadBody = uploadResponseSchema.parse(uploadResponse.body);
 
     const getResponse = await request(getHttpServer(app))
       .get(`/establishments/${establishment.id.toString()}`)
@@ -157,7 +162,7 @@ describe("GetEstablishmentController (e2e)", () => {
     expect(getResponse.status).toBe(200);
 
     const body = establishmentResponseSchema.parse(getResponse.body);
-    expect(body.establishment.bannerImageUrl).toBe(uploadResponse.body.url);
+    expect(body.establishment.bannerImageUrl).toBe(uploadBody.url);
   });
 
   it("should allow employee to read their establishment", async () => {
