@@ -40,7 +40,7 @@ export class GetMeUserResponseDto {
     type: String,
     nullable: true,
     example: "https://cdn.example.com/user-profile/avatar.png",
-    description: "User profile image URL when set via media upload.",
+    description: "User profile image URL when set via profile upload.",
   })
   profileImageUrl?: string | null;
 

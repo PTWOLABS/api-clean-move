@@ -9,4 +9,5 @@ export type ObjectStoragePutInput = {
 @Injectable()
 export abstract class ObjectStorage {
   abstract putObject(input: ObjectStoragePutInput): Promise<void>;
+  abstract deleteObject(key: string): Promise<void>;
 }

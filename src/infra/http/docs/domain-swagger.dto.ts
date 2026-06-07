@@ -179,7 +179,12 @@ export class EmployeeDto {
   @ApiProperty({ example: "b62c5971-4081-4d3d-8e5d-80722b926e4a" })
   userId!: string;
 
-  @ApiProperty({ type: String, nullable: true, example: null })
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    example: null,
+    description: "Profile image URL from the linked User account.",
+  })
   profileImageUrl!: string | null;
 
   @ApiProperty({ example: "Ana Silva" })
@@ -368,9 +373,6 @@ export class CustomerDto {
 
   @ApiProperty({ example: "2e11b57c-b96a-490a-9ae6-64ef2966fd84" })
   establishmentId!: string;
-
-  @ApiProperty({ type: String, example: null, nullable: true })
-  profileImageUrl!: string | null;
 
   @ApiProperty({ type: String, example: "52998224725", nullable: true })
   cpfCnpj!: string | null;

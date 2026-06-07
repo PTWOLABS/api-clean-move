@@ -1,12 +1,16 @@
 import { Employee } from "../../../modules/employees/domain/entities/employee";
 
+type EmployeePresenterOptions = {
+  profileImageUrl?: string | null;
+};
+
 export class EmployeePresenter {
-  static toHTTP(employee: Employee) {
+  static toHTTP(employee: Employee, options?: EmployeePresenterOptions) {
     return {
       id: employee.id.toString(),
       establishmentId: employee.establishmentId.toString(),
       userId: employee.userId.toString(),
-      profileImageUrl: employee.profileImageUrl,
+      profileImageUrl: options?.profileImageUrl ?? null,
       name: employee.name,
       cpf: employee.cpf?.toString() ?? null,
       birthDate: employee.birthDate?.toString() ?? null,
