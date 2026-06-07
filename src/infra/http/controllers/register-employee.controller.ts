@@ -22,6 +22,7 @@ import {
 } from "@nestjs/swagger";
 import z from "zod";
 import { RegisterEmployeeUseCase } from "../../../modules/application/use-cases/employee/register-employee";
+import { UsersRepository } from "../../../modules/application/repositories/users-repository";
 import { InvalidRegisterEmployeeInputError } from "../../../modules/employees/domain/errors/invalid-register-employee-input-error";
 import { ALLOWED_EXTRA_EMPLOYEE_FEATURES } from "../../../modules/employees/domain/policies/employee-features-policy";
 import { ResourceAlreadyExistsError } from "../../../shared/errors/resource-already-exists-error";
@@ -36,6 +37,10 @@ import {
 } from "../docs/domain-swagger.dto";
 import { ZodValidationPipe } from "../pipes/zod-validation.pipe";
 import { EmployeePresenter } from "../presenters/employee-presenter";
+import {
+  buildUserProfileImageUrlMap,
+  resolveEmployeeProfileImageUrl,
+} from "../helpers/resolve-employee-profile-image-url";
 
 const registerEmployeeBodySchema = z
   .object({
@@ -62,7 +67,10 @@ type RegisterEmployeeBodySchema = z.infer<typeof registerEmployeeBodySchema>;
 @Controller("/employees")
 @Roles(["ESTABLISHMENT"])
 export class RegisterEmployeeController {
-  constructor(private readonly registerEmployee: RegisterEmployeeUseCase) {}
+  constructor(
+    private readonly registerEmployee: RegisterEmployeeUseCase,
+    private readonly usersRepository: UsersRepository,
+  ) {}
 
   @Post()
   @ApiOperation({
@@ -125,8 +133,19 @@ export class RegisterEmployeeController {
       }
     }
 
+    const employee = result.value.employee;
+    const users = await this.usersRepository.findManyByIds([
+      employee.userId.toString(),
+    ]);
+    const profileImageUrlsByUserId = buildUserProfileImageUrlMap(users);
+
     return {
-      employee: EmployeePresenter.toHTTP(result.value.employee),
+      employee: EmployeePresenter.toHTTP(employee, {
+        profileImageUrl: resolveEmployeeProfileImageUrl(
+          employee,
+          profileImageUrlsByUserId,
+        ),
+      }),
     };
   }
 }

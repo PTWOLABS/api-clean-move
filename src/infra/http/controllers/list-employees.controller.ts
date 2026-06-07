@@ -19,6 +19,7 @@ import {
 } from "@nestjs/swagger";
 import z from "zod";
 import { ListEmployeesUseCase } from "../../../modules/application/use-cases/employee/list-employees";
+import { UsersRepository } from "../../../modules/application/repositories/users-repository";
 import { ResourceNotFoundError } from "../../../shared/errors/resource-not-found-error";
 import { UnexpectedDomainError } from "../../../shared/errors/unexpected-domain-error";
 import { AuthenticatedUser } from "../../auth/authenticated-user";
@@ -27,6 +28,7 @@ import { Roles } from "../../auth/roles";
 import { ListEmployeesResponseDto } from "../docs/domain-swagger.dto";
 import { ZodValidationPipe } from "../pipes/zod-validation.pipe";
 import { EmployeePresenter } from "../presenters/employee-presenter";
+import { buildUserProfileImageUrlMap } from "../helpers/resolve-employee-profile-image-url";
 
 const listEmployeesQuerySchema = z.object({
   name: z.string().trim().optional(),
@@ -39,7 +41,10 @@ type ListEmployeesQuerySchema = z.infer<typeof listEmployeesQuerySchema>;
 @Controller("/employees")
 @Roles(["ESTABLISHMENT"])
 export class ListEmployeesController {
-  constructor(private readonly listEmployees: ListEmployeesUseCase) {}
+  constructor(
+    private readonly listEmployees: ListEmployeesUseCase,
+    private readonly usersRepository: UsersRepository,
+  ) {}
 
   @Get()
   @ApiOperation({ summary: "List active employees by establishment." })
@@ -75,9 +80,18 @@ export class ListEmployeesController {
       }
     }
 
+    const employees = result.value.employees;
+    const users = await this.usersRepository.findManyByIds(
+      employees.map((employee) => employee.userId.toString()),
+    );
+    const profileImageUrlsByUserId = buildUserProfileImageUrlMap(users);
+
     return {
-      employees: result.value.employees.map((employee) =>
-        EmployeePresenter.toHTTP(employee),
+      employees: employees.map((employee) =>
+        EmployeePresenter.toHTTP(employee, {
+          profileImageUrl:
+            profileImageUrlsByUserId.get(employee.userId.toString()) ?? null,
+        }),
       ),
     };
   }

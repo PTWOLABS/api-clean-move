@@ -146,7 +146,7 @@ describe("Register employee controller (e2e)", () => {
     expect(user?.email).toBe("ana.required@example.com");
     expect(user?.hashedPassword).not.toBe("strong-password");
     expect(employee?.establishmentId).toBe(establishment.id.toString());
-    expect(employee?.profileImageUrl).toBeNull();
+    expect(user?.profileImageUrl).toBeNull();
   });
 
   it("should register an employee with optional fields and extra features", async () => {

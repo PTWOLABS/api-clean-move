@@ -23,6 +23,7 @@ import {
 } from "@nestjs/swagger";
 import z from "zod";
 import { UpdateEmployeeUseCase } from "../../../modules/application/use-cases/employee/update-employee";
+import { UsersRepository } from "../../../modules/application/repositories/users-repository";
 import { InvalidRegisterEmployeeInputError } from "../../../modules/employees/domain/errors/invalid-register-employee-input-error";
 import { ALLOWED_EXTRA_EMPLOYEE_FEATURES } from "../../../modules/employees/domain/policies/employee-features-policy";
 import { NotAllowedError } from "../../../shared/errors/not-allowed-error";
@@ -38,6 +39,10 @@ import {
 } from "../docs/domain-swagger.dto";
 import { ZodValidationPipe } from "../pipes/zod-validation.pipe";
 import { EmployeePresenter } from "../presenters/employee-presenter";
+import {
+  buildUserProfileImageUrlMap,
+  resolveEmployeeProfileImageUrl,
+} from "../helpers/resolve-employee-profile-image-url";
 
 const updateEmployeeBodySchema = z
   .object({
@@ -64,7 +69,10 @@ const employeeIdParamSchema = z.uuid();
 @Roles(["ESTABLISHMENT", "EMPLOYEE"])
 @EmployeeFeatures(["update:employees:self"])
 export class UpdateEmployeeController {
-  constructor(private readonly updateEmployee: UpdateEmployeeUseCase) {}
+  constructor(
+    private readonly updateEmployee: UpdateEmployeeUseCase,
+    private readonly usersRepository: UsersRepository,
+  ) {}
 
   @Patch()
   @ApiOperation({ summary: "Update employee data." })
@@ -113,8 +121,19 @@ export class UpdateEmployeeController {
       }
     }
 
+    const employee = result.value.employee;
+    const users = await this.usersRepository.findManyByIds([
+      employee.userId.toString(),
+    ]);
+    const profileImageUrlsByUserId = buildUserProfileImageUrlMap(users);
+
     return {
-      employee: EmployeePresenter.toHTTP(result.value.employee),
+      employee: EmployeePresenter.toHTTP(employee, {
+        profileImageUrl: resolveEmployeeProfileImageUrl(
+          employee,
+          profileImageUrlsByUserId,
+        ),
+      }),
     };
   }
 }

@@ -20,6 +20,7 @@ import {
 } from "@nestjs/swagger";
 import z from "zod";
 import { GetEmployeeUseCase } from "../../../modules/application/use-cases/employee/get-employee";
+import { UsersRepository } from "../../../modules/application/repositories/users-repository";
 import { NotAllowedError } from "../../../shared/errors/not-allowed-error";
 import { ResourceNotFoundError } from "../../../shared/errors/resource-not-found-error";
 import { UnexpectedDomainError } from "../../../shared/errors/unexpected-domain-error";
@@ -30,6 +31,10 @@ import { Roles } from "../../auth/roles";
 import { EmployeeResponseDto } from "../docs/domain-swagger.dto";
 import { ZodValidationPipe } from "../pipes/zod-validation.pipe";
 import { EmployeePresenter } from "../presenters/employee-presenter";
+import {
+  buildUserProfileImageUrlMap,
+  resolveEmployeeProfileImageUrl,
+} from "../helpers/resolve-employee-profile-image-url";
 
 const employeeIdParamSchema = z.uuid();
 
@@ -39,7 +44,10 @@ const employeeIdParamSchema = z.uuid();
 @Roles(["ESTABLISHMENT", "EMPLOYEE"])
 @EmployeeFeatures(["read:employees:self"])
 export class GetEmployeeController {
-  constructor(private readonly getEmployee: GetEmployeeUseCase) {}
+  constructor(
+    private readonly getEmployee: GetEmployeeUseCase,
+    private readonly usersRepository: UsersRepository,
+  ) {}
 
   @Get()
   @ApiOperation({ summary: "Get an employee by id." })
@@ -78,8 +86,19 @@ export class GetEmployeeController {
       }
     }
 
+    const employee = result.value.employee;
+    const users = await this.usersRepository.findManyByIds([
+      employee.userId.toString(),
+    ]);
+    const profileImageUrlsByUserId = buildUserProfileImageUrlMap(users);
+
     return {
-      employee: EmployeePresenter.toHTTP(result.value.employee),
+      employee: EmployeePresenter.toHTTP(employee, {
+        profileImageUrl: resolveEmployeeProfileImageUrl(
+          employee,
+          profileImageUrlsByUserId,
+        ),
+      }),
     };
   }
 }
