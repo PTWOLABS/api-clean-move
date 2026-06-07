@@ -481,6 +481,7 @@ async function seedEmployees({
         role: UserRole.EMPLOYEE,
         phone: employeeData.phone,
         address: Prisma.JsonNull,
+        profileImageUrl: employeeData.profileImageUrl,
       },
     });
 
@@ -488,7 +489,6 @@ async function seedEmployees({
       data: {
         establishmentId,
         userId: user.id,
-        profileImageUrl: employeeData.profileImageUrl,
         name: employeeData.name,
         cpf: employeeData.cpf,
         birthDate: employeeData.birthDate,
@@ -524,10 +524,6 @@ async function seedCustomers(establishmentId: string) {
 
   for (const [index, identity] of CUSTOMER_IDENTITIES.entries()) {
     const customerData: CustomerSeedData = {
-      profileImageUrl:
-        index % 3 === 0
-          ? `https://example.com/customers/customer-${index + 1}.png`
-          : null,
       cpfCnpj: index % 4 === 0 ? null : buildCpf(index + 1),
       fullName: identity.fullName,
       phone: buildPhone(index + 1),

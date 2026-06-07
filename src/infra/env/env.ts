@@ -130,8 +130,7 @@ export const envSchema = z
         });
       }
 
-      const isDeployedEnv =
-        NODE_ENV === "production" || NODE_ENV === "staging";
+      const isDeployedEnv = NODE_ENV === "production" || NODE_ENV === "staging";
 
       if (isDeployedEnv) {
         if (AWS_S3_ENDPOINT === undefined) {
