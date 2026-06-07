@@ -12,7 +12,6 @@ import { BirthDate } from "../value-objects/birth-date";
 export type EmployeeProps = {
   establishmentId: UniqueEntityId;
   userId: UniqueEntityId;
-  profileImageUrl: string | null;
   name: string;
   cpf: Cpf | null;
   birthDate: BirthDate | null;
@@ -29,7 +28,6 @@ export type EmployeeCreateProps = {
   cpf?: Cpf | string | null;
   birthDate?: BirthDate | Date | null;
   extraFeatures?: string[];
-  profileImageUrl?: string | null;
   deletedAt?: Date | null;
   createdAt?: Date | null;
   updatedAt?: Date | null;
@@ -42,10 +40,6 @@ export class Employee extends AggregateRoot<EmployeeProps> {
 
   get userId() {
     return this.props.userId;
-  }
-
-  get profileImageUrl() {
-    return this.props.profileImageUrl;
   }
 
   get name() {
@@ -81,7 +75,6 @@ export class Employee extends AggregateRoot<EmployeeProps> {
       {
         establishmentId: props.establishmentId,
         userId: props.userId,
-        profileImageUrl: Employee.normalizeOptionalText(props.profileImageUrl),
         name: Employee.normalizeRequiredText(props.name, "name"),
         cpf: Employee.normalizeCpf(props.cpf ?? null),
         birthDate: Employee.normalizeBirthDate(props.birthDate ?? null),
@@ -226,20 +219,6 @@ export class Employee extends AggregateRoot<EmployeeProps> {
     }
   }
 
-  setProfileImageUrl(url: string) {
-    this.ensureActive();
-
-    const normalized = Employee.normalizeOptionalText(url);
-    if (normalized === null) {
-      throw new InvalidRegisterEmployeeInputError(
-        "profile image URL cannot be empty.",
-      );
-    }
-
-    this.props.profileImageUrl = normalized;
-    this.touch();
-  }
-
   private static normalizeCpf(value: Cpf | string | null) {
     if (value === null) {
       return null;
@@ -273,20 +252,6 @@ export class Employee extends AggregateRoot<EmployeeProps> {
 
     if (!normalized) {
       throw new InvalidRegisterEmployeeInputError(`${field} is required.`);
-    }
-
-    return normalized;
-  }
-
-  private static normalizeOptionalText(value: string | null | undefined) {
-    if (value === null || value === undefined) {
-      return null;
-    }
-
-    const normalized = value.trim();
-
-    if (!normalized) {
-      return null;
     }
 
     return normalized;

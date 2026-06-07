@@ -9,7 +9,6 @@ export const customerResponseSchema = z.object({
   customer: z.object({
     id: z.uuid(),
     establishmentId: z.uuid(),
-    profileImageUrl: z.string().nullable(),
     cpfCnpj: z.string().nullable(),
     documentType: z.enum(["CPF", "CNPJ"]).nullable(),
     fullName: z.string(),

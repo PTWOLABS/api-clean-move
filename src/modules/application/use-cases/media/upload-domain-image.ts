@@ -9,45 +9,28 @@ import { ResourceNotFoundError } from "../../../../shared/errors/resource-not-fo
 import { UnexpectedDomainError } from "../../../../shared/errors/unexpected-domain-error";
 import { buildPublicObjectUrl } from "../../../../shared/utils/build-public-object-url";
 import { sanitizeUploadedFileName } from "../../../../shared/utils/sanitize-uploaded-file-name";
+import {
+  UploadedImageFile,
+  validateUploadedImageFile,
+} from "../../../../shared/utils/validate-uploaded-image-file";
 import { EnvService } from "../../../../infra/env/env.service";
 import {
   ObjectStorage,
   ObjectStoragePutInput,
 } from "../../repositories/object-storage";
-import { CustomersRepository } from "../../repositories/customers-repository";
 import { CustomerVehiclesRepository } from "../../repositories/customer-vehicles-repository";
-import { EmployeesRepository } from "../../repositories/employees-repository";
 import { EstablishmentsRepository } from "../../repositories/establishment-repository";
 
-export const DOMAIN_IMAGE_KIND = [
-  "EMPLOYEE_PROFILE",
-  "CUSTOMER_PROFILE",
-  "VEHICLE",
-  "ESTABLISHMENT_BANNER",
-] as const;
+export const DOMAIN_IMAGE_KIND = ["VEHICLE", "ESTABLISHMENT_BANNER"] as const;
 
 export type DomainImageKind = (typeof DOMAIN_IMAGE_KIND)[number];
 
 const KIND_TO_PREFIX: Record<DomainImageKind, string> = {
-  EMPLOYEE_PROFILE: "employee-profile",
-  CUSTOMER_PROFILE: "customer-profile",
   VEHICLE: "vehicle",
   ESTABLISHMENT_BANNER: "establishment-banner",
 };
 
-const ALLOWED_IMAGE_MIME_TYPES = new Set([
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-]);
-
-const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
-
-export type UploadedImageFile = {
-  buffer: Buffer;
-  mimetype: string;
-  originalname: string;
-};
+export type { UploadedImageFile };
 
 type UploadDomainImageUseCaseRequest = {
   establishmentOwnerId: string;
@@ -62,7 +45,7 @@ type UploadDomainImageUseCaseResponse = Either<
   | NotAllowedError
   | InvalidUploadedImageError
   | UnexpectedDomainError,
-  { url: string; objectKey: string }
+  { url: string }
 >;
 
 @Injectable()
@@ -71,15 +54,13 @@ export class UploadDomainImageUseCase {
     private readonly envService: EnvService,
     private readonly objectStorage: ObjectStorage,
     private readonly establishmentsRepository: EstablishmentsRepository,
-    private readonly employeesRepository: EmployeesRepository,
-    private readonly customersRepository: CustomersRepository,
     private readonly customerVehiclesRepository: CustomerVehiclesRepository,
   ) {}
 
   async execute(
     request: UploadDomainImageUseCaseRequest,
   ): Promise<UploadDomainImageUseCaseResponse> {
-    const validation = this.validateFile(request.file);
+    const validation = validateUploadedImageFile(request.file);
     if (validation !== null) {
       return left(validation);
     }
@@ -94,37 +75,7 @@ export class UploadDomainImageUseCase {
 
     let persistImageUrl: ((url: string) => Promise<void>) | null = null;
     try {
-      if (request.kind === "EMPLOYEE_PROFILE") {
-        const employee =
-          await this.employeesRepository.findByIdAndEstablishmentId(
-            request.entityId,
-            establishment.id.toString(),
-          );
-
-        if (!employee) {
-          return left(new ResourceNotFoundError({ resource: "Employee" }));
-        }
-
-        persistImageUrl = async (url) => {
-          employee.setProfileImageUrl(url);
-          await this.employeesRepository.save(employee);
-        };
-      } else if (request.kind === "CUSTOMER_PROFILE") {
-        const customer =
-          await this.customersRepository.findByIdAndEstablishmentId(
-            request.entityId,
-            establishment.id.toString(),
-          );
-
-        if (!customer) {
-          return left(new ResourceNotFoundError({ resource: "Customer" }));
-        }
-
-        persistImageUrl = async (url) => {
-          customer.update({ profileImageUrl: url });
-          await this.customersRepository.save(customer);
-        };
-      } else if (request.kind === "VEHICLE") {
+      if (request.kind === "VEHICLE") {
         const vehicle = request.customerId
           ? await this.customerVehiclesRepository.findByIdAndCustomerIdAndEstablishmentId(
               request.entityId,
@@ -184,28 +135,6 @@ export class UploadDomainImageUseCase {
       return left(new UnexpectedDomainError());
     }
 
-    return right({ url, objectKey });
-  }
-
-  private validateFile(
-    file: UploadedImageFile,
-  ): InvalidUploadedImageError | null {
-    if (!ALLOWED_IMAGE_MIME_TYPES.has(file.mimetype)) {
-      return new InvalidUploadedImageError(
-        "Unsupported image type. Allowed: JPEG, PNG, WebP.",
-      );
-    }
-
-    if (file.buffer.length === 0) {
-      return new InvalidUploadedImageError("Empty file.");
-    }
-
-    if (file.buffer.length > MAX_IMAGE_BYTES) {
-      return new InvalidUploadedImageError(
-        `Image exceeds maximum size of ${MAX_IMAGE_BYTES} bytes.`,
-      );
-    }
-
-    return null;
+    return right({ url });
   }
 }
