@@ -2,6 +2,12 @@ import { describe, expect, it } from "vitest";
 
 import { envSchema } from "./env";
 
+const R2_STORAGE_ENV = {
+  AWS_S3_ENDPOINT: "https://account-id.r2.cloudflarestorage.com",
+  AWS_ACCESS_KEY_ID: "r2-access-key-id",
+  AWS_SECRET_ACCESS_KEY: "r2-secret-access-key",
+} as const;
+
 function baseEnv(
   overrides: Record<string, string | undefined> = {},
 ): Record<string, string | undefined> {
@@ -21,7 +27,7 @@ function baseEnv(
     JWT_REFRESH_SECRET: "test-refresh-secret-with-at-least-32-char",
     JWT_ACCESS_EXPIRES_IN: "15m",
     REFRESH_TOKEN_TTL_IN_MS: "1296000000",
-    AWS_REGION: "us-east-1",
+    AWS_REGION: "auto",
     AWS_S3_BUCKET: "my-bucket",
     AWS_S3_PUBLIC_BASE_URL: "https://cdn.example.com",
     ...overrides,
@@ -34,7 +40,7 @@ describe("envSchema", () => {
 
     expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.data.AWS_REGION).toBe("us-east-1");
+      expect(result.data.AWS_REGION).toBe("auto");
       expect(result.data.AWS_S3_BUCKET).toBe("my-bucket");
       expect(result.data.AWS_S3_PUBLIC_BASE_URL).toBe(
         "https://cdn.example.com",
@@ -141,6 +147,7 @@ describe("envSchema", () => {
         NODE_ENV: "production",
         FRONTEND_URL: "https://app.example.com",
         AWS_S3_PUBLIC_BASE_URL: "https://cdn.example.com",
+        ...R2_STORAGE_ENV,
       }),
     );
 
@@ -155,16 +162,87 @@ describe("envSchema", () => {
     expect(result.success).toBe(true);
   });
 
-  it("should allow staging NODE_ENV", () => {
+  it("should allow staging NODE_ENV with R2 storage configuration", () => {
     const result = envSchema.safeParse(
       baseEnv({
         NODE_ENV: "staging",
         FRONTEND_URL: "https://staging.example.com",
         AWS_S3_PUBLIC_BASE_URL: "https://cdn-staging.example.com",
+        ...R2_STORAGE_ENV,
       }),
     );
 
     expect(result.success).toBe(true);
+  });
+
+  it("should reject production without AWS_S3_ENDPOINT", () => {
+    const result = envSchema.safeParse(
+      baseEnv({
+        NODE_ENV: "production",
+        FRONTEND_URL: "https://app.example.com",
+        AWS_S3_PUBLIC_BASE_URL: "https://cdn.example.com",
+        AWS_ACCESS_KEY_ID: R2_STORAGE_ENV.AWS_ACCESS_KEY_ID,
+        AWS_SECRET_ACCESS_KEY: R2_STORAGE_ENV.AWS_SECRET_ACCESS_KEY,
+      }),
+    );
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const paths = result.error.issues.map((i) => i.path.join("."));
+      expect(paths).toContain("AWS_S3_ENDPOINT");
+    }
+  });
+
+  it("should reject staging without AWS_S3_ENDPOINT", () => {
+    const result = envSchema.safeParse(
+      baseEnv({
+        NODE_ENV: "staging",
+        FRONTEND_URL: "https://staging.example.com",
+        AWS_S3_PUBLIC_BASE_URL: "https://cdn-staging.example.com",
+        AWS_ACCESS_KEY_ID: R2_STORAGE_ENV.AWS_ACCESS_KEY_ID,
+        AWS_SECRET_ACCESS_KEY: R2_STORAGE_ENV.AWS_SECRET_ACCESS_KEY,
+      }),
+    );
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const paths = result.error.issues.map((i) => i.path.join("."));
+      expect(paths).toContain("AWS_S3_ENDPOINT");
+    }
+  });
+
+  it("should reject production without AWS credentials", () => {
+    const result = envSchema.safeParse(
+      baseEnv({
+        NODE_ENV: "production",
+        FRONTEND_URL: "https://app.example.com",
+        AWS_S3_PUBLIC_BASE_URL: "https://cdn.example.com",
+        AWS_S3_ENDPOINT: R2_STORAGE_ENV.AWS_S3_ENDPOINT,
+      }),
+    );
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const paths = result.error.issues.map((i) => i.path.join("."));
+      expect(paths).toContain("AWS_ACCESS_KEY_ID");
+    }
+  });
+
+  it("should reject staging without AWS credentials", () => {
+    const result = envSchema.safeParse(
+      baseEnv({
+        NODE_ENV: "staging",
+        FRONTEND_URL: "https://staging.example.com",
+        AWS_S3_PUBLIC_BASE_URL: "https://cdn-staging.example.com",
+        AWS_S3_ENDPOINT: R2_STORAGE_ENV.AWS_S3_ENDPOINT,
+      }),
+    );
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const paths = result.error.issues.map((i) => i.path.join("."));
+      expect(paths).toContain("AWS_ACCESS_KEY_ID");
+    }
   });
 
   it("should parse optional AWS_S3_ENDPOINT for local object storage", () => {
