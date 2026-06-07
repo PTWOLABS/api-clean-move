@@ -8,6 +8,7 @@ export class EstablishmentPresenter {
       legalBusinessName: establishment.legalBusinessName,
       cnpj: establishment.cnpj?.toString() ?? null,
       slug: establishment.slug?.value ?? null,
+      bannerImageUrl: establishment.bannerImageUrl,
     };
   }
 }

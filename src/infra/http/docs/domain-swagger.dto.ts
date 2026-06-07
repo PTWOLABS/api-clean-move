@@ -108,6 +108,15 @@ export class EstablishmentDto {
     description: "Public slug.",
   })
   slug!: string | null;
+
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    example: "https://cdn.example.com/establishment-banner/uuid/banner.png",
+    description:
+      "Public banner image URL when set via POST /establishments/:establishmentId/banner-image.",
+  })
+  bannerImageUrl!: string | null;
 }
 
 export class GetEstablishmentResponseDto {

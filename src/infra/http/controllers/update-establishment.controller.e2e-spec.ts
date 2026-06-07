@@ -24,6 +24,7 @@ const establishmentResponseSchema = z.object({
     legalBusinessName: z.string().nullable(),
     cnpj: z.string().nullable(),
     slug: z.string().nullable(),
+    bannerImageUrl: z.string().nullable(),
   }),
 });
 
@@ -94,6 +95,7 @@ describe("UpdateEstablishmentController (e2e)", () => {
     );
     expect(body.establishment.cnpj).toBe("61911322000187");
     expect(body.establishment.slug).toBe("clean-move");
+    expect(body.establishment.bannerImageUrl).toBeNull();
   });
 
   it("should return 400 for empty body", async () => {

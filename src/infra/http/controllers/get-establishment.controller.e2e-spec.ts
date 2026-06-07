@@ -4,8 +4,10 @@ import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import z from "zod";
 
+import { ObjectStorage } from "../../../modules/application/repositories/object-storage";
 import { EstablishmentFactory } from "../../../../tests/factories/establishment-factory";
 import { UserFactory } from "../../../../tests/factories/user-factory";
+import { FakeObjectStorage } from "../../../../tests/helpers/fake-object-storage";
 import { HashGenerator } from "../../../modules/application/repositories/hash-generator";
 import { AppModule } from "../../app.module";
 import { PrismaService } from "../../database/prisma/prisma.service";
@@ -14,6 +16,7 @@ import {
   getHttpServer,
   loginUser,
   makeEmployeeAuth,
+  makeEstablishmentAccessToken,
   makeEstablishmentAuth,
 } from "../../../../tests/helpers/auth-session.e2e-helpers";
 
@@ -24,8 +27,14 @@ const establishmentResponseSchema = z.object({
     legalBusinessName: z.string().nullable(),
     cnpj: z.string().nullable(),
     slug: z.string().nullable(),
+    bannerImageUrl: z.string().nullable(),
   }),
 });
+
+const tinyPng = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+  "base64",
+);
 
 describe("GetEstablishmentController (e2e)", () => {
   let app: INestApplication;
@@ -38,7 +47,10 @@ describe("GetEstablishmentController (e2e)", () => {
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({
       imports: [AppModule],
-    }).compile();
+    })
+      .overrideProvider(ObjectStorage)
+      .useValue(new FakeObjectStorage())
+      .compile();
 
     app = moduleRef.createNestApplication();
     await app.init();
@@ -91,6 +103,7 @@ describe("GetEstablishmentController (e2e)", () => {
     expect(body.establishment.legalBusinessName).toBeNull();
     expect(body.establishment.cnpj).toBeNull();
     expect(body.establishment.slug).toBeNull();
+    expect(body.establishment.bannerImageUrl).toBeNull();
   });
 
   it("should return commercial fields for establishment owner", async () => {
@@ -118,6 +131,33 @@ describe("GetEstablishmentController (e2e)", () => {
       establishment.cnpj?.toString() ?? null,
     );
     expect(body.establishment.slug).toBe(establishment.slug?.value ?? null);
+    expect(body.establishment.bannerImageUrl).toBeNull();
+  });
+
+  it("should return bannerImageUrl after banner upload", async () => {
+    const { accessToken, establishment } = await makeEstablishmentAccessToken({
+      app,
+      prisma,
+      userFactory,
+      establishmentFactory,
+      envService,
+    });
+
+    const uploadResponse = await request(getHttpServer(app))
+      .post(`/establishments/${establishment.id.toString()}/banner-image`)
+      .set("Authorization", `Bearer ${accessToken}`)
+      .attach("file", tinyPng, "banner.png");
+
+    expect(uploadResponse.status).toBe(201);
+
+    const getResponse = await request(getHttpServer(app))
+      .get(`/establishments/${establishment.id.toString()}`)
+      .set("Authorization", `Bearer ${accessToken}`);
+
+    expect(getResponse.status).toBe(200);
+
+    const body = establishmentResponseSchema.parse(getResponse.body);
+    expect(body.establishment.bannerImageUrl).toBe(uploadResponse.body.url);
   });
 
   it("should allow employee to read their establishment", async () => {
