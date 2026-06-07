@@ -37,6 +37,7 @@ import { GetEstablishmentTopCustomersUseCase } from "../../modules/application/u
 import { RegisterEstablishmentUseCase } from "../../modules/application/use-cases/establishment/register-establishment";
 import { UpdateEstablishmentUseCase } from "../../modules/application/use-cases/establishment/update-establishment";
 import { UploadDomainImageUseCase } from "../../modules/application/use-cases/media/upload-domain-image";
+import { UploadUserProfileImageUseCase } from "../../modules/application/use-cases/user/upload-user-profile-image";
 import { CreateServiceUseCase } from "../../modules/application/use-cases/service/create-service";
 import { ListAllServicesUseCase } from "../../modules/application/use-cases/service/list-all-services";
 import { ListEstablishmentServicesUseCase } from "../../modules/application/use-cases/service/list-establishment-services";
@@ -90,10 +91,9 @@ import { UpdateAppointmentStatusController } from "./controllers/update-appointm
 import { UpdateCustomerController } from "./controllers/update-customer.controller";
 import { UpdateCustomerVehicleController } from "./controllers/update-customer-vehicle.controller";
 import { UpdateEmployeeController } from "./controllers/update-employee.controller";
-import { UploadCustomerProfileImageController } from "./controllers/media/upload-customer-profile-image.controller";
-import { UploadEmployeeProfileImageController } from "./controllers/media/upload-employee-profile-image.controller";
 import { UploadEstablishmentBannerImageController } from "./controllers/media/upload-establishment-banner-image.controller";
 import { UploadVehicleImageController } from "./controllers/media/upload-vehicle-image.controller";
+import { UploadUserProfileImageController } from "./controllers/upload-user-profile-image.controller";
 
 @Module({
   imports: [AuthModule, DatabaseModule, StorageModule],
@@ -105,6 +105,7 @@ import { UploadVehicleImageController } from "./controllers/media/upload-vehicle
     SignOutController,
     GetMeController,
     UpdateUserController,
+    UploadUserProfileImageController,
     GetEstablishmentController,
     UpdateEstablishmentController,
     ListAllServicesController,
@@ -139,8 +140,6 @@ import { UploadVehicleImageController } from "./controllers/media/upload-vehicle
     ListEmployeesController,
     UpdateEmployeeController,
     DeleteEmployeeController,
-    UploadEmployeeProfileImageController,
-    UploadCustomerProfileImageController,
     UploadVehicleImageController,
     UploadEstablishmentBannerImageController,
   ],
@@ -188,6 +187,7 @@ import { UploadVehicleImageController } from "./controllers/media/upload-vehicle
     SignOutUseCase,
     GetMeUseCase,
     UpdateUserUseCase,
+    UploadUserProfileImageUseCase,
     GetEstablishmentUseCase,
     UpdateEstablishmentUseCase,
     SessionCreationService,

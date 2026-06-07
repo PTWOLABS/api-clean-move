@@ -49,7 +49,6 @@ model Employee {
   id              String    @id @default(uuid()) @db.Uuid
   establishmentId String    @map("establishment_id") @db.Uuid
   userId          String    @unique @map("user_id") @db.Uuid
-  profileImageUrl String?   @map("profile_image_url")
   name            String?
   cpf             String?   @db.VarChar(11)
   birthDate       DateTime? @map("birth_date")
@@ -136,7 +135,6 @@ model PasswordResetToken {
 model Customer {
   id              String    @id @default(uuid()) @db.Uuid
   establishmentId String    @map("establishment_id") @db.Uuid
-  profileImageUrl String?   @map("profile_image_url")
   cpfCnpj         String?   @map("cpf_cnpj") @db.VarChar(14)
   fullName        String    @map("full_name")
   phone           String    @db.VarChar(11)
