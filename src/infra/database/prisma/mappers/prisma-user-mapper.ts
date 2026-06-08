@@ -34,6 +34,7 @@ export class PrismaUserMapper {
         email: new Email(raw.email),
         hashedPassword: raw.hashedPassword,
         role: raw.role,
+        profileImageUrl: raw.profileImageUrl,
         phone: raw.phone ? Phone.create(raw.phone) : null,
         address,
         socialAccounts: raw.socialAccounts.map((link) => ({
@@ -68,6 +69,7 @@ export class PrismaUserMapper {
       email: raw.email.toString(),
       hashedPassword: raw.hashedPassword,
       role: raw.role,
+      profileImageUrl: raw.profileImageUrl,
       phone: raw.phone?.toString() ?? null,
       socialAccounts: {
         create: raw.socialAccounts.map((socialAccount) => ({

@@ -80,4 +80,18 @@ export class EstablishmentFactory {
 
     return establishment;
   }
+
+  async makePrismaOAuthDraftEstablishment({
+    ownerId,
+  }: {
+    ownerId: UniqueEntityId;
+  }) {
+    const establishment = Establishment.createOAuthDraft({ ownerId });
+
+    await this.prisma.establishment.create({
+      data: PrismaEstablishmentMapper.toPrisma(establishment),
+    });
+
+    return establishment;
+  }
 }

@@ -8,6 +8,7 @@ import { UpdateAppointmentStatusUseCase } from "../../modules/application/use-ca
 import { AuthenticateWithOAuthUseCase } from "../../modules/application/use-cases/auth/authenticate-with-oauth";
 import { AuthSessionService } from "../../modules/application/services/auth-session.service";
 import { EstablishmentScopeService } from "../../modules/application/services/establishment-scope";
+import { UserEstablishmentResolver } from "../../modules/application/services/user-establishment-resolver";
 import { LoginWithCredentialsUseCase } from "../../modules/application/use-cases/auth/login-with-credentials";
 import { RefreshSessionUseCase } from "../../modules/application/use-cases/auth/refresh-session";
 import { SignOutUseCase } from "../../modules/application/use-cases/auth/sign-out";
@@ -27,6 +28,7 @@ import { GetEmployeeUseCase } from "../../modules/application/use-cases/employee
 import { ListEmployeesUseCase } from "../../modules/application/use-cases/employee/list-employees";
 import { RegisterEmployeeUseCase } from "../../modules/application/use-cases/employee/register-employee";
 import { UpdateEmployeeUseCase } from "../../modules/application/use-cases/employee/update-employee";
+import { GetEstablishmentUseCase } from "../../modules/application/use-cases/establishment/get-establishment";
 import { GetEstablishmentAppointmentsCountUseCase } from "../../modules/application/use-cases/establishment/get-establishment-appointments-count";
 import { GetEstablishmentCancellationRateUseCase } from "../../modules/application/use-cases/establishment/get-establishment-cancellation-rate";
 import { GetEstablishmentDashboardOverviewUseCase } from "../../modules/application/use-cases/establishment/get-establishment-dashboard-overview";
@@ -34,7 +36,9 @@ import { GetEstablishmentPopularServicesUseCase } from "../../modules/applicatio
 import { GetEstablishmentRevenueVsAppointmentsUseCase } from "../../modules/application/use-cases/establishment/get-establishment-revenue-vs-appointments";
 import { GetEstablishmentTopCustomersUseCase } from "../../modules/application/use-cases/establishment/get-establishment-top-customers";
 import { RegisterEstablishmentUseCase } from "../../modules/application/use-cases/establishment/register-establishment";
+import { UpdateEstablishmentUseCase } from "../../modules/application/use-cases/establishment/update-establishment";
 import { UploadDomainImageUseCase } from "../../modules/application/use-cases/media/upload-domain-image";
+import { UploadUserProfileImageUseCase } from "../../modules/application/use-cases/user/upload-user-profile-image";
 import { CreateServiceUseCase } from "../../modules/application/use-cases/service/create-service";
 import { ListAllServicesUseCase } from "../../modules/application/use-cases/service/list-all-services";
 import { ListEstablishmentServicesUseCase } from "../../modules/application/use-cases/service/list-establishment-services";
@@ -42,6 +46,7 @@ import { ListServiceOptionsUseCase } from "../../modules/application/use-cases/s
 import { UpdateServiceUseCase } from "../../modules/application/use-cases/service/update-service";
 import { DeleteServiceUseCase } from "../../modules/application/use-cases/service/delete-service";
 import { GetMeUseCase } from "../../modules/application/use-cases/user/get-me";
+import { UpdateUserUseCase } from "../../modules/application/use-cases/user/update-user";
 import { SessionCreationService } from "../../modules/accounts/domain/services/session-creation-service";
 import { AuthModule } from "../auth/auth.module";
 import { DatabaseModule } from "../database/database.module";
@@ -65,7 +70,10 @@ import { DeleteCustomerController } from "./controllers/delete-customer.controll
 import { DeleteCustomerVehicleController } from "./controllers/delete-customer-vehicle.controller";
 import { DeleteEmployeeController } from "./controllers/delete-employee.controller";
 import { GetEmployeeController } from "./controllers/get-employee.controller";
+import { GetEstablishmentController } from "./controllers/get-establishment.controller";
+import { UpdateEstablishmentController } from "./controllers/update-establishment.controller";
 import { GetMeController } from "./controllers/get-me.controller";
+import { UpdateUserController } from "./controllers/update-user.controller";
 import { ListAppointmentsController } from "./controllers/list-appointments.controller";
 import { ListCalendarAppointmentsController } from "./controllers/list-calendar-appointments.controller";
 import { ListCustomerOptionsController } from "./controllers/list-customer-options.controller";
@@ -84,10 +92,9 @@ import { UpdateAppointmentStatusController } from "./controllers/update-appointm
 import { UpdateCustomerController } from "./controllers/update-customer.controller";
 import { UpdateCustomerVehicleController } from "./controllers/update-customer-vehicle.controller";
 import { UpdateEmployeeController } from "./controllers/update-employee.controller";
-import { UploadCustomerProfileImageController } from "./controllers/media/upload-customer-profile-image.controller";
-import { UploadEmployeeProfileImageController } from "./controllers/media/upload-employee-profile-image.controller";
 import { UploadEstablishmentBannerImageController } from "./controllers/media/upload-establishment-banner-image.controller";
 import { UploadVehicleImageController } from "./controllers/media/upload-vehicle-image.controller";
+import { UploadUserProfileImageController } from "./controllers/upload-user-profile-image.controller";
 
 @Module({
   imports: [AuthModule, DatabaseModule, StorageModule],
@@ -98,9 +105,13 @@ import { UploadVehicleImageController } from "./controllers/media/upload-vehicle
     RefreshSessionController,
     SignOutController,
     GetMeController,
-    ListEstablishmentServicesController,
+    UpdateUserController,
+    UploadUserProfileImageController,
+    GetEstablishmentController,
+    UpdateEstablishmentController,
     ListAllServicesController,
     ListServiceOptionsController,
+    ListEstablishmentServicesController,
     CreateServiceController,
     UpdateServiceController,
     DeleteServiceController,
@@ -130,8 +141,6 @@ import { UploadVehicleImageController } from "./controllers/media/upload-vehicle
     ListEmployeesController,
     UpdateEmployeeController,
     DeleteEmployeeController,
-    UploadEmployeeProfileImageController,
-    UploadCustomerProfileImageController,
     UploadVehicleImageController,
     UploadEstablishmentBannerImageController,
   ],
@@ -174,10 +183,15 @@ import { UploadVehicleImageController } from "./controllers/media/upload-vehicle
     UploadDomainImageUseCase,
     AuthSessionService,
     EstablishmentScopeService,
+    UserEstablishmentResolver,
     LoginWithCredentialsUseCase,
     RefreshSessionUseCase,
     SignOutUseCase,
     GetMeUseCase,
+    UpdateUserUseCase,
+    UploadUserProfileImageUseCase,
+    GetEstablishmentUseCase,
+    UpdateEstablishmentUseCase,
     SessionCreationService,
   ],
 })

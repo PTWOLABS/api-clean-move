@@ -130,9 +130,12 @@ export class CreateQuoteUseCase {
         customerId: customerResult.value.customerId,
         vehicleId: vehicleResult.value.vehicleId,
         establishment: {
-          name: establishment.tradeName,
-          legalBusinessName: establishment.legalBusinessName,
-          cnpj: establishment.cnpj.toString(),
+          name: establishment.tradeName ?? owner.name,
+          legalBusinessName:
+            establishment.legalBusinessName ??
+            establishment.tradeName ??
+            owner.name,
+          cnpj: establishment.cnpj?.toString() ?? "",
           address: toAddressSnapshot(owner.address),
           bannerImageUrl: establishment.bannerImageUrl,
         },

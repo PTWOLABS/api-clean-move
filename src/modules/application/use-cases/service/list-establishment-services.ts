@@ -9,10 +9,16 @@ import {
   type ServiceFilters,
   ServicesRepository,
 } from "../../repositories/services-repository";
+import {
+  EstablishmentScopeActor,
+  EstablishmentScopeService,
+} from "../../services/establishment-scope";
+
+type ListEstablishmentServicesActor = EstablishmentScopeActor;
 
 type ListEstablishmentServicesUseCaseRequest = {
-  authenticatedUserId: string;
-  pathOwnerUserId: string;
+  actor: ListEstablishmentServicesActor;
+  establishmentId: string;
   filters?: ServiceFilters;
 };
 
@@ -29,27 +35,33 @@ export class ListEstablishmentServicesUseCase {
   constructor(
     private servicesRepository: ServicesRepository,
     private establishmentsRepository: EstablishmentsRepository,
+    private establishmentScope: EstablishmentScopeService,
   ) {}
 
   async execute({
-    authenticatedUserId,
-    pathOwnerUserId,
+    actor,
+    establishmentId,
     filters,
   }: ListEstablishmentServicesUseCaseRequest): Promise<ListEstablishmentServicesUseCaseResponse> {
-    if (authenticatedUserId !== pathOwnerUserId) {
-      return left(new NotAllowedError());
-    }
-
     const establishment =
-      await this.establishmentsRepository.findByOwnerId(pathOwnerUserId);
+      await this.establishmentsRepository.findById(establishmentId);
 
     if (!establishment) {
       return left(new ResourceNotFoundError({ resource: "establishment" }));
     }
 
+    const scope = await this.establishmentScope.resolve(actor);
+    if (scope.isLeft()) {
+      return left(scope.value);
+    }
+
+    if (!scope.value.establishment.id.equals(establishment.id)) {
+      return left(new NotAllowedError());
+    }
+
     const { items, totalItems } =
       await this.servicesRepository.findManyByEstablishmentId(
-        establishment.id.toString(),
+        establishmentId,
         filters,
       );
 

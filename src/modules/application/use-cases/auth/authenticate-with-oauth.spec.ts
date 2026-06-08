@@ -1,18 +1,31 @@
 import { Email } from "../../../accounts/domain/value-objects/email";
 import { OAuthEmailNotVerifiedError } from "../../../../shared/errors/oauth-email-not-verified-error";
 import { makeUser } from "../../../../../tests/factories/user-factory";
+import { InMemoryEstablishmentsRepository } from "../../../../../tests/repositories/in-memory-establishment-repository";
+import { InMemoryServicesRepository } from "../../../../../tests/repositories/in-memory-services-repository";
+import { InMemoryUnitOfWork } from "../../../../../tests/repositories/in-memory-unit-of-work";
 import { InMemoryUsersRepository } from "../../../../../tests/repositories/in-memory-users-repository";
 import { AuthenticateWithOAuthUseCase } from "./authenticate-with-oauth";
 
 let inMemoryUsersRepository: InMemoryUsersRepository;
+let inMemoryEstablishmentsRepository: InMemoryEstablishmentsRepository;
+let inMemoryUnitOfWork: InMemoryUnitOfWork;
 
 let sut: AuthenticateWithOAuthUseCase;
 
 describe("Authenticate with OAuth", () => {
   beforeEach(() => {
     inMemoryUsersRepository = new InMemoryUsersRepository();
+    inMemoryEstablishmentsRepository = new InMemoryEstablishmentsRepository(
+      new InMemoryServicesRepository(),
+    );
+    inMemoryUnitOfWork = new InMemoryUnitOfWork();
 
-    sut = new AuthenticateWithOAuthUseCase(inMemoryUsersRepository);
+    sut = new AuthenticateWithOAuthUseCase(
+      inMemoryUsersRepository,
+      inMemoryEstablishmentsRepository,
+      inMemoryUnitOfWork,
+    );
   });
 
   it("should reject when email is not verified", async () => {
@@ -51,7 +64,7 @@ describe("Authenticate with OAuth", () => {
     expect(result.value.user).toBe(user);
   });
 
-  it("should link provider when user exists by email", async () => {
+  it("should link provider when user exists by email without creating establishment", async () => {
     const user = makeUser("CUSTOMER", {
       email: new Email("john@example.com"),
       socialAccounts: [],
@@ -65,6 +78,7 @@ describe("Authenticate with OAuth", () => {
       email: new Email("john@example.com"),
       emailVerified: true,
       name: "John Doe",
+      roleForNewUser: "ESTABLISHMENT",
     });
 
     expect(result.isRight()).toBe(true);
@@ -76,15 +90,17 @@ describe("Authenticate with OAuth", () => {
     expect(result.value.user.socialAccounts).toEqual([
       { provider: "GOOGLE", subjectId: "google-sub-new" },
     ]);
+    expect(inMemoryEstablishmentsRepository.items).toHaveLength(0);
   });
 
-  it("should create incomplete user when no match", async () => {
+  it("should create customer user only when role is CUSTOMER", async () => {
     const result = await sut.execute({
       provider: "GOOGLE",
       subjectId: "google-brand-new",
       email: new Email("newuser@example.com"),
       emailVerified: true,
       name: "New User",
+      roleForNewUser: "CUSTOMER",
     });
 
     expect(result.isRight()).toBe(true);
@@ -95,13 +111,38 @@ describe("Authenticate with OAuth", () => {
 
     const { user } = result.value;
 
-    expect(user.hashedPassword).toBeNull();
-    expect(user.phone).toBeNull();
-    expect(user.address).toBeNull();
-    expect(user.isProfileComplete()).toBe(false);
-    expect(user.socialAccounts).toEqual([
-      { provider: "GOOGLE", subjectId: "google-brand-new" },
-    ]);
+    expect(user.role).toBe("CUSTOMER");
+    expect(user.profileImageUrl).toBeNull();
     expect(inMemoryUsersRepository.items).toHaveLength(1);
+    expect(inMemoryEstablishmentsRepository.items).toHaveLength(0);
+  });
+
+  it("should create establishment draft when role is ESTABLISHMENT", async () => {
+    const result = await sut.execute({
+      provider: "GOOGLE",
+      subjectId: "google-establishment-new",
+      email: new Email("owner@example.com"),
+      emailVerified: true,
+      name: "Owner User",
+      roleForNewUser: "ESTABLISHMENT",
+    });
+
+    expect(result.isRight()).toBe(true);
+
+    if (result.isLeft()) {
+      throw result.value;
+    }
+
+    const { user } = result.value;
+
+    expect(user.role).toBe("ESTABLISHMENT");
+    expect(user.profileImageUrl).toBeNull();
+    expect(inMemoryEstablishmentsRepository.items).toHaveLength(1);
+
+    const establishment = inMemoryEstablishmentsRepository.items[0];
+
+    expect(establishment?.ownerId.equals(user.id)).toBe(true);
+    expect(establishment?.tradeName).toBeNull();
+    expect(establishment?.cnpj).toBeNull();
   });
 });

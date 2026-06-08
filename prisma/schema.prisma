@@ -49,7 +49,6 @@ model Employee {
   id              String    @id @default(uuid()) @db.Uuid
   establishmentId String    @map("establishment_id") @db.Uuid
   userId          String    @unique @map("user_id") @db.Uuid
-  profileImageUrl String?   @map("profile_image_url")
   name            String?
   cpf             String?   @db.VarChar(11)
   birthDate       DateTime? @map("birth_date")
@@ -71,9 +70,10 @@ model User {
   name           String
   email          String   @unique
   hashedPassword String?  @map("hashed_password")
-  role           UserRole
-  phone          String?  @db.VarChar(11)
-  address        Json?
+  role            UserRole
+  profileImageUrl String?  @map("profile_image_url")
+  phone           String?  @db.VarChar(11)
+  address         Json?
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @default(now()) @updatedAt @map("updated_at")
 
@@ -135,7 +135,6 @@ model PasswordResetToken {
 model Customer {
   id              String    @id @default(uuid()) @db.Uuid
   establishmentId String    @map("establishment_id") @db.Uuid
-  profileImageUrl String?   @map("profile_image_url")
   cpfCnpj         String?   @map("cpf_cnpj") @db.VarChar(14)
   fullName        String    @map("full_name")
   phone           String    @db.VarChar(11)
@@ -190,12 +189,11 @@ model CustomerVehicle {
 model Establishment {
   id                String  @id @default(uuid()) @db.Uuid
   ownerId           String  @unique @map("owner_id") @db.Uuid
-  profileImageUrl   String? @map("profile_image_url")
   bannerImageUrl    String? @map("banner_image_url")
-  tradeName         String
-  legalBusinessName String
-  slug              String  @unique
-  cnpj              String  @unique @db.VarChar(14)
+  tradeName         String?
+  legalBusinessName String?
+  slug              String? @unique
+  cnpj              String? @unique @db.VarChar(14)
 
   owner        User              @relation("EstablishmentOwner", fields: [ownerId], references: [id], onDelete: Restrict)
   services     Service[]

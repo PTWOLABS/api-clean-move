@@ -107,7 +107,6 @@ describe("EmployeeFeaturesGuard", () => {
       Employee.restore({
         establishmentId: new UniqueEntityId(),
         userId,
-        profileImageUrl: null,
         name: "Ana Silva",
         cpf: null,
         birthDate: null,

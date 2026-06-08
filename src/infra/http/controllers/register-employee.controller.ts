@@ -22,6 +22,7 @@ import {
 } from "@nestjs/swagger";
 import z from "zod";
 import { RegisterEmployeeUseCase } from "../../../modules/application/use-cases/employee/register-employee";
+import { UsersRepository } from "../../../modules/application/repositories/users-repository";
 import { InvalidRegisterEmployeeInputError } from "../../../modules/employees/domain/errors/invalid-register-employee-input-error";
 import { ALLOWED_EXTRA_EMPLOYEE_FEATURES } from "../../../modules/employees/domain/policies/employee-features-policy";
 import { ResourceAlreadyExistsError } from "../../../shared/errors/resource-already-exists-error";
@@ -62,7 +63,10 @@ type RegisterEmployeeBodySchema = z.infer<typeof registerEmployeeBodySchema>;
 @Controller("/employees")
 @Roles(["ESTABLISHMENT"])
 export class RegisterEmployeeController {
-  constructor(private readonly registerEmployee: RegisterEmployeeUseCase) {}
+  constructor(
+    private readonly registerEmployee: RegisterEmployeeUseCase,
+    private readonly usersRepository: UsersRepository,
+  ) {}
 
   @Post()
   @ApiOperation({
@@ -125,8 +129,15 @@ export class RegisterEmployeeController {
       }
     }
 
+    const employee = result.value.employee;
+    const employeeUser = await this.usersRepository.findById(
+      employee.userId.toString(),
+    );
+
     return {
-      employee: EmployeePresenter.toHTTP(result.value.employee),
+      employee: EmployeePresenter.toHTTP(employee, {
+        profileImageUrl: employeeUser?.profileImageUrl ?? null,
+      }),
     };
   }
 }

@@ -66,6 +66,31 @@ export class PrismaUsersRepository implements UsersRepository {
     }
   }
 
+  async findManyByIds(userIds: string[]): Promise<User[]> {
+    if (userIds.length === 0) {
+      return [];
+    }
+
+    try {
+      const users = await PrismaUnitOfWork.getClient(this.prisma).user.findMany(
+        {
+          where: {
+            id: {
+              in: userIds,
+            },
+          },
+          include: {
+            socialAccounts: true,
+          },
+        },
+      );
+
+      return users.map((user) => PrismaUserMapper.toDomain(user));
+    } catch (error) {
+      rethrowPrismaRepositoryError(error);
+    }
+  }
+
   async findByProviderAndSubject(
     provider: OAuthProvider,
     subjectId: string,
@@ -126,6 +151,7 @@ export class PrismaUsersRepository implements UsersRepository {
             email: user.email.toString(),
             hashedPassword: user.hashedPassword,
             role: user.role,
+            profileImageUrl: user.profileImageUrl,
             phone: user.phone?.toString() ?? null,
             address,
             socialAccounts: {

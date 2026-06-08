@@ -73,6 +73,73 @@ export class RegisterEstablishmentResponseDto {
   establishmentId!: string;
 }
 
+export class EstablishmentDto {
+  @ApiProperty({ format: "uuid" })
+  id!: string;
+
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    example: "Clean Move",
+    description: "Trade name (nome fantasia).",
+  })
+  tradeName!: string | null;
+
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    example: "Clean Move Servicos LTDA",
+    description: "Legal business name (razão social).",
+  })
+  legalBusinessName!: string | null;
+
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    example: "61911322000187",
+    description: "CNPJ digits only.",
+  })
+  cnpj!: string | null;
+
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    example: "clean-move",
+    description: "Public slug.",
+  })
+  slug!: string | null;
+
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    example: "https://cdn.example.com/establishment-banner/uuid/banner.png",
+    description:
+      "Public banner image URL when set via POST /establishments/:establishmentId/banner-image.",
+  })
+  bannerImageUrl!: string | null;
+}
+
+export class GetEstablishmentResponseDto {
+  @ApiProperty({ type: EstablishmentDto })
+  establishment!: EstablishmentDto;
+}
+
+export class UpdateEstablishmentBodyDto {
+  @ApiPropertyOptional({ example: "Clean Move" })
+  tradeName?: string;
+
+  @ApiPropertyOptional({ example: "Clean Move Servicos LTDA" })
+  legalBusinessName?: string;
+
+  @ApiPropertyOptional({ example: "61911322000187" })
+  cnpj?: string;
+
+  @ApiPropertyOptional({ example: "clean-move" })
+  slug?: string;
+}
+
+export class UpdateEstablishmentResponseDto extends GetEstablishmentResponseDto {}
+
 export class RegisterEmployeeBodyDto {
   @ApiProperty({ example: "Ana Silva", minLength: 1 })
   name!: string;
@@ -121,7 +188,12 @@ export class EmployeeDto {
   @ApiProperty({ example: "b62c5971-4081-4d3d-8e5d-80722b926e4a" })
   userId!: string;
 
-  @ApiProperty({ type: String, nullable: true, example: null })
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    example: null,
+    description: "Profile image URL from the linked User account.",
+  })
   profileImageUrl!: string | null;
 
   @ApiProperty({ example: "Ana Silva" })
@@ -310,9 +382,6 @@ export class CustomerDto {
 
   @ApiProperty({ example: "2e11b57c-b96a-490a-9ae6-64ef2966fd84" })
   establishmentId!: string;
-
-  @ApiProperty({ type: String, example: null, nullable: true })
-  profileImageUrl!: string | null;
 
   @ApiProperty({ type: String, example: "52998224725", nullable: true })
   cpfCnpj!: string | null;

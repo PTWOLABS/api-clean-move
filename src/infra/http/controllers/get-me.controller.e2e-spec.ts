@@ -4,6 +4,7 @@ import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import z from "zod";
 
+import { EstablishmentFactory } from "../../../../tests/factories/establishment-factory";
 import { UserFactory } from "../../../../tests/factories/user-factory";
 import { HashGenerator } from "../../../modules/application/repositories/hash-generator";
 import { AppModule } from "../../app.module";
@@ -28,6 +29,8 @@ const getMeResponseSchema = z.object({
     name: z.string(),
     email: z.string(),
     role: z.enum(["CUSTOMER", "ESTABLISHMENT", "ADMIN", "EMPLOYEE"]),
+    profileImageUrl: z.string().nullable(),
+    establishmentId: z.uuid().nullable(),
     phone: z.string().nullable(),
     address: addressSchema.nullable(),
     socialAccounts: z.array(
@@ -47,6 +50,7 @@ describe("GetMeController (e2e)", () => {
   let prisma: PrismaService;
   let hashGenerator: HashGenerator;
   let userFactory: UserFactory;
+  let establishmentFactory: EstablishmentFactory;
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({
@@ -59,6 +63,7 @@ describe("GetMeController (e2e)", () => {
     prisma = moduleRef.get(PrismaService);
     hashGenerator = moduleRef.get(HashGenerator);
     userFactory = new UserFactory(prisma, hashGenerator);
+    establishmentFactory = new EstablishmentFactory(prisma);
   });
 
   afterAll(async () => {
@@ -96,5 +101,33 @@ describe("GetMeController (e2e)", () => {
 
     expect(JSON.stringify(response.body)).not.toContain("hashedPassword");
     expect("hashedPassword" in body.user).toBe(false);
+    expect(body.user.establishmentId).toBeNull();
+  });
+
+  it("should return establishment id for establishment owner with oauth draft", async () => {
+    const { user, plainPassword } = await userFactory.makePrismaUser({
+      role: "ESTABLISHMENT",
+      plainPassword: "strong-password",
+    });
+    const establishment =
+      await establishmentFactory.makePrismaOAuthDraftEstablishment({
+        ownerId: user.id,
+      });
+    const { loginBody } = await loginUser({
+      app,
+      prisma,
+      userId: user.id.toString(),
+      email: user.email.toString(),
+      password: plainPassword ?? "",
+    });
+
+    const response = await request(getHttpServer(app))
+      .get("/user/me")
+      .set("Authorization", `Bearer ${loginBody.accessToken}`);
+
+    expect(response.status).toBe(200);
+
+    const body = getMeResponseSchema.parse(response.body);
+    expect(body.user.establishmentId).toBe(establishment.id.toString());
   });
 });

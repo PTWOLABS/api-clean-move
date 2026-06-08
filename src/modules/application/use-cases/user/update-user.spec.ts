@@ -4,18 +4,30 @@ import { Phone } from "../../../accounts/domain/value-objects/phone";
 import { ResourceAlreadyExistsError } from "../../../../shared/errors/resource-already-exists-error";
 import { ResourceNotFoundError } from "../../../../shared/errors/resource-not-found-error";
 import { makeUser } from "../../../../../tests/factories/user-factory";
+import { InMemoryEmployeesRepository } from "../../../../../tests/repositories/in-memory-employees-repository";
+import { InMemoryEstablishmentsRepository } from "../../../../../tests/repositories/in-memory-establishment-repository";
+import { InMemoryServicesRepository } from "../../../../../tests/repositories/in-memory-services-repository";
 import { InMemoryUsersRepository } from "../../../../../tests/repositories/in-memory-users-repository";
+import { UserEstablishmentResolver } from "../../services/user-establishment-resolver";
 import { UpdateUserUseCase } from "./update-user";
 
 let inMemoryUsersRepository: InMemoryUsersRepository;
+let userEstablishmentResolver: UserEstablishmentResolver;
 
 let sut: UpdateUserUseCase;
 
 describe("Update user", () => {
   beforeEach(() => {
     inMemoryUsersRepository = new InMemoryUsersRepository();
+    userEstablishmentResolver = new UserEstablishmentResolver(
+      new InMemoryEstablishmentsRepository(new InMemoryServicesRepository()),
+      new InMemoryEmployeesRepository(),
+    );
 
-    sut = new UpdateUserUseCase(inMemoryUsersRepository);
+    sut = new UpdateUserUseCase(
+      inMemoryUsersRepository,
+      userEstablishmentResolver,
+    );
   });
 
   it("should be able to update an existing user", async () => {
@@ -59,6 +71,7 @@ describe("Update user", () => {
     expect(result.value.user.email.toString()).toBe("new-email@example.com");
     expect(result.value.user.phone!.toString()).toBe("21987654321");
     expect(result.value.user.address!.zipCode).toBe("22222-222");
+    expect(result.value.establishmentId).toBeNull();
     expect(inMemoryUsersRepository.items[0]).toBe(result.value.user);
   });
 

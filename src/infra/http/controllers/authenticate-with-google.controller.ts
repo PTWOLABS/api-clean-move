@@ -41,9 +41,12 @@ import {
   RefreshTokenCookieService,
 } from "../../auth/refresh-token-cookie.service";
 
-const authenticateWithGoogleBodySchema = z.object({
-  idToken: z.string().trim().min(1),
-});
+const authenticateWithGoogleBodySchema = z
+  .object({
+    idToken: z.string().trim().min(1),
+    role: z.enum(["CUSTOMER", "ESTABLISHMENT"]),
+  })
+  .strict();
 
 type AuthenticateWithGoogleBodySchema = z.infer<
   typeof authenticateWithGoogleBodySchema
@@ -152,6 +155,7 @@ export class AuthenticateWithGoogleController {
       subjectId: claims.subjectId,
       email,
       emailVerified: claims.emailVerified,
+      roleForNewUser: body.role,
       ...(claims.name ? { name: claims.name } : {}),
     });
 

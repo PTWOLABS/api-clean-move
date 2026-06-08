@@ -33,7 +33,7 @@ import { ListServicesResponseDto } from "../docs/domain-swagger.dto";
 import { ZodValidationPipe } from "../pipes/zod-validation.pipe";
 import { ServicePresenter } from "../presenters/service-presenter";
 
-const ownerIdParamSchema = z.uuid();
+const establishmentIdParamSchema = z.uuid();
 
 const listServicesQuerySchema = z.object({
   name: z.string().trim().optional(),
@@ -68,8 +68,8 @@ function buildServiceFiltersFromQuery(
 
 @ApiTags("service")
 @ApiBearerAuth("access-token")
-@Controller("/establishments/:ownerId")
-@Roles(["ESTABLISHMENT"])
+@Controller("/services/:establishmentId")
+@Roles(["ESTABLISHMENT", "EMPLOYEE"])
 export class ListEstablishmentServicesController {
   constructor(
     private readonly listEstablishmentServices: ListEstablishmentServicesUseCase,
@@ -77,15 +77,14 @@ export class ListEstablishmentServicesController {
 
   @Get()
   @ApiOperation({
-    summary: "List services for the establishment owned by a user id.",
+    summary: "List services for an establishment (backoffice).",
     description:
-      "The path parameter is the establishment owner's user id (UUID). It must match the authenticated user. The API resolves the establishment via findByOwnerId and returns its services. Omit query param isActive to include active and inactive services.",
+      "Lists services for the establishment id in the path. The authenticated user must be the owner or an employee of that establishment. Omit query param isActive to include active and inactive services.",
   })
   @ApiParam({
-    name: "ownerId",
+    name: "establishmentId",
     format: "uuid",
-    description:
-      "User id of the establishment owner (must match the access token subject).",
+    description: "Establishment id from GET /user/me (establishmentId).",
   })
   @ApiQuery({
     name: "name",
@@ -116,31 +115,33 @@ export class ListEstablishmentServicesController {
     description: "Services listed successfully.",
     type: ListServicesResponseDto,
   })
-  @ApiBadRequestResponse({ description: "Invalid query parameters." })
+  @ApiBadRequestResponse({ description: "Invalid path or query parameters." })
   @ApiUnauthorizedResponse({
     description: "Missing or invalid access token.",
   })
   @ApiForbiddenResponse({
     description:
-      "Path owner id does not match the authenticated user, or access is not allowed.",
+      "Authenticated user is not allowed to list services for this establishment.",
   })
   @ApiNotFoundResponse({
-    description:
-      "No establishment found for the given owner user id, or resource not found.",
+    description: "Establishment not found.",
   })
   @ApiInternalServerErrorResponse({
     description: "Unexpected failure while listing services.",
   })
   async handle(
     @CurrentUser() user: AuthenticatedUser,
-    @Param("ownerId", new ZodValidationPipe(ownerIdParamSchema))
-    ownerId: string,
+    @Param("establishmentId", new ZodValidationPipe(establishmentIdParamSchema))
+    establishmentId: string,
     @Query(new ZodValidationPipe(listServicesQuerySchema))
     query: ListServicesQuerySchema,
   ) {
     const result = await this.listEstablishmentServices.execute({
-      authenticatedUserId: user.userId,
-      pathOwnerUserId: ownerId,
+      actor: {
+        userId: user.userId,
+        role: user.role,
+      },
+      establishmentId,
       filters: buildServiceFiltersFromQuery(query),
     });
 
