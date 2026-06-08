@@ -7,11 +7,13 @@ import { InMemoryEmployeesRepository } from "../../../../../tests/repositories/i
 import { InMemoryEstablishmentsRepository } from "../../../../../tests/repositories/in-memory-establishment-repository";
 import { InMemoryServicesRepository } from "../../../../../tests/repositories/in-memory-services-repository";
 import { InMemoryUsersRepository } from "../../../../../tests/repositories/in-memory-users-repository";
+import { UserEstablishmentResolver } from "../../services/user-establishment-resolver";
 import { GetMeUseCase } from "./get-me";
 
 let inMemoryUsersRepository: InMemoryUsersRepository;
 let inMemoryEstablishmentsRepository: InMemoryEstablishmentsRepository;
 let inMemoryEmployeesRepository: InMemoryEmployeesRepository;
+let userEstablishmentResolver: UserEstablishmentResolver;
 
 let sut: GetMeUseCase;
 
@@ -23,11 +25,12 @@ describe("Get me", () => {
     );
     inMemoryEmployeesRepository = new InMemoryEmployeesRepository();
 
-    sut = new GetMeUseCase(
-      inMemoryUsersRepository,
+    userEstablishmentResolver = new UserEstablishmentResolver(
       inMemoryEstablishmentsRepository,
       inMemoryEmployeesRepository,
     );
+
+    sut = new GetMeUseCase(inMemoryUsersRepository, userEstablishmentResolver);
   });
 
   it("should be able to get the authenticated user", async () => {

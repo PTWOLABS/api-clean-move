@@ -6,6 +6,7 @@ import { makeUser } from "../../../../../tests/factories/user-factory";
 import { InMemoryEmployeesRepository } from "../../../../../tests/repositories/in-memory-employees-repository";
 import { InMemoryEstablishmentsRepository } from "../../../../../tests/repositories/in-memory-establishment-repository";
 import { InMemoryServicesRepository } from "../../../../../tests/repositories/in-memory-services-repository";
+import { EstablishmentScopeService } from "../../services/establishment-scope";
 import { ListEstablishmentServicesUseCase } from "./list-establishment-services";
 import { ServiceName } from "../../../catalog/domain/value-objects/service-name";
 import { makeService } from "../../../../../tests/factories/service-factory";
@@ -13,6 +14,7 @@ import { makeService } from "../../../../../tests/factories/service-factory";
 let inMemoryServicesRepository: InMemoryServicesRepository;
 let inMemoryEstablishmentsRepository: InMemoryEstablishmentsRepository;
 let inMemoryEmployeesRepository: InMemoryEmployeesRepository;
+let establishmentScope: EstablishmentScopeService;
 let sut: ListEstablishmentServicesUseCase;
 
 describe("List establishment services (backoffice)", () => {
@@ -22,10 +24,14 @@ describe("List establishment services (backoffice)", () => {
       inMemoryServicesRepository,
     );
     inMemoryEmployeesRepository = new InMemoryEmployeesRepository();
+    establishmentScope = new EstablishmentScopeService(
+      inMemoryEstablishmentsRepository,
+      inMemoryEmployeesRepository,
+    );
     sut = new ListEstablishmentServicesUseCase(
       inMemoryServicesRepository,
       inMemoryEstablishmentsRepository,
-      inMemoryEmployeesRepository,
+      establishmentScope,
     );
   });
 

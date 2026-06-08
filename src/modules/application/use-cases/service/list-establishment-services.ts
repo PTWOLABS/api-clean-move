@@ -3,19 +3,18 @@ import { Injectable } from "@nestjs/common";
 import { Either, left, right } from "../../../../shared/either";
 import { NotAllowedError } from "../../../../shared/errors/not-allowed-error";
 import { ResourceNotFoundError } from "../../../../shared/errors/resource-not-found-error";
-import { UserRole } from "../../../accounts/domain/value-objects/user-role";
 import { Service } from "../../../catalog/domain/entities/services";
-import { EmployeesRepository } from "../../repositories/employees-repository";
 import { EstablishmentsRepository } from "../../repositories/establishment-repository";
 import {
   type ServiceFilters,
   ServicesRepository,
 } from "../../repositories/services-repository";
+import {
+  EstablishmentScopeActor,
+  EstablishmentScopeService,
+} from "../../services/establishment-scope";
 
-type ListEstablishmentServicesActor = {
-  userId: string;
-  role: UserRole;
-};
+type ListEstablishmentServicesActor = EstablishmentScopeActor;
 
 type ListEstablishmentServicesUseCaseRequest = {
   actor: ListEstablishmentServicesActor;
@@ -36,7 +35,7 @@ export class ListEstablishmentServicesUseCase {
   constructor(
     private servicesRepository: ServicesRepository,
     private establishmentsRepository: EstablishmentsRepository,
-    private employeesRepository: EmployeesRepository,
+    private establishmentScope: EstablishmentScopeService,
   ) {}
 
   async execute({
@@ -51,23 +50,12 @@ export class ListEstablishmentServicesUseCase {
       return left(new ResourceNotFoundError({ resource: "establishment" }));
     }
 
-    if (actor.role === "ESTABLISHMENT") {
-      if (establishment.ownerId.toString() !== actor.userId) {
-        return left(new NotAllowedError());
-      }
-    } else if (actor.role === "EMPLOYEE") {
-      const employee = await this.employeesRepository.findByUserId(
-        actor.userId,
-      );
+    const scope = await this.establishmentScope.resolve(actor);
+    if (scope.isLeft()) {
+      return left(scope.value);
+    }
 
-      if (
-        !employee ||
-        employee.isDeleted() ||
-        !employee.establishmentId.equals(establishment.id)
-      ) {
-        return left(new NotAllowedError());
-      }
-    } else {
+    if (!scope.value.establishment.id.equals(establishment.id)) {
       return left(new NotAllowedError());
     }
 

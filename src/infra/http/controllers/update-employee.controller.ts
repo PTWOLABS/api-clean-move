@@ -39,10 +39,6 @@ import {
 } from "../docs/domain-swagger.dto";
 import { ZodValidationPipe } from "../pipes/zod-validation.pipe";
 import { EmployeePresenter } from "../presenters/employee-presenter";
-import {
-  buildUserProfileImageUrlMap,
-  resolveEmployeeProfileImageUrl,
-} from "../helpers/resolve-employee-profile-image-url";
 
 const updateEmployeeBodySchema = z
   .object({
@@ -122,17 +118,13 @@ export class UpdateEmployeeController {
     }
 
     const employee = result.value.employee;
-    const users = await this.usersRepository.findManyByIds([
+    const employeeUser = await this.usersRepository.findById(
       employee.userId.toString(),
-    ]);
-    const profileImageUrlsByUserId = buildUserProfileImageUrlMap(users);
+    );
 
     return {
       employee: EmployeePresenter.toHTTP(employee, {
-        profileImageUrl: resolveEmployeeProfileImageUrl(
-          employee,
-          profileImageUrlsByUserId,
-        ),
+        profileImageUrl: employeeUser?.profileImageUrl ?? null,
       }),
     };
   }

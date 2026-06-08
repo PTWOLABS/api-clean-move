@@ -21,7 +21,6 @@ import {
   ApiUnauthorizedResponse,
 } from "@nestjs/swagger";
 import z from "zod";
-import { GetMeUseCase } from "../../../modules/application/use-cases/user/get-me";
 import { UpdateUserUseCase } from "../../../modules/application/use-cases/user/update-user";
 import { InvalidUserUpdateInputError } from "../../../modules/application/use-cases/user/update-user";
 import { ResourceAlreadyExistsError } from "../../../shared/errors/resource-already-exists-error";
@@ -65,10 +64,7 @@ type UpdateUserBodySchema = z.infer<typeof updateUserBodySchema>;
 @ApiBearerAuth("access-token")
 @Controller("user")
 export class UpdateUserController {
-  constructor(
-    private readonly updateUser: UpdateUserUseCase,
-    private readonly getMe: GetMeUseCase,
-  ) {}
+  constructor(private readonly updateUser: UpdateUserUseCase) {}
 
   @Patch("me")
   @HttpCode(200)
@@ -108,17 +104,9 @@ export class UpdateUserController {
       this.mapUserError(userResult.value);
     }
 
-    const getMeResult = await this.getMe.execute({
-      userId: authenticatedUser.userId,
-    });
-
-    if (getMeResult.isLeft()) {
-      this.mapUserError(getMeResult.value);
-    }
-
     return {
-      user: UserPresenter.toHTTP(getMeResult.value.user, {
-        establishmentId: getMeResult.value.establishmentId,
+      user: UserPresenter.toHTTP(userResult.value.user, {
+        establishmentId: userResult.value.establishmentId,
       }),
     };
   }
