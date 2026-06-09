@@ -39,10 +39,6 @@ import {
   CompleteOnboardingResponseDto,
 } from "../docs/domain-swagger.dto";
 import { ZodValidationPipe } from "../pipes/zod-validation.pipe";
-import { CustomerPresenter } from "../presenters/customer-presenter";
-import { CustomerVehiclePresenter } from "../presenters/customer-vehicle-presenter";
-import { EstablishmentPresenter } from "../presenters/establishment-presenter";
-import { ServicePresenter } from "../presenters/service-presenter";
 
 const serviceCategories = [
   "WASH",
@@ -113,12 +109,22 @@ const onboardingBodySchema = z
       })
       .strict()
       .optional(),
+    appointment: z
+      .object({
+        startsAt: z.coerce.date().optional(),
+        endsAt: z.coerce.date().optional().nullable(),
+        description: z.string().trim().optional().nullable(),
+        discountInCents: z.number().int().nonnegative().optional().nullable(),
+      })
+      .strict()
+      .optional(),
   })
   .strict()
   .superRefine((body, ctx) => {
     const hasServiceData = hasAnyProvidedValue(body.service);
     const hasCustomerData = hasAnyProvidedValue(body.customer);
     const hasVehicleData = hasAnyProvidedValue(body.vehicle);
+    const hasAppointmentData = hasAnyProvidedValue(body.appointment);
 
     if (hasServiceData) {
       if (body.service?.serviceName === undefined) {
@@ -179,6 +185,32 @@ const onboardingBodySchema = z
         });
       }
     }
+
+    if (hasAppointmentData) {
+      if (!hasServiceData || !hasCustomerData) {
+        ctx.addIssue({
+          code: "custom",
+          message: "Appointment data requires service and customer data.",
+          path: ["appointment"],
+        });
+      }
+
+      if (body.appointment?.startsAt === undefined) {
+        ctx.addIssue({
+          code: "custom",
+          message: "Required when appointment data is provided.",
+          path: ["appointment", "startsAt"],
+        });
+      }
+
+      if (body.service?.isActive === false) {
+        ctx.addIssue({
+          code: "custom",
+          message: "Appointment data requires an active service.",
+          path: ["service", "isActive"],
+        });
+      }
+    }
   });
 
 type OnboardingBodySchema = z.infer<typeof onboardingBodySchema>;
@@ -233,6 +265,9 @@ export class CompleteOnboardingController {
       ...(body.service !== undefined ? { service: body.service } : {}),
       ...(body.customer !== undefined ? { customer: body.customer } : {}),
       ...(body.vehicle !== undefined ? { vehicle: body.vehicle } : {}),
+      ...(body.appointment !== undefined
+        ? { appointment: body.appointment }
+        : {}),
     });
 
     if (result.isLeft()) {
@@ -253,16 +288,13 @@ export class CompleteOnboardingController {
     }
 
     return {
-      establishment: EstablishmentPresenter.toHTTP(result.value.establishment),
-      service: result.value.service
-        ? ServicePresenter.toHTTP(result.value.service)
-        : null,
-      customer: result.value.customer
-        ? CustomerPresenter.toHTTP(result.value.customer)
-        : null,
-      vehicle: result.value.vehicle
-        ? CustomerVehiclePresenter.toHTTP(result.value.vehicle)
-        : null,
+      onboarding: {
+        establishmentUpdated: hasAnyProvidedValue(body.establishment),
+        serviceCreated: result.value.service !== null,
+        customerCreated: result.value.customer !== null,
+        vehicleCreated: result.value.vehicle !== null,
+        appointmentCreated: result.value.appointment !== null,
+      },
     };
   }
 }

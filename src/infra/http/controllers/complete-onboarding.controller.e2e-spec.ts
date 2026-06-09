@@ -16,85 +16,14 @@ import { AppModule } from "../../app.module";
 import { PrismaService } from "../../database/prisma/prisma.service";
 import { EnvService } from "../../env/env.service";
 
-const serviceCategories = [
-  "WASH",
-  "SANITIZATION",
-  "AUTOMATIVE_DETAILING",
-  "PROTECTION",
-  "UPHOLSTERY",
-] as const;
-
 const onboardingResponseSchema = z.object({
-  establishment: z.object({
-    id: z.uuid(),
-    tradeName: z.string().nullable(),
-    legalBusinessName: z.string().nullable(),
-    cnpj: z.string().nullable(),
-    slug: z.string().nullable(),
-    bannerImageUrl: z.string().nullable(),
+  onboarding: z.object({
+    establishmentUpdated: z.boolean(),
+    serviceCreated: z.boolean(),
+    customerCreated: z.boolean(),
+    vehicleCreated: z.boolean(),
+    appointmentCreated: z.boolean(),
   }),
-  service: z
-    .object({
-      id: z.uuid(),
-      establishmentId: z.uuid(),
-      name: z.string(),
-      description: z.string().nullable(),
-      category: z.enum(serviceCategories).nullable(),
-      estimatedDuration: z
-        .object({
-          minInMinutes: z.number().int().positive(),
-          maxInMinutes: z.number().int().positive().nullable(),
-        })
-        .nullable(),
-      priceInCents: z.number().int().nonnegative(),
-      isActive: z.boolean(),
-      createdAt: z.string().nullable(),
-      updatedAt: z.string().nullable(),
-    })
-    .nullable(),
-  customer: z
-    .object({
-      id: z.uuid(),
-      establishmentId: z.uuid(),
-      cpfCnpj: z.string().nullable(),
-      documentType: z.enum(["CPF", "CNPJ"]).nullable(),
-      fullName: z.string(),
-      phone: z.string(),
-      email: z.email().nullable(),
-      address: z
-        .object({
-          street: z.string(),
-          complement: z.string().optional(),
-          country: z.string(),
-          state: z.string(),
-          zipCode: z.string(),
-          city: z.string(),
-        })
-        .nullable(),
-      birthDate: z.string().nullable(),
-      nickname: z.string().nullable(),
-      deletedAt: z.string().nullable(),
-      createdAt: z.string().nullable(),
-      updatedAt: z.string().nullable(),
-    })
-    .nullable(),
-  vehicle: z
-    .object({
-      id: z.uuid(),
-      establishmentId: z.uuid(),
-      customerId: z.uuid(),
-      imageUrl: z.string().nullable(),
-      plate: z.string().nullable(),
-      brand: z.string().nullable(),
-      model: z.string().nullable(),
-      color: z.string().nullable(),
-      year: z.number().int().nullable(),
-      notes: z.string().nullable(),
-      deletedAt: z.string().nullable(),
-      createdAt: z.string().nullable(),
-      updatedAt: z.string().nullable(),
-    })
-    .nullable(),
 });
 
 function makeOnboardingPayload() {
@@ -128,6 +57,12 @@ function makeOnboardingPayload() {
       color: "Prata",
       year: 2022,
       notes: "Veiculo principal",
+    },
+    appointment: {
+      startsAt: "2026-06-10T14:00:00.000Z",
+      endsAt: "2026-06-10T15:00:00.000Z",
+      description: "Primeiro atendimento",
+      discountInCents: 500,
     },
   };
 }
@@ -173,23 +108,13 @@ describe("CompleteOnboardingController (e2e)", () => {
     const body = onboardingResponseSchema.parse(response.body);
 
     expect(response.status).toBe(201);
-    expect(body.establishment.id).toBe(establishment.id.toString());
-    expect(body.establishment.tradeName).toBe("Clean Move");
-    expect(body.establishment.legalBusinessName).toBe(
-      "Clean Move Servicos LTDA",
-    );
-    expect(body.establishment.cnpj).toBe("61911322000187");
-    expect(body.service?.establishmentId).toBe(establishment.id.toString());
-    expect(body.service?.name).toBe("Lavagem premium");
-    expect(body.service?.priceInCents).toBe(3000);
-    expect(body.service?.estimatedDuration).toEqual({
-      minInMinutes: 30,
-      maxInMinutes: 60,
+    expect(body.onboarding).toEqual({
+      establishmentUpdated: true,
+      serviceCreated: true,
+      customerCreated: true,
+      vehicleCreated: true,
+      appointmentCreated: true,
     });
-    expect(body.customer?.fullName).toBe("Maria Silva");
-    expect(body.customer?.phone).toBe("11999999999");
-    expect(body.vehicle?.customerId).toBe(body.customer?.id);
-    expect(body.vehicle?.plate).toBe("ABC1D23");
 
     expect(
       await prisma.service.count({
@@ -206,16 +131,53 @@ describe("CompleteOnboardingController (e2e)", () => {
         where: { establishmentId: establishment.id.toString() },
       }),
     ).toBe(1);
+    expect(
+      await prisma.appointment.count({
+        where: { establishmentId: establishment.id.toString() },
+      }),
+    ).toBe(1);
+
+    const updatedEstablishment = await prisma.establishment.findUnique({
+      where: { id: establishment.id.toString() },
+    });
+    const createdService = await prisma.service.findFirst({
+      where: { establishmentId: establishment.id.toString() },
+    });
+    const createdCustomer = await prisma.customer.findFirst({
+      where: { establishmentId: establishment.id.toString() },
+    });
+    const createdVehicle = await prisma.customerVehicle.findFirst({
+      where: { establishmentId: establishment.id.toString() },
+    });
+    const createdAppointment = await prisma.appointment.findFirst({
+      where: { establishmentId: establishment.id.toString() },
+      include: { bookedServices: true },
+    });
+
+    expect(updatedEstablishment?.tradeName).toBe("Clean Move");
+    expect(updatedEstablishment?.legalBusinessName).toBe(
+      "Clean Move Servicos LTDA",
+    );
+    expect(updatedEstablishment?.cnpj).toBe("61911322000187");
+    expect(createdService?.serviceName).toBe("Lavagem premium");
+    expect(createdCustomer?.fullName).toBe("Maria Silva");
+    expect(createdVehicle?.customerId).toBe(createdCustomer?.id);
+    expect(createdAppointment?.customerId).toBe(createdCustomer?.id);
+    expect(createdAppointment?.vehicleId).toBe(createdVehicle?.id);
+    expect(createdAppointment?.bookedServices[0]?.serviceId).toBe(
+      createdService?.id,
+    );
   });
 
   it("should skip optional resource creation when sections are omitted or empty", async () => {
-    const { accessToken, establishment } = await makeEstablishmentAccessToken({
-      app,
-      prisma,
-      userFactory,
-      establishmentFactory,
-      envService,
-    });
+    const { accessToken, establishment: _ } =
+      await makeEstablishmentAccessToken({
+        app,
+        prisma,
+        userFactory,
+        establishmentFactory,
+        envService,
+      });
 
     const response = await request(getHttpServer(app))
       .post("/onboarding")
@@ -224,14 +186,18 @@ describe("CompleteOnboardingController (e2e)", () => {
         service: {},
         customer: {},
         vehicle: {},
+        appointment: {},
       });
     const body = onboardingResponseSchema.parse(response.body);
 
     expect(response.status).toBe(201);
-    expect(body.establishment.id).toBe(establishment.id.toString());
-    expect(body.service).toBeNull();
-    expect(body.customer).toBeNull();
-    expect(body.vehicle).toBeNull();
+    expect(body.onboarding).toEqual({
+      establishmentUpdated: false,
+      serviceCreated: false,
+      customerCreated: false,
+      vehicleCreated: false,
+      appointmentCreated: false,
+    });
   });
 
   it("should reject service data without the required service fields", async () => {
@@ -293,6 +259,48 @@ describe("CompleteOnboardingController (e2e)", () => {
           email: "maria@example.com",
         },
       });
+
+    expect(response.status).toBe(400);
+  });
+
+  it("should reject appointment data without service and customer data", async () => {
+    const { accessToken } = await makeEstablishmentAccessToken({
+      app,
+      prisma,
+      userFactory,
+      establishmentFactory,
+      envService,
+    });
+
+    const response = await request(getHttpServer(app))
+      .post("/onboarding")
+      .set("Authorization", `Bearer ${accessToken}`)
+      .send({
+        appointment: {
+          startsAt: "2026-06-10T14:00:00.000Z",
+        },
+      });
+
+    expect(response.status).toBe(400);
+  });
+
+  it("should reject appointment data without startsAt", async () => {
+    const { accessToken } = await makeEstablishmentAccessToken({
+      app,
+      prisma,
+      userFactory,
+      establishmentFactory,
+      envService,
+    });
+
+    const payload = makeOnboardingPayload();
+    delete (payload.appointment as Partial<typeof payload.appointment>)
+      .startsAt;
+
+    const response = await request(getHttpServer(app))
+      .post("/onboarding")
+      .set("Authorization", `Bearer ${accessToken}`)
+      .send(payload);
 
     expect(response.status).toBe(400);
   });
