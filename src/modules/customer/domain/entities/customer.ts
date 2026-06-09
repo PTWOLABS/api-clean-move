@@ -13,7 +13,7 @@ export type CustomerProps = {
   cpfCnpj: CustomerDocument | null;
   fullName: string;
   phone: Phone;
-  email: Email;
+  email: Email | null;
   address: Address | null;
   birthDate: Date | null;
   nickname: string | null;
@@ -95,7 +95,7 @@ export class Customer extends AggregateRoot<CustomerProps> {
     cpfCnpj?: CustomerDocument | string | null;
     fullName?: string;
     phone?: Phone;
-    email?: Email;
+    email?: Email | null;
     address?: Address | null;
     birthDate?: Date | null;
     nickname?: string | null;

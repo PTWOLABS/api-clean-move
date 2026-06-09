@@ -310,12 +310,13 @@ export class CreateCustomerBodyDto {
   })
   phone!: string;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     example: "maria@example.com",
     format: "email",
-    description: "Customer email address.",
+    nullable: true,
+    description: "Optional customer email address.",
   })
-  email!: string;
+  email?: string | null;
 
   @ApiPropertyOptional({
     type: AddressDto,
@@ -395,8 +396,8 @@ export class CustomerDto {
   @ApiProperty({ example: "11999999999" })
   phone!: string;
 
-  @ApiProperty({ example: "maria@example.com" })
-  email!: string;
+  @ApiProperty({ example: "maria@example.com", nullable: true })
+  email!: string | null;
 
   @ApiProperty({ type: AddressDto, nullable: true })
   address!: AddressDto | null;

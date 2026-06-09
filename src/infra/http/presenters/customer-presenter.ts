@@ -11,7 +11,7 @@ export class CustomerPresenter {
       documentType: customer.cpfCnpj?.type ?? null,
       fullName: customer.fullName,
       phone: customer.phone.toString(),
-      email: customer.email.toString(),
+      email: customer.email?.toString() ?? null,
       address: customer.address
         ? {
             street: customer.address.street,

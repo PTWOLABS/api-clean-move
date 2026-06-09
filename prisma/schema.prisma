@@ -138,7 +138,7 @@ model Customer {
   cpfCnpj         String?   @map("cpf_cnpj") @db.VarChar(14)
   fullName        String    @map("full_name")
   phone           String    @db.VarChar(11)
-  email           String
+  email           String?
   address         Json?
   birthDate       DateTime? @map("birth_date")
   nickname        String?
