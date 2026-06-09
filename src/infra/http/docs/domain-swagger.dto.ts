@@ -1251,6 +1251,43 @@ export class CompleteOnboardingVehicleBodyDto {
   notes?: string | null;
 }
 
+export class CompleteOnboardingAppointmentBodyDto {
+  @ApiPropertyOptional({
+    type: String,
+    example: "2026-04-22T14:00:00.000Z",
+    format: "date-time",
+    description:
+      "Required when any appointment data is provided. The appointment uses the service and customer created in this onboarding request.",
+  })
+  startsAt?: string;
+
+  @ApiPropertyOptional({
+    type: String,
+    example: "2026-04-22T14:45:00.000Z",
+    nullable: true,
+    format: "date-time",
+    description:
+      "Optional appointment end date-time. When provided, it must be after startsAt.",
+  })
+  endsAt?: string | null;
+
+  @ApiPropertyOptional({
+    type: String,
+    example: "Cliente prefere lavagem externa.",
+    nullable: true,
+  })
+  description?: string | null;
+
+  @ApiPropertyOptional({
+    type: Number,
+    example: 500,
+    nullable: true,
+    minimum: 0,
+    description: "Optional non-negative integer discount in cents.",
+  })
+  discountInCents?: number | null;
+}
+
 export class CompleteOnboardingBodyDto {
   @ApiPropertyOptional({
     type: CompleteOnboardingEstablishmentBodyDto,
@@ -1279,20 +1316,50 @@ export class CompleteOnboardingBodyDto {
       "Optional vehicle data. Requires customer data when any vehicle data is provided.",
   })
   vehicle?: CompleteOnboardingVehicleBodyDto;
+
+  @ApiPropertyOptional({
+    type: CompleteOnboardingAppointmentBodyDto,
+    description:
+      "Optional appointment data. Empty or omitted section is skipped; partial section requires startsAt, service data, and customer data in the same request.",
+  })
+  appointment?: CompleteOnboardingAppointmentBodyDto;
+}
+
+export class CompleteOnboardingSummaryDto {
+  @ApiProperty({
+    example: true,
+    description: "Whether establishment commercial data was updated.",
+  })
+  establishmentUpdated!: boolean;
+
+  @ApiProperty({
+    example: true,
+    description: "Whether a service was created.",
+  })
+  serviceCreated!: boolean;
+
+  @ApiProperty({
+    example: true,
+    description: "Whether a customer was created.",
+  })
+  customerCreated!: boolean;
+
+  @ApiProperty({
+    example: true,
+    description: "Whether a customer vehicle was created.",
+  })
+  vehicleCreated!: boolean;
+
+  @ApiProperty({
+    example: true,
+    description: "Whether an appointment was created.",
+  })
+  appointmentCreated!: boolean;
 }
 
 export class CompleteOnboardingResponseDto {
-  @ApiProperty({ type: EstablishmentDto })
-  establishment!: EstablishmentDto;
-
-  @ApiProperty({ type: ServiceDto, nullable: true })
-  service!: ServiceDto | null;
-
-  @ApiProperty({ type: CustomerDto, nullable: true })
-  customer!: CustomerDto | null;
-
-  @ApiProperty({ type: CustomerVehicleDto, nullable: true })
-  vehicle!: CustomerVehicleDto | null;
+  @ApiProperty({ type: CompleteOnboardingSummaryDto })
+  onboarding!: CompleteOnboardingSummaryDto;
 }
 
 export class UpdateServiceEstimatedDurationBodyDto {
