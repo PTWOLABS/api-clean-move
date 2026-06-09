@@ -39,6 +39,9 @@ import { InvalidCustomerInputError } from "../../../customer/domain/errors/inval
 import { InvalidCustomerDocumentError } from "../../../customer/domain/value-objects/customer-document";
 import { Establishment } from "../../../establishments/domain/entities/establishment";
 import { InvalidCnpjError } from "../../../establishments/domain/value-objects/cnpj";
+import { Appointment } from "../../../scheduling/domain/entities/appointment";
+import { InvalidAppointmentInputError } from "../../../scheduling/domain/errors/invalid-appointment-input-error";
+import { AppointmentsRepository } from "../../repositories/appointments-repository";
 import { CustomerVehiclesRepository } from "../../repositories/customer-vehicles-repository";
 import { CustomersRepository } from "../../repositories/customers-repository";
 import { EstablishmentsRepository } from "../../repositories/establishment-repository";
@@ -91,12 +94,20 @@ type OnboardingVehicleInput = {
   notes?: string | null | undefined;
 };
 
+type OnboardingAppointmentInput = {
+  startsAt?: Date | undefined;
+  endsAt?: Date | null | undefined;
+  description?: string | null | undefined;
+  discountInCents?: number | null | undefined;
+};
+
 type CompleteOnboardingUseCaseRequest = {
   establishmentOwnerId: string;
   establishment?: OnboardingEstablishmentInput | undefined;
   service?: OnboardingServiceInput | undefined;
   customer?: OnboardingCustomerInput | undefined;
   vehicle?: OnboardingVehicleInput | undefined;
+  appointment?: OnboardingAppointmentInput | undefined;
 };
 
 type CompleteOnboardingUseCaseResponse = Either<
@@ -109,6 +120,7 @@ type CompleteOnboardingUseCaseResponse = Either<
     service: Service | null;
     customer: Customer | null;
     vehicle: CustomerVehicle | null;
+    appointment: Appointment | null;
   }
 >;
 
@@ -120,6 +132,7 @@ export class CompleteOnboardingUseCase {
     private readonly servicesRepository: ServicesRepository,
     private readonly customersRepository: CustomersRepository,
     private readonly customerVehiclesRepository: CustomerVehiclesRepository,
+    private readonly appointmentsRepository: AppointmentsRepository,
   ) {}
 
   async execute(
@@ -129,13 +142,16 @@ export class CompleteOnboardingUseCase {
     const hasServiceData = hasAnyProvidedValue(request.service);
     const hasCustomerData = hasAnyProvidedValue(request.customer);
     const hasVehicleData = hasAnyProvidedValue(request.vehicle);
+    const hasAppointmentData = hasAnyProvidedValue(request.appointment);
 
     const validationError = this.validateConditionalPayload({
       hasServiceData,
       hasCustomerData,
       hasVehicleData,
+      hasAppointmentData,
       service: request.service,
       customer: request.customer,
+      appointment: request.appointment,
     });
 
     if (validationError) {
@@ -189,6 +205,7 @@ export class CompleteOnboardingUseCase {
 
         let customer: Customer | null = null;
         let vehicle: CustomerVehicle | null = null;
+        let appointment: Appointment | null = null;
 
         if (hasCustomerData && request.customer) {
           customer = await this.createCustomer(establishment, request.customer);
@@ -202,11 +219,22 @@ export class CompleteOnboardingUseCase {
           }
         }
 
+        if (hasAppointmentData && request.appointment && service && customer) {
+          appointment = await this.createAppointment({
+            establishment,
+            service,
+            customer,
+            vehicle,
+            appointmentInput: request.appointment,
+          });
+        }
+
         return right({
           establishment,
           service,
           customer,
           vehicle,
+          appointment,
         });
       });
     } catch (error) {
@@ -230,14 +258,18 @@ export class CompleteOnboardingUseCase {
     hasServiceData,
     hasCustomerData,
     hasVehicleData,
+    hasAppointmentData,
     service,
     customer,
+    appointment,
   }: {
     hasServiceData: boolean;
     hasCustomerData: boolean;
     hasVehicleData: boolean;
+    hasAppointmentData: boolean;
     service?: OnboardingServiceInput | undefined;
     customer?: OnboardingCustomerInput | undefined;
+    appointment?: OnboardingAppointmentInput | undefined;
   }) {
     if (hasServiceData) {
       if (
@@ -262,6 +294,26 @@ export class CompleteOnboardingUseCase {
       if (!customer?.fullName?.trim() || !customer.phone?.trim()) {
         return new InvalidOnboardingInputError(
           "Customer onboarding requires fullName and phone.",
+        );
+      }
+    }
+
+    if (hasAppointmentData) {
+      if (!hasServiceData || !hasCustomerData) {
+        return new InvalidOnboardingInputError(
+          "Appointment onboarding requires service and customer data.",
+        );
+      }
+
+      if (appointment?.startsAt === undefined) {
+        return new InvalidOnboardingInputError(
+          "Appointment onboarding requires startsAt.",
+        );
+      }
+
+      if (service?.isActive === false) {
+        return new InvalidOnboardingInputError(
+          "Appointment onboarding requires an active service.",
         );
       }
     }
@@ -360,11 +412,65 @@ export class CompleteOnboardingUseCase {
 
     return vehicle;
   }
+
+  private async createAppointment({
+    establishment,
+    service,
+    customer,
+    vehicle,
+    appointmentInput,
+  }: {
+    establishment: Establishment;
+    service: Service;
+    customer: Customer;
+    vehicle: CustomerVehicle | null;
+    appointmentInput: OnboardingAppointmentInput;
+  }) {
+    const appointment = Appointment.create({
+      establishmentId: establishment.id,
+      customerId: customer.id,
+      customer: {
+        fullName: customer.fullName,
+      },
+      vehicleId: vehicle?.id ?? null,
+      services: [
+        {
+          serviceId: service.id,
+          serviceName: service.serviceName.value,
+          category: service.category,
+          durationInMinutes: service.estimatedDuration?.upperBoundInMinutes,
+          priceInCents: service.price.amountInCents,
+        },
+      ],
+      vehicle: vehicle
+        ? {
+            plate: vehicle.plate,
+            brand: vehicle.brand,
+            model: vehicle.model,
+            color: vehicle.color,
+            year: vehicle.year,
+          }
+        : null,
+      startsAt: appointmentInput.startsAt!,
+      endsAt: appointmentInput.endsAt ?? null,
+      description: appointmentInput.description ?? null,
+      discountInCents:
+        appointmentInput.discountInCents !== undefined &&
+        appointmentInput.discountInCents !== null
+          ? Money.create(appointmentInput.discountInCents)
+          : null,
+    });
+
+    await this.appointmentsRepository.create(appointment);
+
+    return appointment;
+  }
 }
 
 function isKnownOnboardingInputError(error: unknown): error is Error {
   return (
     error instanceof InvalidAddressError ||
+    error instanceof InvalidAppointmentInputError ||
     error instanceof InvalidCnpjError ||
     error instanceof InvalidCustomerDocumentError ||
     error instanceof InvalidCustomerInputError ||

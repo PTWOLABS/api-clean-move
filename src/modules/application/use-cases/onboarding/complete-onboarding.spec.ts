@@ -5,6 +5,7 @@ import { ResourceNotFoundError } from "../../../../shared/errors/resource-not-fo
 import { makeCustomer } from "../../../../../tests/factories/customer-factory";
 import { makeCustomerVehicle } from "../../../../../tests/factories/customer-vehicle-factory";
 import { makeEstablishment } from "../../../../../tests/factories/establishment-factory";
+import { InMemoryAppointmentsRepository } from "../../../../../tests/repositories/in-memory-appointments-repository";
 import { InMemoryCustomerVehiclesRepository } from "../../../../../tests/repositories/in-memory-customer-vehicles-repository";
 import { InMemoryCustomersRepository } from "../../../../../tests/repositories/in-memory-customers-repository";
 import { InMemoryEstablishmentsRepository } from "../../../../../tests/repositories/in-memory-establishment-repository";
@@ -20,6 +21,7 @@ let inMemoryServicesRepository: InMemoryServicesRepository;
 let inMemoryCustomersRepository: InMemoryCustomersRepository;
 let inMemoryCustomerVehiclesRepository: InMemoryCustomerVehiclesRepository;
 let inMemoryEstablishmentsRepository: InMemoryEstablishmentsRepository;
+let inMemoryAppointmentsRepository: InMemoryAppointmentsRepository;
 let sut: CompleteOnboardingUseCase;
 
 describe("Complete onboarding", () => {
@@ -28,6 +30,9 @@ describe("Complete onboarding", () => {
     inMemoryServicesRepository = new InMemoryServicesRepository();
     inMemoryCustomersRepository = new InMemoryCustomersRepository();
     inMemoryCustomerVehiclesRepository = new InMemoryCustomerVehiclesRepository(
+      inMemoryCustomersRepository,
+    );
+    inMemoryAppointmentsRepository = new InMemoryAppointmentsRepository(
       inMemoryCustomersRepository,
     );
     inMemoryEstablishmentsRepository = new InMemoryEstablishmentsRepository(
@@ -40,6 +45,7 @@ describe("Complete onboarding", () => {
       inMemoryServicesRepository,
       inMemoryCustomersRepository,
       inMemoryCustomerVehiclesRepository,
+      inMemoryAppointmentsRepository,
     );
   });
 
@@ -80,6 +86,12 @@ describe("Complete onboarding", () => {
         year: 2022,
         notes: "Veiculo principal",
       },
+      appointment: {
+        startsAt: new Date("2026-06-10T14:00:00.000Z"),
+        endsAt: new Date("2026-06-10T15:00:00.000Z"),
+        description: "Primeiro atendimento",
+        discountInCents: 500,
+      },
     });
 
     expect(result.isRight()).toBe(true);
@@ -105,6 +117,22 @@ describe("Complete onboarding", () => {
     );
     expect(result.value.vehicle?.customerId).toEqual(result.value.customer?.id);
     expect(result.value.vehicle?.plate).toBe("ABC1D23");
+    expect(result.value.appointment).toBe(
+      inMemoryAppointmentsRepository.items[0],
+    );
+    expect(result.value.appointment?.customerId).toEqual(
+      result.value.customer?.id,
+    );
+    expect(result.value.appointment?.vehicleId).toEqual(
+      result.value.vehicle?.id,
+    );
+    expect(result.value.appointment?.services[0]?.serviceId).toEqual(
+      result.value.service?.id,
+    );
+    expect(result.value.appointment?.startsAt).toEqual(
+      new Date("2026-06-10T14:00:00.000Z"),
+    );
+    expect(result.value.appointment?.discountInCents?.amountInCents).toBe(500);
   });
 
   it("should skip optional resource creation when sections are empty or omitted", async () => {
@@ -116,6 +144,7 @@ describe("Complete onboarding", () => {
       service: {},
       customer: {},
       vehicle: {},
+      appointment: {},
     });
 
     expect(result.isRight()).toBe(true);
@@ -128,9 +157,11 @@ describe("Complete onboarding", () => {
     expect(result.value.service).toBeNull();
     expect(result.value.customer).toBeNull();
     expect(result.value.vehicle).toBeNull();
+    expect(result.value.appointment).toBeNull();
     expect(inMemoryServicesRepository.items).toHaveLength(0);
     expect(inMemoryCustomersRepository.items).toHaveLength(0);
     expect(inMemoryCustomerVehiclesRepository.items).toHaveLength(0);
+    expect(inMemoryAppointmentsRepository.items).toHaveLength(0);
   });
 
   it("should return not found when the owner has no establishment", async () => {
@@ -197,6 +228,79 @@ describe("Complete onboarding", () => {
     expect(result.isLeft()).toBe(true);
     expect(result.value).toBeInstanceOf(InvalidOnboardingInputError);
     expect(inMemoryCustomersRepository.items).toHaveLength(0);
+  });
+
+  it("should reject appointment data without service and customer data", async () => {
+    const establishment = makeEstablishment();
+    await inMemoryEstablishmentsRepository.create(establishment);
+
+    const result = await sut.execute({
+      establishmentOwnerId: establishment.ownerId.toString(),
+      appointment: {
+        startsAt: new Date("2026-06-10T14:00:00.000Z"),
+      },
+    });
+
+    expect(result.isLeft()).toBe(true);
+    expect(result.value).toBeInstanceOf(InvalidOnboardingInputError);
+    expect(inMemoryAppointmentsRepository.items).toHaveLength(0);
+  });
+
+  it("should reject appointment data without startsAt", async () => {
+    const establishment = makeEstablishment();
+    await inMemoryEstablishmentsRepository.create(establishment);
+
+    const result = await sut.execute({
+      establishmentOwnerId: establishment.ownerId.toString(),
+      service: {
+        serviceName: "Lavagem premium",
+        category: "WASH",
+        estimatedDuration: {
+          minInMinutes: 30,
+        },
+        price: 3000,
+      },
+      customer: {
+        fullName: "Maria Silva",
+        phone: "11999999999",
+      },
+      appointment: {
+        description: "Primeiro atendimento",
+      },
+    });
+
+    expect(result.isLeft()).toBe(true);
+    expect(result.value).toBeInstanceOf(InvalidOnboardingInputError);
+    expect(inMemoryAppointmentsRepository.items).toHaveLength(0);
+  });
+
+  it("should reject appointment data with inactive service", async () => {
+    const establishment = makeEstablishment();
+    await inMemoryEstablishmentsRepository.create(establishment);
+
+    const result = await sut.execute({
+      establishmentOwnerId: establishment.ownerId.toString(),
+      service: {
+        serviceName: "Lavagem premium",
+        category: "WASH",
+        estimatedDuration: {
+          minInMinutes: 30,
+        },
+        price: 3000,
+        isActive: false,
+      },
+      customer: {
+        fullName: "Maria Silva",
+        phone: "11999999999",
+      },
+      appointment: {
+        startsAt: new Date("2026-06-10T14:00:00.000Z"),
+      },
+    });
+
+    expect(result.isLeft()).toBe(true);
+    expect(result.value).toBeInstanceOf(InvalidOnboardingInputError);
+    expect(inMemoryAppointmentsRepository.items).toHaveLength(0);
   });
 
   it("should not update establishment when cnpj is already in use", async () => {
@@ -319,5 +423,34 @@ describe("Complete onboarding", () => {
     expect(result.isLeft()).toBe(true);
     expect(result.value).toBeInstanceOf(InvalidOnboardingInputError);
     expect(inMemoryCustomersRepository.items).toHaveLength(0);
+  });
+
+  it("should return invalid onboarding input for invalid appointment dates", async () => {
+    const establishment = makeEstablishment();
+    await inMemoryEstablishmentsRepository.create(establishment);
+
+    const result = await sut.execute({
+      establishmentOwnerId: establishment.ownerId.toString(),
+      service: {
+        serviceName: "Lavagem premium",
+        category: "WASH",
+        estimatedDuration: {
+          minInMinutes: 30,
+        },
+        price: 3000,
+      },
+      customer: {
+        fullName: "Maria Silva",
+        phone: "11999999999",
+      },
+      appointment: {
+        startsAt: new Date("2026-06-10T15:00:00.000Z"),
+        endsAt: new Date("2026-06-10T14:00:00.000Z"),
+      },
+    });
+
+    expect(result.isLeft()).toBe(true);
+    expect(result.value).toBeInstanceOf(InvalidOnboardingInputError);
+    expect(inMemoryAppointmentsRepository.items).toHaveLength(0);
   });
 });
