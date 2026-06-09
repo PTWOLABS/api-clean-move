@@ -76,7 +76,7 @@ export class InMemoryCustomersRepository implements CustomersRepository {
 
         const fullName = item.fullName.toLowerCase();
         const phone = item.phone.toString();
-        const email = item.email.toString().toLowerCase();
+        const email = item.email?.toString().toLowerCase() ?? "";
         const cpfCnpj = item.cpfCnpj?.toString() ?? "";
 
         return (

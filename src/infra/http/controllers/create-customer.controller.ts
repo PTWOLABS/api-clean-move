@@ -40,7 +40,7 @@ const createCustomerBodySchema = z.object({
   cpfCnpj: z.string().trim().optional().nullable(),
   fullName: z.string().trim().min(1),
   phone: z.string().trim().min(1),
-  email: z.email().trim(),
+  email: z.email().trim().optional().nullable(),
   address: z
     .object({
       street: z.string().trim().min(1),
@@ -105,7 +105,7 @@ export class CreateCustomerController {
       establishmentOwnerId: user.userId,
       fullName: body.fullName,
       phone: body.phone,
-      email: body.email,
+      ...(body.email !== undefined ? { email: body.email } : {}),
       ...(body.cpfCnpj !== undefined ? { cpfCnpj: body.cpfCnpj } : {}),
       ...(body.address !== undefined ? { address: body.address } : {}),
       ...(body.birthDate !== undefined ? { birthDate: body.birthDate } : {}),
