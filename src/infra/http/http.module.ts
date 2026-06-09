@@ -28,6 +28,7 @@ import { GetEmployeeUseCase } from "../../modules/application/use-cases/employee
 import { ListEmployeesUseCase } from "../../modules/application/use-cases/employee/list-employees";
 import { RegisterEmployeeUseCase } from "../../modules/application/use-cases/employee/register-employee";
 import { UpdateEmployeeUseCase } from "../../modules/application/use-cases/employee/update-employee";
+import { CompleteOnboardingUseCase } from "../../modules/application/use-cases/onboarding/complete-onboarding";
 import { GetEstablishmentUseCase } from "../../modules/application/use-cases/establishment/get-establishment";
 import { GetEstablishmentAppointmentsCountUseCase } from "../../modules/application/use-cases/establishment/get-establishment-appointments-count";
 import { GetEstablishmentCancellationRateUseCase } from "../../modules/application/use-cases/establishment/get-establishment-cancellation-rate";
@@ -52,6 +53,7 @@ import { AuthModule } from "../auth/auth.module";
 import { DatabaseModule } from "../database/database.module";
 import { StorageModule } from "../storage/storage.module";
 import { AuthenticateWithGoogleController } from "./controllers/authenticate-with-google.controller";
+import { CompleteOnboardingController } from "./controllers/complete-onboarding.controller";
 import { CreateAppointmentController } from "./controllers/create-appointment.controller";
 import { CreateCustomerController } from "./controllers/create-customer.controller";
 import { CreateCustomerVehicleController } from "./controllers/create-customer-vehicle.controller";
@@ -104,6 +106,7 @@ import { UploadUserProfileImageController } from "./controllers/upload-user-prof
     LoginWithCredentialsController,
     RefreshSessionController,
     SignOutController,
+    CompleteOnboardingController,
     GetMeController,
     UpdateUserController,
     UploadUserProfileImageController,
@@ -187,6 +190,7 @@ import { UploadUserProfileImageController } from "./controllers/upload-user-prof
     LoginWithCredentialsUseCase,
     RefreshSessionUseCase,
     SignOutUseCase,
+    CompleteOnboardingUseCase,
     GetMeUseCase,
     UpdateUserUseCase,
     UploadUserProfileImageUseCase,
