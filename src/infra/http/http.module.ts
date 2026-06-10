@@ -39,7 +39,9 @@ import { GetEstablishmentTopCustomersUseCase } from "../../modules/application/u
 import { RegisterEstablishmentUseCase } from "../../modules/application/use-cases/establishment/register-establishment";
 import { UpdateEstablishmentUseCase } from "../../modules/application/use-cases/establishment/update-establishment";
 import { UploadDomainImageUseCase } from "../../modules/application/use-cases/media/upload-domain-image";
+import { DeleteUserProfileImageUseCase } from "../../modules/application/use-cases/user/delete-user-profile-image";
 import { UploadUserProfileImageUseCase } from "../../modules/application/use-cases/user/upload-user-profile-image";
+import { DeleteEstablishmentBannerImageUseCase } from "../../modules/application/use-cases/media/delete-establishment-banner-image";
 import { CreateServiceUseCase } from "../../modules/application/use-cases/service/create-service";
 import { ListAllServicesUseCase } from "../../modules/application/use-cases/service/list-all-services";
 import { ListEstablishmentServicesUseCase } from "../../modules/application/use-cases/service/list-establishment-services";
@@ -96,7 +98,9 @@ import { UpdateCustomerVehicleController } from "./controllers/update-customer-v
 import { UpdateEmployeeController } from "./controllers/update-employee.controller";
 import { UploadEstablishmentBannerImageController } from "./controllers/media/upload-establishment-banner-image.controller";
 import { UploadVehicleImageController } from "./controllers/media/upload-vehicle-image.controller";
+import { DeleteUserProfileImageController } from "./controllers/delete-user-profile-image.controller";
 import { UploadUserProfileImageController } from "./controllers/upload-user-profile-image.controller";
+import { DeleteEstablishmentBannerImageController } from "./controllers/media/delete-establishment-banner-image.controller";
 
 @Module({
   imports: [AuthModule, DatabaseModule, StorageModule],
@@ -110,6 +114,7 @@ import { UploadUserProfileImageController } from "./controllers/upload-user-prof
     GetMeController,
     UpdateUserController,
     UploadUserProfileImageController,
+    DeleteUserProfileImageController,
     GetEstablishmentController,
     UpdateEstablishmentController,
     ListAllServicesController,
@@ -146,6 +151,7 @@ import { UploadUserProfileImageController } from "./controllers/upload-user-prof
     DeleteEmployeeController,
     UploadVehicleImageController,
     UploadEstablishmentBannerImageController,
+    DeleteEstablishmentBannerImageController,
   ],
   providers: [
     RegisterEstablishmentUseCase,
@@ -194,6 +200,8 @@ import { UploadUserProfileImageController } from "./controllers/upload-user-prof
     GetMeUseCase,
     UpdateUserUseCase,
     UploadUserProfileImageUseCase,
+    DeleteUserProfileImageUseCase,
+    DeleteEstablishmentBannerImageUseCase,
     GetEstablishmentUseCase,
     UpdateEstablishmentUseCase,
     SessionCreationService,

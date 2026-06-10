@@ -58,6 +58,10 @@ export class Establishment extends AggregateRoot<EstablishmentProps> {
     this.props.bannerImageUrl = normalized;
   }
 
+  clearBannerImageUrl() {
+    this.props.bannerImageUrl = null;
+  }
+
   updateCommercialProfile(data: EstablishmentCommercialProfileUpdate) {
     if (data.tradeName !== undefined) {
       const normalized = data.tradeName.trim();
