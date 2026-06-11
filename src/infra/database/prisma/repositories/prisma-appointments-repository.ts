@@ -248,11 +248,11 @@ export class PrismaAppointmentsRepository implements AppointmentsRepository {
           }
         : {}),
       ...PrismaAppointmentsRepository.buildStatusWhere(filters?.status),
-      ...(filters?.categories?.length
+      ...(filters?.categoryIds?.length
         ? {
             bookedServices: {
               some: {
-                serviceCategory: { in: filters.categories },
+                serviceCategoryId: { in: filters.categoryIds },
               },
             },
           }

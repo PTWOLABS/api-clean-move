@@ -7,9 +7,9 @@ import {
   AppointmentStatus,
   Prisma,
   PrismaClient,
-  ServiceCategory,
   UserRole,
 } from "../../generated/prisma/client";
+import { DEFAULT_SERVICE_CATEGORY_NAMES } from "../../modules/catalog/domain/constants/default-service-categories";
 
 const databaseUrl = process.env.DATABASE_URL;
 
@@ -25,8 +25,10 @@ const prisma = new PrismaClient({
 
 type ServiceSeedData = Omit<
   Prisma.ServiceUncheckedCreateInput,
-  "id" | "establishmentId" | "createdAt" | "updatedAt"
->;
+  "id" | "establishmentId" | "createdAt" | "updatedAt" | "categoryId"
+> & {
+  categoryName: string | null;
+};
 
 type CustomerSeedData = Omit<
   Prisma.CustomerUncheckedCreateInput,
@@ -76,7 +78,7 @@ const SERVICE_CATALOG: ServiceSeedData[] = [
     serviceName: "Lavagem Express",
     description:
       "Lavagem externa com secagem rápida para rotinas do dia a dia.",
-    category: ServiceCategory.WASH,
+    categoryName: "Lavagem",
     estimatedDurationMinInMinutes: 25,
     estimatedDurationMaxInMinutes: 35,
     priceInCents: 4500,
@@ -85,7 +87,7 @@ const SERVICE_CATALOG: ServiceSeedData[] = [
   {
     serviceName: "Lavagem Completa",
     description: "Lavagem externa e interna com aspiração e acabamento.",
-    category: ServiceCategory.WASH,
+    categoryName: "Lavagem",
     estimatedDurationMinInMinutes: 60,
     estimatedDurationMaxInMinutes: 90,
     priceInCents: 9500,
@@ -94,7 +96,7 @@ const SERVICE_CATALOG: ServiceSeedData[] = [
   {
     serviceName: "Lavagem Premium com Cera",
     description: "Lavagem detalhada com aplicação de cera líquida.",
-    category: ServiceCategory.WASH,
+    categoryName: "Lavagem",
     estimatedDurationMinInMinutes: 90,
     estimatedDurationMaxInMinutes: 120,
     priceInCents: 16000,
@@ -103,7 +105,7 @@ const SERVICE_CATALOG: ServiceSeedData[] = [
   {
     serviceName: "Lavagem de Motor",
     description: "Limpeza técnica do cofre do motor com proteção básica.",
-    category: ServiceCategory.WASH,
+    categoryName: "Lavagem",
     estimatedDurationMinInMinutes: 45,
     estimatedDurationMaxInMinutes: 60,
     priceInCents: 14000,
@@ -112,7 +114,7 @@ const SERVICE_CATALOG: ServiceSeedData[] = [
   {
     serviceName: "Higienização Interna",
     description: "Limpeza profunda de bancos, carpetes e painel.",
-    category: ServiceCategory.SANITIZATION,
+    categoryName: "Higienização",
     estimatedDurationMinInMinutes: 180,
     estimatedDurationMaxInMinutes: 240,
     priceInCents: 28000,
@@ -121,7 +123,7 @@ const SERVICE_CATALOG: ServiceSeedData[] = [
   {
     serviceName: "Higienização de Ar-Condicionado",
     description: "Sanitização do sistema de ar-condicionado automotivo.",
-    category: ServiceCategory.SANITIZATION,
+    categoryName: "Higienização",
     estimatedDurationMinInMinutes: 45,
     estimatedDurationMaxInMinutes: 60,
     priceInCents: 12000,
@@ -130,7 +132,7 @@ const SERVICE_CATALOG: ServiceSeedData[] = [
   {
     serviceName: "Remoção de Odores",
     description: "Tratamento interno para redução de odores persistentes.",
-    category: ServiceCategory.SANITIZATION,
+    categoryName: "Higienização",
     estimatedDurationMinInMinutes: 60,
     estimatedDurationMaxInMinutes: 90,
     priceInCents: 15000,
@@ -139,7 +141,7 @@ const SERVICE_CATALOG: ServiceSeedData[] = [
   {
     serviceName: "Polimento Técnico",
     description: "Correção de pintura com foco em brilho e remoção de marcas.",
-    category: ServiceCategory.AUTOMATIVE_DETAILING,
+    categoryName: "Detailing Automotivo",
     estimatedDurationMinInMinutes: 240,
     estimatedDurationMaxInMinutes: 360,
     priceInCents: 45000,
@@ -148,7 +150,7 @@ const SERVICE_CATALOG: ServiceSeedData[] = [
   {
     serviceName: "Polimento Comercial",
     description: "Polimento de uma etapa para renovação visual da pintura.",
-    category: ServiceCategory.AUTOMATIVE_DETAILING,
+    categoryName: "Detailing Automotivo",
     estimatedDurationMinInMinutes: 180,
     estimatedDurationMaxInMinutes: 240,
     priceInCents: 32000,
@@ -157,7 +159,7 @@ const SERVICE_CATALOG: ServiceSeedData[] = [
   {
     serviceName: "Revitalização de Faróis",
     description: "Restauração estética de faróis opacos ou amarelados.",
-    category: ServiceCategory.AUTOMATIVE_DETAILING,
+    categoryName: "Detailing Automotivo",
     estimatedDurationMinInMinutes: 60,
     estimatedDurationMaxInMinutes: 90,
     priceInCents: 18000,
@@ -166,7 +168,7 @@ const SERVICE_CATALOG: ServiceSeedData[] = [
   {
     serviceName: "Detailing de Motor",
     description: null,
-    category: ServiceCategory.AUTOMATIVE_DETAILING,
+    categoryName: "Detailing Automotivo",
     estimatedDurationMinInMinutes: 90,
     estimatedDurationMaxInMinutes: 120,
     priceInCents: 22000,
@@ -175,7 +177,7 @@ const SERVICE_CATALOG: ServiceSeedData[] = [
   {
     serviceName: "Vitrificação de Pintura",
     description: "Aplicação de coating cerâmico com alta durabilidade.",
-    category: ServiceCategory.PROTECTION,
+    categoryName: "Proteção",
     estimatedDurationMinInMinutes: 360,
     estimatedDurationMaxInMinutes: 480,
     priceInCents: 92000,
@@ -184,7 +186,7 @@ const SERVICE_CATALOG: ServiceSeedData[] = [
   {
     serviceName: "Cristalização de Vidros",
     description: "Aplicação de repelente de água nos vidros.",
-    category: ServiceCategory.PROTECTION,
+    categoryName: "Proteção",
     estimatedDurationMinInMinutes: 45,
     estimatedDurationMaxInMinutes: 60,
     priceInCents: 12000,
@@ -193,7 +195,7 @@ const SERVICE_CATALOG: ServiceSeedData[] = [
   {
     serviceName: "Proteção de Plásticos",
     description: "Revitalização e proteção de plásticos externos.",
-    category: ServiceCategory.PROTECTION,
+    categoryName: "Proteção",
     estimatedDurationMinInMinutes: 60,
     estimatedDurationMaxInMinutes: 90,
     priceInCents: 17000,
@@ -202,7 +204,7 @@ const SERVICE_CATALOG: ServiceSeedData[] = [
   {
     serviceName: "PPF Parcial",
     description: "Proteção parcial de áreas críticas com película.",
-    category: ServiceCategory.PROTECTION,
+    categoryName: "Proteção",
     estimatedDurationMinInMinutes: 300,
     estimatedDurationMaxInMinutes: 420,
     priceInCents: 125000,
@@ -211,7 +213,7 @@ const SERVICE_CATALOG: ServiceSeedData[] = [
   {
     serviceName: "Impermeabilização de Bancos",
     description: "Proteção têxtil para bancos e áreas internas.",
-    category: ServiceCategory.UPHOLSTERY,
+    categoryName: "Estofamento",
     estimatedDurationMinInMinutes: 120,
     estimatedDurationMaxInMinutes: 180,
     priceInCents: 22000,
@@ -220,7 +222,7 @@ const SERVICE_CATALOG: ServiceSeedData[] = [
   {
     serviceName: "Hidratação de Couro",
     description: "Tratamento e hidratação de bancos e detalhes em couro.",
-    category: ServiceCategory.UPHOLSTERY,
+    categoryName: "Estofamento",
     estimatedDurationMinInMinutes: 90,
     estimatedDurationMaxInMinutes: 120,
     priceInCents: 21000,
@@ -229,7 +231,7 @@ const SERVICE_CATALOG: ServiceSeedData[] = [
   {
     serviceName: "Limpeza de Teto",
     description: "Limpeza e recuperação de teto automotivo.",
-    category: ServiceCategory.UPHOLSTERY,
+    categoryName: "Estofamento",
     estimatedDurationMinInMinutes: 90,
     estimatedDurationMaxInMinutes: 120,
     priceInCents: 19000,
@@ -238,7 +240,7 @@ const SERVICE_CATALOG: ServiceSeedData[] = [
   {
     serviceName: "Consultoria de Detailing",
     description: "Serviço interno para análise de estado e orçamento.",
-    category: null,
+    categoryName: null,
     estimatedDurationMinInMinutes: 30,
     estimatedDurationMaxInMinutes: 45,
     priceInCents: 5000,
@@ -247,7 +249,7 @@ const SERVICE_CATALOG: ServiceSeedData[] = [
   {
     serviceName: "Lavagem Premium Legado",
     description: "Serviço antigo mantido apenas para histórico.",
-    category: ServiceCategory.WASH,
+    categoryName: "Lavagem",
     estimatedDurationMinInMinutes: 90,
     estimatedDurationMaxInMinutes: 120,
     priceInCents: 18000,
@@ -437,7 +439,8 @@ async function main() {
     establishmentId: establishment.id,
     hashedPassword,
   });
-  const services = await seedServices(establishment.id);
+  const categoryNameById = await seedServiceCategories(establishment.id);
+  const services = await seedServices(establishment.id, categoryNameById);
   const customers = await seedCustomers(establishment.id);
   const { vehicles, vehiclesByCustomerId } = await seedVehicles(
     establishment.id,
@@ -448,6 +451,7 @@ async function main() {
     customers,
     vehiclesByCustomerId,
     services,
+    categoryNameById,
   });
 
   console.log("Database seed completed successfully.");
@@ -502,14 +506,40 @@ async function seedEmployees({
   return employees;
 }
 
-async function seedServices(establishmentId: string) {
-  const services: Awaited<ReturnType<typeof prisma.service.create>>[] = [];
+async function seedServiceCategories(establishmentId: string) {
+  const categoryNameById = new Map<string, string>();
 
-  for (const serviceData of SERVICE_CATALOG) {
+  for (const name of DEFAULT_SERVICE_CATEGORY_NAMES) {
+    const category = await prisma.serviceCategory.create({
+      data: {
+        establishmentId,
+        name,
+      },
+    });
+
+    categoryNameById.set(category.id, category.name);
+  }
+
+  return categoryNameById;
+}
+
+async function seedServices(
+  establishmentId: string,
+  categoryNameById: Map<string, string>,
+) {
+  const categoryIdByName = new Map(
+    [...categoryNameById.entries()].map(([id, name]) => [name, id]),
+  );
+  const services: SeededService[] = [];
+
+  for (const { categoryName, ...serviceData } of SERVICE_CATALOG) {
     const service = await prisma.service.create({
       data: {
         establishmentId,
         ...serviceData,
+        categoryId: categoryName
+          ? (categoryIdByName.get(categoryName) ?? null)
+          : null,
       },
     });
 
@@ -661,11 +691,13 @@ async function seedAppointments({
   customers,
   vehiclesByCustomerId,
   services,
+  categoryNameById,
 }: {
   establishmentId: string;
   customers: Awaited<ReturnType<typeof prisma.customer.create>>[];
   vehiclesByCustomerId: Map<string, SeededCustomerVehicle[]>;
   services: SeededService[];
+  categoryNameById: Map<string, string>;
 }) {
   let createdAppointments = 0;
   let appointmentIndex = 0;
@@ -721,7 +753,10 @@ async function seedAppointments({
             create: bookedServices.map((service, position) => ({
               serviceId: service.id,
               serviceName: service.serviceName,
-              serviceCategory: service.category,
+              serviceCategoryId: service.categoryId,
+              serviceCategoryName: service.categoryId
+                ? (categoryNameById.get(service.categoryId) ?? null)
+                : null,
               serviceDurationInMinutes:
                 resolveBookedServiceDurationInMinutes(service),
               servicePriceInCents: service.priceInCents,

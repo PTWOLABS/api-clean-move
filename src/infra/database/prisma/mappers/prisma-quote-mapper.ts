@@ -11,6 +11,20 @@ import {
 import { UniqueEntityId } from "../../../../shared/entities/unique-entity-id";
 import z from "zod";
 
+function toCategorySnapshot(
+  categoryId: string | null,
+  categoryName: string | null,
+) {
+  if (!categoryId || !categoryName) {
+    return undefined;
+  }
+
+  return {
+    id: new UniqueEntityId(categoryId),
+    name: categoryName,
+  };
+}
+
 export type PrismaQuoteWithRelations = PrismaQuoteRecord & {
   services: PrismaQuoteServiceRecord[];
   paymentOptions: PrismaQuotePaymentOptionRecord[];
@@ -78,7 +92,8 @@ export function toQuoteServicesCreate(
   return raw.services.map((service, index) => ({
     serviceId: service.serviceId.toString(),
     serviceName: service.serviceName,
-    serviceCategory: service.category ?? null,
+    serviceCategoryId: service.category?.id.toString() ?? null,
+    serviceCategoryName: service.category?.name ?? null,
     serviceDurationInMinutes: service.durationInMinutes ?? null,
     servicePriceInCents: service.priceInCents,
     isCourtesy: service.isCourtesy,
@@ -140,7 +155,10 @@ export class PrismaQuoteMapper {
           .map((service) => ({
             serviceId: new UniqueEntityId(service.serviceId),
             serviceName: service.serviceName,
-            category: service.serviceCategory ?? undefined,
+            category: toCategorySnapshot(
+              service.serviceCategoryId,
+              service.serviceCategoryName,
+            ),
             durationInMinutes: service.serviceDurationInMinutes ?? undefined,
             priceInCents: service.servicePriceInCents,
             isCourtesy: service.isCourtesy,

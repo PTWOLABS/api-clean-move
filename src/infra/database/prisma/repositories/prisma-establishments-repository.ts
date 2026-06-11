@@ -1,6 +1,5 @@
 import { Injectable } from "@nestjs/common";
 import { EstablishmentsRepository } from "../../../../modules/application/repositories/establishment-repository";
-import { ServiceCategory } from "../../../../modules/catalog/domain/value-objects/service-category";
 import { Establishment } from "../../../../modules/establishments/domain/entities/establishment";
 import { PrismaUnitOfWork } from "../prisma-unit-of-work";
 import { rethrowPrismaRepositoryError } from "../prisma-repository-error-handler";
@@ -137,7 +136,7 @@ export class PrismaEstablishmentRepository implements EstablishmentsRepository {
   }
   async findMany(filters?: {
     establishmentName?: string;
-    serviceCategory?: ServiceCategory;
+    serviceCategoryId?: string;
   }): Promise<Establishment[]> {
     try {
       const establishments = await PrismaUnitOfWork.getClient(
@@ -149,11 +148,11 @@ export class PrismaEstablishmentRepository implements EstablishmentsRepository {
                 tradeName: filters.establishmentName,
               }
             : {}),
-          ...(filters?.serviceCategory
+          ...(filters?.serviceCategoryId
             ? {
                 services: {
                   some: {
-                    category: filters.serviceCategory,
+                    categoryId: filters.serviceCategoryId,
                   },
                 },
               }
