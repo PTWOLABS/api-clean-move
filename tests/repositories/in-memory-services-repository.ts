@@ -56,7 +56,10 @@ export class InMemoryServicesRepository implements ServicesRepository {
         return false;
       }
 
-      if (filters?.category && item.category !== filters.category) {
+      if (
+        filters?.categoryId &&
+        item.category?.id.toString() !== filters.categoryId
+      ) {
         return false;
       }
 

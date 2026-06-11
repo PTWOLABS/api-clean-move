@@ -3,6 +3,7 @@ import {
   QuoteCreateProps,
 } from "../../src/modules/quotes/domain/entities/quote";
 import { UniqueEntityId } from "../../src/shared/entities/unique-entity-id";
+import { makeServiceCategoryRef } from "../helpers/service-category-ref";
 
 export function makeQuote(
   override?: Partial<QuoteCreateProps>,
@@ -39,7 +40,7 @@ export function makeQuote(
         {
           serviceId: new UniqueEntityId(),
           serviceName: "Lavagem detalhada",
-          category: "WASH",
+          category: makeServiceCategoryRef("Lavagem"),
           durationInMinutes: 60,
           priceInCents: 32500,
           isCourtesy: false,

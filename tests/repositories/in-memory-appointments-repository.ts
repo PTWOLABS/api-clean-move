@@ -94,10 +94,11 @@ export class InMemoryAppointmentsRepository implements AppointmentsRepository {
     }
 
     if (
-      filters?.categories?.length &&
+      filters?.categoryIds?.length &&
       !appointment.services.some(
         (service) =>
-          service.category && filters.categories!.includes(service.category),
+          service.category &&
+          filters.categoryIds!.includes(service.category.id.toString()),
       )
     ) {
       return false;

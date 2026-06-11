@@ -1,5 +1,4 @@
 import { EstablishmentsRepository } from "../../src/modules/application/repositories/establishment-repository";
-import { ServiceCategory } from "../../src/modules/catalog/domain/value-objects/service-category";
 import { Establishment } from "../../src/modules/establishments/domain/entities/establishment";
 import { InMemoryServicesRepository } from "./in-memory-services-repository";
 
@@ -80,7 +79,7 @@ export class InMemoryEstablishmentsRepository implements EstablishmentsRepositor
 
   async findMany(filters?: {
     establishmentName?: string;
-    serviceCategory?: ServiceCategory;
+    serviceCategoryId?: string;
   }): Promise<Establishment[]> {
     if (!filters) {
       return this.items;
@@ -88,10 +87,13 @@ export class InMemoryEstablishmentsRepository implements EstablishmentsRepositor
 
     let establishments = this.items;
 
-    if (filters.serviceCategory) {
+    if (filters.serviceCategoryId) {
       const establishmentIdsWithCategory = new Set(
         (await this.servicesRepository.findMany()).items
-          .filter((service) => service.category === filters.serviceCategory)
+          .filter(
+            (service) =>
+              service.category?.id.toString() === filters.serviceCategoryId,
+          )
           .map((service) => service.establishmentId.toString()),
       );
 

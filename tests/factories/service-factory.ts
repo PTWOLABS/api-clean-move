@@ -9,6 +9,7 @@ import { ServiceName } from "../../src/modules/catalog/domain/value-objects/serv
 import { makeProductDescription, makeProductName } from "./random-data";
 import { PrismaService } from "../../src/infra/database/prisma/prisma.service";
 import { PrismaServiceMapper } from "../../src/infra/database/prisma/mappers/prisma-service-mapper";
+import { makeServiceCategoryRef } from "../helpers/service-category-ref";
 
 export function makeService(
   override?: Partial<ServiceProps>,
@@ -19,7 +20,7 @@ export function makeService(
       establishmentId: new UniqueEntityId(),
       serviceName: ServiceName.create(makeProductName()),
       description: makeProductDescription(),
-      category: "WASH",
+      category: makeServiceCategoryRef(),
       estimatedDuration: EstimatedDuration.create({
         minInMinutes: 30,
         maxInMinutes: 60,
