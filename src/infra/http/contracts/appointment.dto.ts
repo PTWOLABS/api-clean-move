@@ -1,12 +1,14 @@
-import { ServiceCategory } from "../../../modules/catalog/domain/value-objects/service-category";
 import { AppointmentStatus } from "../../../modules/scheduling/domain/entities/appointment";
 
-export type ServiceCategoryCode = ServiceCategory;
+export type ServiceCategoryDTO = {
+  id: string;
+  name: string;
+};
 
 export type AppointmentServiceDTO = {
   id: string;
   name: string;
-  category: ServiceCategoryCode | null;
+  category: ServiceCategoryDTO | null;
   durationInMinutes: number | null;
   priceInCents: number;
 };

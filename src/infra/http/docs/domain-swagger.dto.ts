@@ -782,6 +782,17 @@ export class UpdateAppointmentStatusResponseDto {
   appointment!: AppointmentStatusUpdateDto;
 }
 
+export class ServiceCategoryRefDto {
+  @ApiProperty({
+    example: "11cf3860-d512-47db-b9d1-c9044be6250d",
+    format: "uuid",
+  })
+  id!: string;
+
+  @ApiProperty({ example: "Lavagem" })
+  name!: string;
+}
+
 export class AppointmentServiceDto {
   @ApiProperty({ example: "11cf3860-d512-47db-b9d1-c9044be6250d" })
   id!: string;
@@ -789,24 +800,8 @@ export class AppointmentServiceDto {
   @ApiProperty({ example: "Corte de cabelo" })
   name!: string;
 
-  @ApiProperty({
-    enum: [
-      "WASH",
-      "SANITIZATION",
-      "AUTOMATIVE_DETAILING",
-      "PROTECTION",
-      "UPHOLSTERY",
-    ],
-    example: "WASH",
-    nullable: true,
-  })
-  category!:
-    | "WASH"
-    | "SANITIZATION"
-    | "AUTOMATIVE_DETAILING"
-    | "PROTECTION"
-    | "UPHOLSTERY"
-    | null;
+  @ApiProperty({ type: ServiceCategoryRefDto, nullable: true })
+  category!: ServiceCategoryRefDto | null;
 
   @ApiProperty({ type: Number, example: 45, nullable: true })
   durationInMinutes!: number | null;
@@ -981,22 +976,12 @@ export class CreateServiceBodyDto {
   description?: string;
 
   @ApiPropertyOptional({
-    enum: [
-      "WASH",
-      "SANITIZATION",
-      "AUTOMATIVE_DETAILING",
-      "PROTECTION",
-      "UPHOLSTERY",
-    ],
-    example: "WASH",
-    description: "Optional category used to classify the service.",
+    example: "11cf3860-d512-47db-b9d1-c9044be6250d",
+    format: "uuid",
+    nullable: true,
+    description: "Optional service category identifier.",
   })
-  category?:
-    | "WASH"
-    | "SANITIZATION"
-    | "AUTOMATIVE_DETAILING"
-    | "PROTECTION"
-    | "UPHOLSTERY";
+  categoryId?: string | null;
 
   @ApiPropertyOptional({
     type: CreateServiceEstimatedDurationBodyDto,
@@ -1048,24 +1033,8 @@ export class ServiceDto {
   })
   description!: string | null;
 
-  @ApiProperty({
-    enum: [
-      "WASH",
-      "SANITIZATION",
-      "AUTOMATIVE_DETAILING",
-      "PROTECTION",
-      "UPHOLSTERY",
-    ],
-    example: "WASH",
-    nullable: true,
-  })
-  category!:
-    | "WASH"
-    | "SANITIZATION"
-    | "AUTOMATIVE_DETAILING"
-    | "PROTECTION"
-    | "UPHOLSTERY"
-    | null;
+  @ApiProperty({ type: ServiceCategoryRefDto, nullable: true })
+  category!: ServiceCategoryRefDto | null;
 
   @ApiProperty({
     type: ServiceEstimatedDurationDto,
@@ -1119,22 +1088,12 @@ export class UpdateServiceBodyDto {
   description?: string;
 
   @ApiPropertyOptional({
-    enum: [
-      "WASH",
-      "SANITIZATION",
-      "AUTOMATIVE_DETAILING",
-      "PROTECTION",
-      "UPHOLSTERY",
-    ],
-    example: "WASH",
-    description: "Optional category used to classify the service.",
+    example: "11cf3860-d512-47db-b9d1-c9044be6250d",
+    format: "uuid",
+    nullable: true,
+    description: "Optional service category identifier. Use null to clear.",
   })
-  category?:
-    | "WASH"
-    | "SANITIZATION"
-    | "AUTOMATIVE_DETAILING"
-    | "PROTECTION"
-    | "UPHOLSTERY";
+  categoryId?: string | null;
 
   @ApiPropertyOptional({
     type: UpdateServiceEstimatedDurationBodyDto,
@@ -1476,4 +1435,57 @@ export class DashboardMetricsTopCustomersResponseDto {
     description: "Total ranked customers before pagination.",
   })
   totalCustomers!: number;
+}
+
+export class CreateServiceCategoryBodyDto {
+  @ApiProperty({ example: "Polimento Especial" })
+  name!: string;
+}
+
+export class UpdateServiceCategoryBodyDto {
+  @ApiProperty({ example: "Polimento Premium" })
+  name!: string;
+}
+
+export class ServiceCategoryDto {
+  @ApiProperty({ example: "11cf3860-d512-47db-b9d1-c9044be6250d" })
+  id!: string;
+
+  @ApiProperty({ example: "2e11b57c-b96a-490a-9ae6-64ef2966fd84" })
+  establishmentId!: string;
+
+  @ApiProperty({ example: "Lavagem" })
+  name!: string;
+
+  @ApiProperty({ example: null, nullable: true })
+  deletedAt!: string | null;
+
+  @ApiProperty({ example: "2026-04-22T14:00:00.000Z", nullable: true })
+  createdAt!: string | null;
+
+  @ApiProperty({ example: "2026-04-22T14:05:00.000Z", nullable: true })
+  updatedAt!: string | null;
+}
+
+export class ServiceCategoryResponseDto {
+  @ApiProperty({ type: ServiceCategoryDto })
+  category!: ServiceCategoryDto;
+}
+
+export class ListServiceCategoriesResponseDto {
+  @ApiProperty({ type: ServiceCategoryDto, isArray: true })
+  categories!: ServiceCategoryDto[];
+}
+
+export class ServiceCategoryOptionDto {
+  @ApiProperty({ example: "11cf3860-d512-47db-b9d1-c9044be6250d" })
+  id!: string;
+
+  @ApiProperty({ example: "Lavagem" })
+  label!: string;
+}
+
+export class ServiceCategoryOptionsResponseDto {
+  @ApiProperty({ type: ServiceCategoryOptionDto, isArray: true })
+  categories!: ServiceCategoryOptionDto[];
 }

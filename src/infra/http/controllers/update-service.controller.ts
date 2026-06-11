@@ -31,7 +31,6 @@ import { NoUpdateFieldsProvidedError } from "../../../shared/errors/no-update-fi
 import { NotAllowedError } from "../../../shared/errors/not-allowed-error";
 import { ResourceNotFoundError } from "../../../shared/errors/resource-not-found-error";
 import { UnexpectedDomainError } from "../../../shared/errors/unexpected-domain-error";
-import { ServiceCategory } from "../../../modules/catalog/domain/value-objects/service-category";
 import { AuthenticatedUser } from "../../auth/authenticated-user";
 import { CurrentUser } from "../../auth/current-user";
 import { Roles } from "../../auth/roles";
@@ -42,19 +41,11 @@ import {
 import { ZodValidationPipe } from "../pipes/zod-validation.pipe";
 import { ServicePresenter } from "../presenters/service-presenter";
 
-const serviceCategories = [
-  "WASH",
-  "SANITIZATION",
-  "AUTOMATIVE_DETAILING",
-  "PROTECTION",
-  "UPHOLSTERY",
-] as const satisfies readonly ServiceCategory[];
-
 const updateServiceBodySchema = z
   .object({
     serviceName: z.string().trim().min(1).optional(),
     description: z.string().trim().optional(),
-    category: z.enum(serviceCategories).optional(),
+    categoryId: z.uuid().optional().nullable(),
     estimatedDuration: z
       .object({
         minInMinutes: z.coerce.number().int().positive(),
@@ -131,7 +122,9 @@ export class UpdateServiceController {
         ...(body.description !== undefined
           ? { description: body.description }
           : {}),
-        ...(body.category !== undefined ? { category: body.category } : {}),
+        ...(body.categoryId !== undefined
+          ? { categoryId: body.categoryId }
+          : {}),
         ...(body.estimatedDuration !== undefined
           ? { estimatedDuration: body.estimatedDuration }
           : {}),

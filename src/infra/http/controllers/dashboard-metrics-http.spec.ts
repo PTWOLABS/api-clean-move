@@ -50,24 +50,34 @@ describe("dashboard revenue metrics query schema", () => {
   );
 
   it("should accept comma-separated categories", () => {
+    const washCategoryId = "11111111-1111-4111-8111-111111111111";
+    const protectionCategoryId = "22222222-2222-4222-8222-222222222222";
     const result = dashboardDynamicMetricsQuerySchema.safeParse({
-      categories: "WASH,PROTECTION",
+      categories: `${washCategoryId},${protectionCategoryId}`,
     });
 
     expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.data.categories).toEqual(["WASH", "PROTECTION"]);
+      expect(result.data.categories).toEqual([
+        washCategoryId,
+        protectionCategoryId,
+      ]);
     }
   });
 
   it("should accept repeated categories values", () => {
+    const washCategoryId = "11111111-1111-4111-8111-111111111111";
+    const protectionCategoryId = "22222222-2222-4222-8222-222222222222";
     const result = dashboardDynamicMetricsQuerySchema.safeParse({
-      categories: ["WASH", "PROTECTION"],
+      categories: [washCategoryId, protectionCategoryId],
     });
 
     expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.data.categories).toEqual(["WASH", "PROTECTION"]);
+      expect(result.data.categories).toEqual([
+        washCategoryId,
+        protectionCategoryId,
+      ]);
     }
   });
 
@@ -187,7 +197,7 @@ describe("dashboard revenue metrics query schema", () => {
   it("should accept period filters for the overview query schema", () => {
     const result = dashboardOverviewMetricsQuerySchema.safeParse({
       period: "last-30-days",
-      categories: "WASH",
+      categories: "11111111-1111-4111-8111-111111111111",
       status: "DONE,CANCELLED",
     });
 
@@ -199,7 +209,7 @@ describe("dashboard period metrics query schema", () => {
   it("should accept period filters without granularity", () => {
     const result = dashboardPeriodMetricsQuerySchema.safeParse({
       period: "last-30-days",
-      categories: "WASH",
+      categories: "11111111-1111-4111-8111-111111111111",
       status: "DONE,CANCELLED",
     });
 

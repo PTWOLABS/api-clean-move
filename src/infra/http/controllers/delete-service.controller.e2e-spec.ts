@@ -25,11 +25,23 @@ const createServiceResponseSchema = z.object({
   }),
 });
 
-function makeCreateServicePayload() {
+async function seedLavagemCategory(
+  prisma: PrismaService,
+  establishmentId: string,
+) {
+  return prisma.serviceCategory.create({
+    data: {
+      establishmentId,
+      name: "Lavagem",
+    },
+  });
+}
+
+function makeCreateServicePayload(categoryId: string) {
   return {
     serviceName: "Lavagem premium",
     description: "Lavagem externa com acabamento e brilho.",
-    category: "WASH" as const,
+    categoryId,
     estimatedDuration: {
       minInMinutes: 30,
       maxInMinutes: 60,
@@ -101,9 +113,13 @@ describe("DeleteServiceController (e2e)", () => {
       role: "ESTABLISHMENT",
       plainPassword: "strong-password",
     });
-    await establishmentFactory.makePrismaEstablishment({
+    const establishment = await establishmentFactory.makePrismaEstablishment({
       ownerId: user.id,
     });
+    const category = await seedLavagemCategory(
+      prisma,
+      establishment.id.toString(),
+    );
     const establishmentLogin = await loginUser({
       app,
       prisma,
@@ -118,7 +134,7 @@ describe("DeleteServiceController (e2e)", () => {
         "Authorization",
         `Bearer ${establishmentLogin.loginBody.accessToken}`,
       )
-      .send(makeCreateServicePayload());
+      .send(makeCreateServicePayload(category.id));
     const created = createServiceResponseSchema.parse(createResponse.body);
     const serviceId = created.service.id;
 
@@ -149,9 +165,13 @@ describe("DeleteServiceController (e2e)", () => {
       role: "ESTABLISHMENT",
       plainPassword: "strong-password",
     });
-    await establishmentFactory.makePrismaEstablishment({
+    const establishment = await establishmentFactory.makePrismaEstablishment({
       ownerId: user.id,
     });
+    const category = await seedLavagemCategory(
+      prisma,
+      establishment.id.toString(),
+    );
     const establishmentLogin = await loginUser({
       app,
       prisma,
@@ -166,7 +186,7 @@ describe("DeleteServiceController (e2e)", () => {
         "Authorization",
         `Bearer ${establishmentLogin.loginBody.accessToken}`,
       )
-      .send(makeCreateServicePayload());
+      .send(makeCreateServicePayload(category.id));
     const created = createServiceResponseSchema.parse(createResponse.body);
     const serviceId = created.service.id;
 
@@ -203,9 +223,13 @@ describe("DeleteServiceController (e2e)", () => {
         plainPassword: "strong-password",
       });
 
-    await establishmentFactory.makePrismaEstablishment({
+    const establishmentA = await establishmentFactory.makePrismaEstablishment({
       ownerId: ownerA.id,
     });
+    const category = await seedLavagemCategory(
+      prisma,
+      establishmentA.id.toString(),
+    );
     await establishmentFactory.makePrismaEstablishment({
       ownerId: ownerB.id,
       cnpj: Cnpj.create("41437902000177"),
@@ -222,7 +246,7 @@ describe("DeleteServiceController (e2e)", () => {
     const createResponse = await request(getHttpServer(app))
       .post("/services")
       .set("Authorization", `Bearer ${loginA.loginBody.accessToken}`)
-      .send(makeCreateServicePayload());
+      .send(makeCreateServicePayload(category.id));
     const created = createServiceResponseSchema.parse(createResponse.body);
     const serviceId = created.service.id;
 

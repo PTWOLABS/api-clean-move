@@ -17,14 +17,6 @@ import {
   makeEstablishmentAuth,
 } from "../../../../tests/helpers/auth-session.e2e-helpers";
 
-const serviceCategories = [
-  "WASH",
-  "SANITIZATION",
-  "AUTOMATIVE_DETAILING",
-  "PROTECTION",
-  "UPHOLSTERY",
-] as const;
-
 const listServicesResponseSchema = z.object({
   items: z.array(
     z.object({
@@ -32,7 +24,12 @@ const listServicesResponseSchema = z.object({
       establishmentId: z.uuid(),
       name: z.string().min(1),
       description: z.string().min(1).nullable(),
-      category: z.enum(serviceCategories).nullable(),
+      category: z
+        .object({
+          id: z.uuid(),
+          name: z.string().min(1),
+        })
+        .nullable(),
       estimatedDuration: z
         .object({
           minInMinutes: z.number().int().positive(),

@@ -16,20 +16,19 @@ import { Cnpj } from "../../../modules/establishments/domain/value-objects/cnpj"
 import { AppModule } from "../../app.module";
 import { PrismaService } from "../../database/prisma/prisma.service";
 
-const serviceCategories = [
-  "WASH",
-  "SANITIZATION",
-  "AUTOMATIVE_DETAILING",
-  "PROTECTION",
-  "UPHOLSTERY",
-] as const;
+const serviceCategorySchema = z
+  .object({
+    id: z.uuid(),
+    name: z.string().min(1),
+  })
+  .nullable();
 
 const serviceResponseSchema = z.object({
   id: z.uuid(),
   establishmentId: z.uuid(),
   name: z.string().min(1),
   description: z.string().min(1).nullable(),
-  category: z.enum(serviceCategories).nullable(),
+  category: serviceCategorySchema,
   estimatedDuration: z
     .object({
       minInMinutes: z.number().int().positive(),
@@ -65,7 +64,7 @@ function makeCreateServicePayload(
   override?: Partial<{
     serviceName: string;
     description: string | undefined;
-    category: (typeof serviceCategories)[number] | undefined;
+    categoryId: string | null | undefined;
     estimatedDuration:
       | {
           minInMinutes: number;
@@ -80,7 +79,6 @@ function makeCreateServicePayload(
   return {
     serviceName: "Lavagem premium",
     description: "Lavagem externa com acabamento e brilho.",
-    category: "WASH" as const,
     estimatedDuration: {
       minInMinutes: 30,
       maxInMinutes: 60,
@@ -89,6 +87,18 @@ function makeCreateServicePayload(
     isActive: true,
     ...override,
   };
+}
+
+async function seedLavagemCategory(
+  prisma: PrismaService,
+  establishmentId: string,
+) {
+  return prisma.serviceCategory.create({
+    data: {
+      establishmentId,
+      name: "Lavagem",
+    },
+  });
 }
 
 describe("CreateServiceController (e2e)", () => {
@@ -192,6 +202,10 @@ describe("CreateServiceController (e2e)", () => {
     const establishment = await establishmentFactory.makePrismaEstablishment({
       ownerId: user.id,
     });
+    const category = await seedLavagemCategory(
+      prisma,
+      establishment.id.toString(),
+    );
     const establishmentLogin = await loginUser({
       app,
       prisma,
@@ -206,7 +220,11 @@ describe("CreateServiceController (e2e)", () => {
         "Authorization",
         `Bearer ${establishmentLogin.loginBody.accessToken}`,
       )
-      .send(makeCreateServicePayload());
+      .send(
+        makeCreateServicePayload({
+          categoryId: category.id,
+        }),
+      );
     const responseBody = createServiceResponseSchema.parse(response.body);
 
     expect(response.status).toBe(201);
@@ -217,7 +235,10 @@ describe("CreateServiceController (e2e)", () => {
     expect(responseBody.service.description).toBe(
       "Lavagem externa com acabamento e brilho.",
     );
-    expect(responseBody.service.category).toBe("WASH");
+    expect(responseBody.service.category).toEqual({
+      id: category.id,
+      name: "Lavagem",
+    });
     expect(responseBody.service.estimatedDuration).toEqual({
       minInMinutes: 30,
       maxInMinutes: 60,
@@ -237,7 +258,7 @@ describe("CreateServiceController (e2e)", () => {
     expect(createdService?.description).toBe(
       "Lavagem externa com acabamento e brilho.",
     );
-    expect(createdService?.category).toBe("WASH");
+    expect(createdService?.categoryId).toBe(category.id);
     expect(createdService?.estimatedDurationMinInMinutes).toBe(30);
     expect(createdService?.estimatedDurationMaxInMinutes).toBe(60);
     expect(createdService?.priceInCents).toBe(3000);
@@ -327,7 +348,7 @@ describe("CreateServiceController (e2e)", () => {
       .send(
         makeCreateServicePayload({
           description: undefined,
-          category: undefined,
+          categoryId: undefined,
           estimatedDuration: undefined,
         }),
       );
@@ -349,7 +370,7 @@ describe("CreateServiceController (e2e)", () => {
 
     expect(createdService).not.toBeNull();
     expect(createdService?.description).toBeNull();
-    expect(createdService?.category).toBeNull();
+    expect(createdService?.categoryId).toBeNull();
     expect(createdService?.estimatedDurationMinInMinutes).toBeNull();
     expect(createdService?.estimatedDurationMaxInMinutes).toBeNull();
   });

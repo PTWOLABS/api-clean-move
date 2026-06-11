@@ -26,7 +26,7 @@ function buildServiceWhereWithoutEstablishment(
   return {
     deletedAt: null,
     ...(nameClause ? { serviceName: nameClause } : {}),
-    ...(filters?.category ? { category: filters.category } : {}),
+    ...(filters?.categoryId ? { categoryId: filters.categoryId } : {}),
     ...(filters?.isActive !== undefined ? { isActive: filters.isActive } : {}),
     ...(filters?.minPrice !== undefined || filters?.maxPrice !== undefined
       ? {
@@ -78,6 +78,7 @@ export class PrismaServicesRepository implements ServicesRepository {
         client.service.count({ where }),
         client.service.findMany({
           where,
+          include: { category: true },
           orderBy: {
             createdAt: "asc",
           },
@@ -147,6 +148,7 @@ export class PrismaServicesRepository implements ServicesRepository {
           id,
           deletedAt: null,
         },
+        include: { category: true },
       });
 
       if (!service) {
@@ -167,6 +169,7 @@ export class PrismaServicesRepository implements ServicesRepository {
         where: {
           id,
         },
+        include: { category: true },
       });
 
       if (!service) {
@@ -191,6 +194,7 @@ export class PrismaServicesRepository implements ServicesRepository {
           id: serviceId,
           establishmentId,
         },
+        include: { category: true },
       });
 
       if (!service) {
@@ -228,6 +232,7 @@ export class PrismaServicesRepository implements ServicesRepository {
           client.service.count({ where: notDeleted }),
           client.service.findMany({
             where: notDeleted,
+            include: { category: true },
             orderBy: {
               createdAt: "asc",
             },
@@ -248,6 +253,7 @@ export class PrismaServicesRepository implements ServicesRepository {
         client.service.count({ where }),
         client.service.findMany({
           where,
+          include: { category: true },
           orderBy: {
             createdAt: "asc",
           },

@@ -17,14 +17,6 @@ import { EstablishmentMetricsFilters } from "../../../modules/application/use-ca
 import { Either } from "../../../shared/either";
 import { ResourceNotFoundError } from "../../../shared/errors/resource-not-found-error";
 
-export const SERVICE_CATEGORIES = [
-  "WASH",
-  "SANITIZATION",
-  "AUTOMATIVE_DETAILING",
-  "PROTECTION",
-  "UPHOLSTERY",
-] as const;
-
 export const APPOINTMENT_STATUSES = ["SCHEDULED", "DONE", "CANCELLED"] as const;
 
 export const DASHBOARD_METRIC_PERIODS = [
@@ -40,7 +32,7 @@ export const DASHBOARD_METRIC_GRANULARITIES = [
   "monthly",
 ] as const;
 
-const serviceCategorySchema = z.enum(SERVICE_CATEGORIES);
+const serviceCategoryIdSchema = z.uuid();
 const appointmentStatusSchema = z.enum(APPOINTMENT_STATUSES);
 const dashboardMetricPeriodSchema = z.enum(DASHBOARD_METRIC_PERIODS);
 const dashboardMetricGranularitySchema = z.enum(DASHBOARD_METRIC_GRANULARITIES);
@@ -128,7 +120,7 @@ export const dashboardMetricsQuerySchema = z
     endsAt: dateTimeQuerySchema.optional(),
     categories: z.preprocess(
       toOptionalArray,
-      z.array(serviceCategorySchema).optional(),
+      z.array(serviceCategoryIdSchema).optional(),
     ),
     status: z.preprocess(
       toOptionalArray,
@@ -155,7 +147,7 @@ const dashboardDynamicMetricsQueryBaseSchema = z.object({
   endsAt: dateTimeQuerySchema.optional(),
   categories: z.preprocess(
     toOptionalArray,
-    z.array(serviceCategorySchema).optional(),
+    z.array(serviceCategoryIdSchema).optional(),
   ),
   status: z.preprocess(
     toOptionalArray,
@@ -255,7 +247,7 @@ export type DashboardTopCustomersMetricsQuerySchema = z.infer<
 type DashboardMetricsFiltersQuery = {
   startsAt?: Date | undefined;
   endsAt?: Date | undefined;
-  categories?: EstablishmentMetricsFilters["categories"] | undefined;
+  categories?: EstablishmentMetricsFilters["categoryIds"] | undefined;
   status?: EstablishmentMetricsFilters["status"] | undefined;
 };
 
@@ -267,7 +259,9 @@ export function buildMetricsFilters(
   return {
     ...(query.startsAt !== undefined ? { startsAt: query.startsAt } : {}),
     ...(query.endsAt !== undefined ? { endsAt: query.endsAt } : {}),
-    ...(query.categories !== undefined ? { categories: query.categories } : {}),
+    ...(query.categories !== undefined
+      ? { categoryIds: query.categories }
+      : {}),
     ...(query.status !== undefined ? { status: query.status } : {}),
   };
 }
@@ -295,11 +289,14 @@ export function ApiDashboardMetricsFilterQueries() {
     ApiQuery({
       name: "categories",
       required: false,
-      enum: SERVICE_CATEGORIES,
+      type: String,
       isArray: true,
       description:
-        "Filter by booked service category snapshot. Repeat the query param or send comma-separated values.",
-      example: ["WASH", "AUTOMATIVE_DETAILING"],
+        "Filter by booked service category id. Repeat the query param or send comma-separated UUID values.",
+      example: [
+        "11cf3860-d512-47db-b9d1-c9044be6250d",
+        "2e11b57c-b96a-490a-9ae6-64ef2966fd84",
+      ],
     }),
     ApiQuery({
       name: "status",
@@ -344,11 +341,14 @@ export function ApiDashboardPeriodMetricsFilterQueries() {
     ApiQuery({
       name: "categories",
       required: false,
-      enum: SERVICE_CATEGORIES,
+      type: String,
       isArray: true,
       description:
-        "Filter by booked service category snapshot. Repeat the query param or send comma-separated values.",
-      example: ["WASH", "AUTOMATIVE_DETAILING"],
+        "Filter by booked service category id. Repeat the query param or send comma-separated UUID values.",
+      example: [
+        "11cf3860-d512-47db-b9d1-c9044be6250d",
+        "2e11b57c-b96a-490a-9ae6-64ef2966fd84",
+      ],
     }),
     ApiQuery({
       name: "status",
