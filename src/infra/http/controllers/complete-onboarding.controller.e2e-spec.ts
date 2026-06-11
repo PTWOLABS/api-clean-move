@@ -8,6 +8,7 @@ import { EstablishmentFactory } from "../../../../tests/factories/establishment-
 import { UserFactory } from "../../../../tests/factories/user-factory";
 import {
   getHttpServer,
+  loginUser,
   makeCustomerAccessToken,
   makeEstablishmentAccessToken,
 } from "../../../../tests/helpers/auth-session.e2e-helpers";
@@ -88,18 +89,35 @@ describe("CompleteOnboardingController (e2e)", () => {
     envService = moduleRef.get(EnvService);
   });
 
+  async function makeDraftEstablishmentAuth() {
+    const { user, plainPassword } = await userFactory.makePrismaUser({
+      role: "ESTABLISHMENT",
+      plainPassword: "strong-password",
+    });
+    const establishment =
+      await establishmentFactory.makePrismaOAuthDraftEstablishment({
+        ownerId: user.id,
+      });
+    const login = await loginUser({
+      app,
+      prisma,
+      userId: user.id.toString(),
+      email: user.email.toString(),
+      password: plainPassword ?? "",
+    });
+
+    return {
+      accessToken: login.loginBody.accessToken,
+      establishment,
+    };
+  }
+
   afterAll(async () => {
     await app.close();
   });
 
   it("should update establishment and create optional onboarding resources", async () => {
-    const { accessToken, establishment } = await makeEstablishmentAccessToken({
-      app,
-      prisma,
-      userFactory,
-      establishmentFactory,
-      envService,
-    });
+    const { accessToken, establishment } = await makeDraftEstablishmentAuth();
 
     const response = await request(getHttpServer(app))
       .post("/onboarding")
@@ -159,6 +177,7 @@ describe("CompleteOnboardingController (e2e)", () => {
       "Clean Move Servicos LTDA",
     );
     expect(updatedEstablishment?.cnpj).toBe("61911322000187");
+    expect(updatedEstablishment?.onboardingCompletedAt).toBeInstanceOf(Date);
     expect(createdService?.serviceName).toBe("Lavagem premium");
     expect(createdCustomer?.fullName).toBe("Maria Silva");
     expect(createdVehicle?.customerId).toBe(createdCustomer?.id);
@@ -170,14 +189,13 @@ describe("CompleteOnboardingController (e2e)", () => {
   });
 
   it("should skip optional resource creation when sections are omitted or empty", async () => {
-    const { accessToken, establishment: _ } =
-      await makeEstablishmentAccessToken({
-        app,
-        prisma,
-        userFactory,
-        establishmentFactory,
-        envService,
-      });
+    const { accessToken, establishment } = await makeEstablishmentAccessToken({
+      app,
+      prisma,
+      userFactory,
+      establishmentFactory,
+      envService,
+    });
 
     const response = await request(getHttpServer(app))
       .post("/onboarding")
@@ -198,6 +216,39 @@ describe("CompleteOnboardingController (e2e)", () => {
       vehicleCreated: false,
       appointmentCreated: false,
     });
+
+    const updatedEstablishment = await prisma.establishment.findUnique({
+      where: { id: establishment.id.toString() },
+    });
+
+    expect(updatedEstablishment?.onboardingCompletedAt).toBeInstanceOf(Date);
+  });
+
+  it("should reject establishment commercial updates when company data already exists", async () => {
+    const { accessToken, establishment } = await makeEstablishmentAccessToken({
+      app,
+      prisma,
+      userFactory,
+      establishmentFactory,
+      envService,
+    });
+
+    const response = await request(getHttpServer(app))
+      .post("/onboarding")
+      .set("Authorization", `Bearer ${accessToken}`)
+      .send({
+        establishment: {
+          tradeName: "Should Not Change",
+        },
+      });
+
+    const unchangedEstablishment = await prisma.establishment.findUnique({
+      where: { id: establishment.id.toString() },
+    });
+
+    expect(response.status).toBe(400);
+    expect(unchangedEstablishment?.tradeName).toBe(establishment.tradeName);
+    expect(unchangedEstablishment?.onboardingCompletedAt).toBeNull();
   });
 
   it("should reject service data without the required service fields", async () => {

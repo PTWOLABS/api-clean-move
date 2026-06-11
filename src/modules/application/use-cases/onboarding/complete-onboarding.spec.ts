@@ -50,9 +50,14 @@ describe("Complete onboarding", () => {
   });
 
   it("should update establishment and create onboarding resources", async () => {
-    const establishment = makeEstablishment();
+    const establishment = makeEstablishment({
+      tradeName: null,
+      legalBusinessName: null,
+      cnpj: null,
+    });
     await inMemoryEstablishmentsRepository.create(establishment);
 
+    const startedAt = new Date();
     const result = await sut.execute({
       establishmentOwnerId: establishment.ownerId.toString(),
       establishment: {
@@ -105,6 +110,9 @@ describe("Complete onboarding", () => {
       "Clean Move Servicos LTDA",
     );
     expect(result.value.establishment.cnpj?.toString()).toBe("61911322000187");
+    expect(
+      result.value.establishment.onboardingCompletedAt?.getTime(),
+    ).toBeGreaterThanOrEqual(startedAt.getTime());
     expect(result.value.service).toBe(inMemoryServicesRepository.items[0]);
     expect(result.value.service?.serviceName.value).toBe("Lavagem premium");
     expect(result.value.service?.price.amountInCents).toBe(3000);
@@ -154,6 +162,9 @@ describe("Complete onboarding", () => {
     }
 
     expect(result.value.establishment).toBe(establishment);
+    expect(result.value.establishment.onboardingCompletedAt).toBeInstanceOf(
+      Date,
+    );
     expect(result.value.service).toBeNull();
     expect(result.value.customer).toBeNull();
     expect(result.value.vehicle).toBeNull();
@@ -304,7 +315,11 @@ describe("Complete onboarding", () => {
   });
 
   it("should not update establishment when cnpj is already in use", async () => {
-    const establishment = makeEstablishment();
+    const establishment = makeEstablishment({
+      tradeName: null,
+      legalBusinessName: null,
+      cnpj: null,
+    });
     const existingEstablishment = makeEstablishment({
       cnpj: Cnpj.create("61911322000187"),
     });
@@ -323,6 +338,28 @@ describe("Complete onboarding", () => {
     expect(result.isLeft()).toBe(true);
     expect(result.value).toBeInstanceOf(ResourceAlreadyExistsError);
     expect(establishment.tradeName).not.toBe("Clean Move");
+  });
+
+  it("should not update establishment commercial data when it is already set", async () => {
+    const establishment = makeEstablishment({
+      tradeName: "Already Set",
+      legalBusinessName: null,
+      cnpj: null,
+    });
+
+    await inMemoryEstablishmentsRepository.create(establishment);
+
+    const result = await sut.execute({
+      establishmentOwnerId: establishment.ownerId.toString(),
+      establishment: {
+        tradeName: "Clean Move",
+      },
+    });
+
+    expect(result.isLeft()).toBe(true);
+    expect(result.value).toBeInstanceOf(InvalidOnboardingInputError);
+    expect(establishment.tradeName).toBe("Already Set");
+    expect(establishment.onboardingCompletedAt).toBeNull();
   });
 
   it("should not create a customer with duplicated cpfCnpj in the same establishment", async () => {

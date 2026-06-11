@@ -169,6 +169,14 @@ export class CompleteOnboardingUseCase {
         }
 
         if (hasEstablishmentData && request.establishment) {
+          if (establishment.hasCompanyData()) {
+            return left(
+              new InvalidOnboardingInputError(
+                "Establishment commercial data cannot be updated through onboarding after it has been set.",
+              ),
+            );
+          }
+
           const conflict = request.establishment.cnpj
             ? await this.establishmentsRepository.findByCnpj(
                 request.establishment.cnpj,
@@ -194,8 +202,6 @@ export class CompleteOnboardingUseCase {
               ? { cnpj: request.establishment.cnpj }
               : {}),
           });
-
-          await this.establishmentsRepository.save(establishment);
         }
 
         const service =
@@ -228,6 +234,9 @@ export class CompleteOnboardingUseCase {
             appointmentInput: request.appointment,
           });
         }
+
+        establishment.completeOnboarding();
+        await this.establishmentsRepository.save(establishment);
 
         return right({
           establishment,
