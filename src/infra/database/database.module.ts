@@ -6,6 +6,7 @@ import { CustomersRepository } from "../../modules/application/repositories/cust
 import { EmployeesRepository } from "../../modules/application/repositories/employees-repository";
 import { EstablishmentsRepository } from "../../modules/application/repositories/establishment-repository";
 import { QuotesRepository } from "../../modules/application/repositories/quotes-repository";
+import { ServiceCategoriesRepository } from "../../modules/application/repositories/service-categories-repository";
 import { ServicesRepository } from "../../modules/application/repositories/services-repository";
 import { UnitOfWork } from "../../modules/application/repositories/unit-of-work";
 import { UsersRepository } from "../../modules/application/repositories/users-repository";
@@ -17,6 +18,7 @@ import { PrismaEstablishmentRepository } from "./prisma/repositories/prisma-esta
 import { PrismaCustomersRepository } from "./prisma/repositories/prisma-customers-repository";
 import { PrismaEmployeesRepository } from "./prisma/repositories/prisma-employees-repository";
 import { PrismaQuotesRepository } from "./prisma/repositories/prisma-quotes-repository";
+import { PrismaServiceCategoriesRepository } from "./prisma/repositories/prisma-service-categories-repository";
 import { PrismaServicesRepository } from "./prisma/repositories/prisma-services-repository";
 import { PrismaUsersRepository } from "./prisma/repositories/prisma-users-repository";
 import { PrismaUnitOfWork } from "./prisma/prisma-unit-of-work";
@@ -49,6 +51,10 @@ import { PrismaSessionsRepository } from "./prisma/repositories/prisma-sessions-
       useClass: PrismaCustomerVehiclesRepository,
     },
     {
+      provide: ServiceCategoriesRepository,
+      useClass: PrismaServiceCategoriesRepository,
+    },
+    {
       provide: ServicesRepository,
       useClass: PrismaServicesRepository,
     },
@@ -77,6 +83,7 @@ import { PrismaSessionsRepository } from "./prisma/repositories/prisma-sessions-
     SessionsRepository,
     CustomersRepository,
     CustomerVehiclesRepository,
+    ServiceCategoriesRepository,
     ServicesRepository,
     AppointmentsRepository,
     QuotesRepository,

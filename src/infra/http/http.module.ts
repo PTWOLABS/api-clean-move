@@ -41,6 +41,11 @@ import { UploadDomainImageUseCase } from "../../modules/application/use-cases/me
 import { DeleteUserProfileImageUseCase } from "../../modules/application/use-cases/user/delete-user-profile-image";
 import { UploadUserProfileImageUseCase } from "../../modules/application/use-cases/user/upload-user-profile-image";
 import { DeleteEstablishmentBannerImageUseCase } from "../../modules/application/use-cases/media/delete-establishment-banner-image";
+import { CreateServiceCategoryUseCase } from "../../modules/application/use-cases/service-category/create-service-category";
+import { DeleteServiceCategoryUseCase } from "../../modules/application/use-cases/service-category/delete-service-category";
+import { ListServiceCategoriesUseCase } from "../../modules/application/use-cases/service-category/list-service-categories";
+import { ListServiceCategoryOptionsUseCase } from "../../modules/application/use-cases/service-category/list-service-category-options";
+import { UpdateServiceCategoryUseCase } from "../../modules/application/use-cases/service-category/update-service-category";
 import { CreateServiceUseCase } from "../../modules/application/use-cases/service/create-service";
 import { ListAllServicesUseCase } from "../../modules/application/use-cases/service/list-all-services";
 import { ListEstablishmentServicesUseCase } from "../../modules/application/use-cases/service/list-establishment-services";
@@ -57,6 +62,11 @@ import { AuthenticateWithGoogleController } from "./controllers/authenticate-wit
 import { CreateAppointmentController } from "./controllers/create-appointment.controller";
 import { CreateCustomerController } from "./controllers/create-customer.controller";
 import { CreateCustomerVehicleController } from "./controllers/create-customer-vehicle.controller";
+import { CreateServiceCategoryController } from "./controllers/create-service-category.controller";
+import { DeleteServiceCategoryController } from "./controllers/delete-service-category.controller";
+import { ListServiceCategoriesController } from "./controllers/list-service-categories.controller";
+import { ListServiceCategoryOptionsController } from "./controllers/list-service-category-options.controller";
+import { UpdateServiceCategoryController } from "./controllers/update-service-category.controller";
 import { CreateServiceController } from "./controllers/create-service.controller";
 import { ListAllServicesController } from "./controllers/list-all-services.controller";
 import { ListEstablishmentServicesController } from "./controllers/list-establishment-services.controller";
@@ -114,6 +124,11 @@ import { DeleteEstablishmentBannerImageController } from "./controllers/media/de
     DeleteUserProfileImageController,
     GetEstablishmentController,
     UpdateEstablishmentController,
+    ListServiceCategoryOptionsController,
+    ListServiceCategoriesController,
+    CreateServiceCategoryController,
+    UpdateServiceCategoryController,
+    DeleteServiceCategoryController,
     ListAllServicesController,
     ListServiceOptionsController,
     ListEstablishmentServicesController,
@@ -153,6 +168,11 @@ import { DeleteEstablishmentBannerImageController } from "./controllers/media/de
   providers: [
     RegisterEstablishmentUseCase,
     AuthenticateWithOAuthUseCase,
+    CreateServiceCategoryUseCase,
+    ListServiceCategoriesUseCase,
+    ListServiceCategoryOptionsUseCase,
+    UpdateServiceCategoryUseCase,
+    DeleteServiceCategoryUseCase,
     CreateServiceUseCase,
     ListAllServicesUseCase,
     ListEstablishmentServicesUseCase,
