@@ -187,13 +187,14 @@ model CustomerVehicle {
 }
 
 model Establishment {
-  id                String  @id @default(uuid()) @db.Uuid
-  ownerId           String  @unique @map("owner_id") @db.Uuid
-  bannerImageUrl    String? @map("banner_image_url")
-  tradeName         String?
-  legalBusinessName String?
-  slug              String? @unique
-  cnpj              String? @unique @db.VarChar(14)
+  id                    String    @id @default(uuid()) @db.Uuid
+  ownerId               String    @unique @map("owner_id") @db.Uuid
+  bannerImageUrl        String?   @map("banner_image_url")
+  tradeName             String?
+  legalBusinessName     String?
+  slug                  String?   @unique
+  cnpj                  String?   @unique @db.VarChar(14)
+  onboardingCompletedAt DateTime? @map("onboarding_completed_at")
 
   owner        User              @relation("EstablishmentOwner", fields: [ownerId], references: [id], onDelete: Restrict)
   services     Service[]
