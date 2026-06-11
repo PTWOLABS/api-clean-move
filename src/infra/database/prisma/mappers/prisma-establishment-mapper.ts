@@ -17,6 +17,7 @@ export class PrismaEstablishmentMapper {
         cnpj: raw.cnpj !== null ? Cnpj.create(raw.cnpj) : null,
         slug: raw.slug !== null ? Slug.create(raw.slug) : null,
         bannerImageUrl: raw.bannerImageUrl,
+        onboardingCompletedAt: raw.onboardingCompletedAt,
       },
       new UniqueEntityId(raw.id),
     );
@@ -33,6 +34,7 @@ export class PrismaEstablishmentMapper {
       cnpj: raw.cnpj?.value ?? null,
       slug: raw.slug?.value ?? null,
       bannerImageUrl: raw.bannerImageUrl,
+      onboardingCompletedAt: raw.onboardingCompletedAt,
     };
   }
 
@@ -45,6 +47,7 @@ export class PrismaEstablishmentMapper {
       cnpj: raw.cnpj?.value ?? null,
       slug: raw.slug?.value ?? null,
       bannerImageUrl: raw.bannerImageUrl,
+      onboardingCompletedAt: raw.onboardingCompletedAt,
     };
   }
 }

@@ -34,12 +34,13 @@ import { OAuthIdTokenVerifier } from "../../../modules/application/services/oaut
 import { ZodValidationPipe } from "../pipes/zod-validation.pipe";
 import {
   AuthenticateWithGoogleBodyDto,
-  AuthSuccessResponseDto,
+  AuthWithOnboardingResponseDto,
 } from "../docs/auth-swagger.dto";
 import {
   CookieResponseLike,
   RefreshTokenCookieService,
 } from "../../auth/refresh-token-cookie.service";
+import { EstablishmentsRepository } from "../../../modules/application/repositories/establishment-repository";
 
 const authenticateWithGoogleBodySchema = z
   .object({
@@ -69,6 +70,7 @@ export class AuthenticateWithGoogleController {
     private readonly oauthIdTokenVerifier: OAuthIdTokenVerifier,
     private readonly authSessionService: AuthSessionService,
     private readonly refreshTokenCookieService: RefreshTokenCookieService,
+    private readonly establishmentsRepository: EstablishmentsRepository,
   ) {}
 
   private getUserAgent(req: RequestLike): string | null {
@@ -110,7 +112,7 @@ export class AuthenticateWithGoogleController {
   @ApiOkResponse({
     description:
       "Authenticated successfully with Google and sets the refresh token cookie.",
-    type: AuthSuccessResponseDto,
+    type: AuthWithOnboardingResponseDto,
   })
   @ApiBadRequestResponse({
     description: "Invalid request payload or unverified Google email.",
@@ -195,9 +197,15 @@ export class AuthenticateWithGoogleController {
 
     this.refreshTokenCookieService.set(res, refreshToken);
 
+    const establishment = await this.establishmentsRepository.findByOwnerId(
+      user.id.toString(),
+    );
+
     return {
       accessToken,
       userId: user.id.toString(),
+      onboardingCompletedAt:
+        establishment?.onboardingCompletedAt?.toISOString() ?? null,
     };
   }
 }

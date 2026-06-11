@@ -14,6 +14,18 @@ export class AuthSuccessResponseDto {
   accessToken!: string;
 }
 
+export class AuthWithOnboardingResponseDto extends AuthSuccessResponseDto {
+  @ApiProperty({
+    type: String,
+    format: "date-time",
+    nullable: true,
+    example: "2026-06-11T15:30:00.000Z",
+    description:
+      "Timestamp when the establishment onboarding was completed. Null when the user has no establishment or has not completed onboarding.",
+  })
+  onboardingCompletedAt!: string | null;
+}
+
 export class LoginWithCredentialsBodyDto {
   @ApiProperty({
     example: "user@example.com",
