@@ -41,7 +41,29 @@ export class ServiceFactory {
     override?: Partial<ServiceProps>,
     id?: UniqueEntityId,
   ) {
-    const service = makeService(override, id);
+    const service = makeService(
+      {
+        category: undefined,
+        ...override,
+      },
+      id,
+    );
+
+    if (service.category) {
+      const categoryExists = await this.prisma.serviceCategory.findUnique({
+        where: { id: service.category.id.toString() },
+      });
+
+      if (!categoryExists) {
+        await this.prisma.serviceCategory.create({
+          data: {
+            id: service.category.id.toString(),
+            establishmentId: service.establishmentId.toString(),
+            name: service.category.name,
+          },
+        });
+      }
+    }
 
     await this.prisma.service.create({
       data: PrismaServiceMapper.toPrisma(service),
