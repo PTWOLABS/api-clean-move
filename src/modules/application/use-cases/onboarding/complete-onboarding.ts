@@ -319,12 +319,6 @@ export class CompleteOnboardingUseCase {
           "Appointment onboarding requires startsAt.",
         );
       }
-
-      if (service?.isActive === false) {
-        return new InvalidOnboardingInputError(
-          "Appointment onboarding requires an active service.",
-        );
-      }
     }
 
     return null;

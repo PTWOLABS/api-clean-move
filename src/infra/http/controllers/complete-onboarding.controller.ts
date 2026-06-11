@@ -202,14 +202,6 @@ const onboardingBodySchema = z
           path: ["appointment", "startsAt"],
         });
       }
-
-      if (body.service?.isActive === false) {
-        ctx.addIssue({
-          code: "custom",
-          message: "Appointment data requires an active service.",
-          path: ["service", "isActive"],
-        });
-      }
     }
   });
 

@@ -49,6 +49,62 @@ describe("Complete onboarding", () => {
     );
   });
 
+  it("should be able to create an appointment with inactive service", async () => {
+    const establishment = makeEstablishment();
+    await inMemoryEstablishmentsRepository.create(establishment);
+
+    const startsAt = new Date("2026-06-10T14:00:00.000Z");
+
+    const result = await sut.execute({
+      establishmentOwnerId: establishment.ownerId.toString(),
+      service: {
+        serviceName: "Lavagem premium",
+        category: "WASH",
+        estimatedDuration: {
+          minInMinutes: 30,
+        },
+        price: 3000,
+        isActive: false,
+      },
+      customer: {
+        fullName: "Maria Silva",
+        phone: "11999999999",
+      },
+      appointment: {
+        startsAt,
+      },
+    });
+
+    expect(result.isRight()).toBe(true);
+
+    if (result.isLeft()) {
+      throw result.value;
+    }
+
+    expect(result.value.service).toBe(inMemoryServicesRepository.items[0]);
+    expect(result.value.service?.isActive).toBe(false);
+
+    expect(result.value.customer).toBe(inMemoryCustomersRepository.items[0]);
+    expect(result.value.customer?.fullName).toBe("Maria Silva");
+
+    expect(result.value.appointment).toBe(
+      inMemoryAppointmentsRepository.items[0],
+    );
+    expect(result.value.appointment?.customerId).toEqual(
+      result.value.customer?.id,
+    );
+    expect(result.value.appointment?.startsAt).toEqual(startsAt);
+
+    expect(result.value.appointment?.services).toHaveLength(1);
+    expect(result.value.appointment?.services[0]?.serviceId).toEqual(
+      result.value.service?.id,
+    );
+
+    expect(inMemoryServicesRepository.items).toHaveLength(1);
+    expect(inMemoryCustomersRepository.items).toHaveLength(1);
+    expect(inMemoryAppointmentsRepository.items).toHaveLength(1);
+  });
+
   it("should update establishment and create onboarding resources", async () => {
     const establishment = makeEstablishment({
       tradeName: null,
@@ -277,35 +333,6 @@ describe("Complete onboarding", () => {
       },
       appointment: {
         description: "Primeiro atendimento",
-      },
-    });
-
-    expect(result.isLeft()).toBe(true);
-    expect(result.value).toBeInstanceOf(InvalidOnboardingInputError);
-    expect(inMemoryAppointmentsRepository.items).toHaveLength(0);
-  });
-
-  it("should reject appointment data with inactive service", async () => {
-    const establishment = makeEstablishment();
-    await inMemoryEstablishmentsRepository.create(establishment);
-
-    const result = await sut.execute({
-      establishmentOwnerId: establishment.ownerId.toString(),
-      service: {
-        serviceName: "Lavagem premium",
-        category: "WASH",
-        estimatedDuration: {
-          minInMinutes: 30,
-        },
-        price: 3000,
-        isActive: false,
-      },
-      customer: {
-        fullName: "Maria Silva",
-        phone: "11999999999",
-      },
-      appointment: {
-        startsAt: new Date("2026-06-10T14:00:00.000Z"),
       },
     });
 
