@@ -1,4 +1,4 @@
-import { ServiceCategory } from "../../../catalog/domain/value-objects/service-category";
+import { ServiceCategorySnapshot } from "../../../catalog/domain/value-objects/service-category-ref";
 import { Money } from "../../../catalog/domain/value-objects/money";
 import { AggregateRoot } from "../../../../shared/entities/aggregate-root";
 import { UniqueEntityId } from "../../../../shared/entities/unique-entity-id";
@@ -11,7 +11,7 @@ export type AppointmentStatus = "SCHEDULED" | "DONE" | "CANCELLED";
 export type AppointmentServiceSnapshot = {
   serviceId: UniqueEntityId;
   serviceName: string;
-  category: ServiceCategory | undefined;
+  category: ServiceCategorySnapshot | undefined;
   durationInMinutes: number | undefined;
   priceInCents: number;
 };
