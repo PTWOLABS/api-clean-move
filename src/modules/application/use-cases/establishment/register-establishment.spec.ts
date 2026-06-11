@@ -3,6 +3,7 @@ import { makeEstablishment } from "../../../../../tests/factories/establishment-
 import { makeUser } from "../../../../../tests/factories/user-factory";
 import { FakeHashGenerator } from "../../../../../tests/repositories/fake-hash-generator";
 import { InMemoryEstablishmentsRepository } from "../../../../../tests/repositories/in-memory-establishment-repository";
+import { InMemoryServiceCategoriesRepository } from "../../../../../tests/repositories/in-memory-service-categories-repository";
 import { InMemoryServicesRepository } from "../../../../../tests/repositories/in-memory-services-repository";
 import { InMemoryUnitOfWork } from "../../../../../tests/repositories/in-memory-unit-of-work";
 import { InMemoryUsersRepository } from "../../../../../tests/repositories/in-memory-users-repository";
@@ -13,6 +14,7 @@ import { RegisterEstablishmentUseCase } from "./register-establishment";
 
 let inMemoryUsersRepository: InMemoryUsersRepository;
 let inMemoryEstablishmentsRepository: InMemoryEstablishmentsRepository;
+let inMemoryServiceCategoriesRepository: InMemoryServiceCategoriesRepository;
 let fakeHashGenerator: FakeHashGenerator;
 let inMemoryUnitOfWork: InMemoryUnitOfWork;
 
@@ -24,12 +26,15 @@ describe("Register an establishment", () => {
     inMemoryEstablishmentsRepository = new InMemoryEstablishmentsRepository(
       new InMemoryServicesRepository(),
     );
+    inMemoryServiceCategoriesRepository =
+      new InMemoryServiceCategoriesRepository();
     fakeHashGenerator = new FakeHashGenerator();
     inMemoryUnitOfWork = new InMemoryUnitOfWork();
 
     sut = new RegisterEstablishmentUseCase(
       inMemoryUsersRepository,
       inMemoryEstablishmentsRepository,
+      inMemoryServiceCategoriesRepository,
       fakeHashGenerator,
       inMemoryUnitOfWork,
     );

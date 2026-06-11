@@ -1,5 +1,4 @@
 import { Injectable } from "@nestjs/common";
-import { ServiceCategory } from "../../catalog/domain/value-objects/service-category";
 import { Establishment } from "../../establishments/domain/entities/establishment";
 
 @Injectable()
@@ -16,6 +15,6 @@ export abstract class EstablishmentsRepository {
   ): Promise<Establishment | null>;
   abstract findMany(filters?: {
     establishmentName?: string;
-    serviceCategory?: ServiceCategory;
+    serviceCategoryId?: string;
   }): Promise<Establishment[]>;
 }

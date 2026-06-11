@@ -2,6 +2,15 @@ import { Money } from "../../../catalog/domain/value-objects/money";
 import { ResourceNotFoundError } from "../../../../shared/errors/resource-not-found-error";
 import { UniqueEntityId } from "../../../../shared/entities/unique-entity-id";
 import { makeAppointment } from "../../../../../tests/factories/appointment-factory";
+import { makeServiceCategoryRef } from "../../../../../tests/helpers/service-category-ref";
+
+const washCategoryId = new UniqueEntityId("wash-category");
+const protectionCategoryId = new UniqueEntityId("protection-category");
+const washCategory = makeServiceCategoryRef("Lavagem", washCategoryId);
+const protectionCategory = makeServiceCategoryRef(
+  "Proteção",
+  protectionCategoryId,
+);
 import { makeEstablishment } from "../../../../../tests/factories/establishment-factory";
 import { makeService } from "../../../../../tests/factories/service-factory";
 import { InMemoryAppointmentsRepository } from "../../../../../tests/repositories/in-memory-appointments-repository";
@@ -95,21 +104,21 @@ describe("Establishment metrics KPIs", () => {
     const washService = makeService(
       {
         establishmentId: establishment.id,
-        category: "WASH",
+        category: washCategory,
       },
       new UniqueEntityId("service-1"),
     );
     const protectionService = makeService(
       {
         establishmentId: establishment.id,
-        category: "PROTECTION",
+        category: protectionCategory,
       },
       new UniqueEntityId("service-2"),
     );
     const otherWashService = makeService(
       {
         establishmentId: otherEstablishment.id,
-        category: "WASH",
+        category: washCategory,
       },
       new UniqueEntityId("service-3"),
     );
@@ -233,7 +242,7 @@ describe("Establishment metrics KPIs", () => {
     const filters: EstablishmentMetricsFilters = {
       startsAt: new Date("2026-04-01T00:00:00Z"),
       endsAt: new Date("2026-04-02T23:59:59Z"),
-      categories: ["WASH"],
+      categoryIds: [washCategoryId.toString()],
       status: ["SCHEDULED", "CANCELLED"],
     };
 
@@ -309,23 +318,23 @@ describe("Establishment metrics KPIs", () => {
 
     const washService = makeService({
       establishmentId: establishment.id,
-      category: "WASH",
+      category: washCategory,
     });
     const protectionService = makeService({
       establishmentId: establishment.id,
-      category: "PROTECTION",
+      category: protectionCategory,
     });
 
     const createAppointment = async ({
       status,
       startsAt,
-      category = "WASH",
+      categoryKind = "wash",
     }: {
       status: "SCHEDULED" | "DONE" | "CANCELLED";
       startsAt: string;
-      category?: "WASH" | "PROTECTION";
+      categoryKind?: "wash" | "protection";
     }) => {
-      const service = category === "WASH" ? washService : protectionService;
+      const service = categoryKind === "wash" ? washService : protectionService;
 
       await appointmentsRepository.create(
         makeAppointment({
@@ -362,7 +371,7 @@ describe("Establishment metrics KPIs", () => {
     await createAppointment({
       status: "CANCELLED",
       startsAt: "2026-04-01T12:00:00Z",
-      category: "PROTECTION",
+      categoryKind: "protection",
     });
     await createAppointment({
       status: "CANCELLED",
@@ -383,7 +392,7 @@ describe("Establishment metrics KPIs", () => {
     await createAppointment({
       status: "CANCELLED",
       startsAt: "2026-03-29T12:00:00Z",
-      category: "PROTECTION",
+      categoryKind: "protection",
     });
 
     const { cancellationRateUseCase } = makeKpiUseCases(repositories);
@@ -397,7 +406,7 @@ describe("Establishment metrics KPIs", () => {
         "2026-03-31T23:59:59Z",
       ),
       filters: {
-        categories: ["WASH"],
+        categoryIds: [washCategoryId.toString()],
         status: ["DONE"],
       },
     });
@@ -436,7 +445,7 @@ describe("Establishment metrics KPIs", () => {
 
     const washService = makeService({
       establishmentId: establishment.id,
-      category: "WASH",
+      category: washCategory,
     });
 
     await appointmentsRepository.create(

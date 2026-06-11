@@ -63,8 +63,8 @@ export class GetEstablishmentPopularServicesUseCase {
         {
           startsAt: range.current.startsAt,
           endsAt: range.current.endsAt,
-          ...(filters?.categories !== undefined
-            ? { categories: filters.categories }
+          ...(filters?.categoryIds !== undefined
+            ? { categoryIds: filters.categoryIds }
             : {}),
           status: filters?.status ?? [
             ...DEFAULT_POPULAR_SERVICES_STATUS_FILTER,

@@ -1,5 +1,10 @@
+import { UniqueEntityId } from "../../../../shared/entities/unique-entity-id";
 import { makeEstablishment } from "../../../../../tests/factories/establishment-factory";
 import { makeService } from "../../../../../tests/factories/service-factory";
+import { makeServiceCategoryRef } from "../../../../../tests/helpers/service-category-ref";
+
+const washCategoryId = new UniqueEntityId("wash-category");
+const protectionCategoryId = new UniqueEntityId("protection-category");
 import { InMemoryEstablishmentsRepository } from "../../../../../tests/repositories/in-memory-establishment-repository";
 import { InMemoryServicesRepository } from "../../../../../tests/repositories/in-memory-services-repository";
 import { getFirstItem } from "../../../../../tests/utils/get-first-item";
@@ -96,25 +101,25 @@ describe("List establishments", () => {
     await inMemoryServicesRepository.create(
       makeService({
         establishmentId: establishmentA.id,
-        category: "PROTECTION",
+        category: makeServiceCategoryRef("Proteção", protectionCategoryId),
       }),
     );
     await inMemoryServicesRepository.create(
       makeService({
         establishmentId: establishmentA.id,
-        category: "PROTECTION",
+        category: makeServiceCategoryRef("Proteção", protectionCategoryId),
       }),
     );
     await inMemoryServicesRepository.create(
       makeService({
         establishmentId: establishmentB.id,
-        category: "WASH",
+        category: makeServiceCategoryRef("Lavagem", washCategoryId),
       }),
     );
 
     const result = await sut.execute({
       filters: {
-        serviceCategory: "PROTECTION",
+        serviceCategoryId: protectionCategoryId.toString(),
       },
     });
 
@@ -153,26 +158,26 @@ describe("List establishments", () => {
     await inMemoryServicesRepository.create(
       makeService({
         establishmentId: establishmentA.id,
-        category: "WASH",
+        category: makeServiceCategoryRef("Lavagem", washCategoryId),
       }),
     );
     await inMemoryServicesRepository.create(
       makeService({
         establishmentId: establishmentB.id,
-        category: "PROTECTION",
+        category: makeServiceCategoryRef("Proteção", protectionCategoryId),
       }),
     );
     await inMemoryServicesRepository.create(
       makeService({
         establishmentId: establishmentC.id,
-        category: "PROTECTION",
+        category: makeServiceCategoryRef("Proteção", protectionCategoryId),
       }),
     );
 
     const result = await sut.execute({
       filters: {
         establishmentName: "Gamma Detail",
-        serviceCategory: "PROTECTION",
+        serviceCategoryId: protectionCategoryId.toString(),
       },
     });
 

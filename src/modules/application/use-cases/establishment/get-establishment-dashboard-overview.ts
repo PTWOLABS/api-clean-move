@@ -201,8 +201,8 @@ function buildOverviewFilters(
   return {
     startsAt: range.startsAt,
     endsAt: range.endsAt,
-    ...(filters?.categories !== undefined
-      ? { categories: filters.categories }
+    ...(filters?.categoryIds !== undefined
+      ? { categoryIds: filters.categoryIds }
       : {}),
     ...(filters?.status !== undefined ? { status: filters.status } : {}),
   };

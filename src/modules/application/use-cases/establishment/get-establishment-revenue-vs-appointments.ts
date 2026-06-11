@@ -73,8 +73,8 @@ export class GetEstablishmentRevenueVsAppointmentsUseCase {
       {
         startsAt: range.current.startsAt,
         endsAt: range.current.endsAt,
-        ...(filters?.categories !== undefined
-          ? { categories: filters.categories }
+        ...(filters?.categoryIds !== undefined
+          ? { categoryIds: filters.categoryIds }
           : {}),
         status: effectiveStatus,
       },
@@ -85,8 +85,8 @@ export class GetEstablishmentRevenueVsAppointmentsUseCase {
       {
         startsAt: range.comparison.startsAt,
         endsAt: range.comparison.endsAt,
-        ...(filters?.categories !== undefined
-          ? { categories: filters.categories }
+        ...(filters?.categoryIds !== undefined
+          ? { categoryIds: filters.categoryIds }
           : {}),
         status: effectiveStatus,
       },
