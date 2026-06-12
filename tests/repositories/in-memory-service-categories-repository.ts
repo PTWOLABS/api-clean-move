@@ -84,11 +84,6 @@ export class InMemoryServiceCategoriesRepository implements ServiceCategoriesRep
       }));
   }
 
-  async countActiveServicesByCategoryId(categoryId: string): Promise<number> {
-    void categoryId;
-    return 0;
-  }
-
   async save(category: ServiceCategory): Promise<void> {
     const index = this.items.findIndex(
       (item) => item.id.toString() === category.id.toString(),

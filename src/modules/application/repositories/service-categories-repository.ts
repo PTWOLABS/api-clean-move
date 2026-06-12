@@ -34,6 +34,5 @@ export abstract class ServiceCategoriesRepository {
     establishmentId: string,
     filters?: ServiceCategoryOptionsFilters,
   ): Promise<ServiceCategoryOption[]>;
-  abstract countActiveServicesByCategoryId(categoryId: string): Promise<number>;
   abstract save(category: ServiceCategory): Promise<void>;
 }

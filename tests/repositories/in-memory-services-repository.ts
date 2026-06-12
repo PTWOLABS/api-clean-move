@@ -190,6 +190,19 @@ export class InMemoryServicesRepository implements ServicesRepository {
       totalItems,
     };
   }
+
+  async clearCategoryFromServices(categoryId: string): Promise<number> {
+    let count = 0;
+
+    for (const item of this.items) {
+      if (item.category?.id.toString() === categoryId) {
+        item.clearCategory();
+        count++;
+      }
+    }
+
+    return count;
+  }
 }
 
 function compareStrings(a: string, b: string) {

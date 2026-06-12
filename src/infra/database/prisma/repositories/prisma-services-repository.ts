@@ -270,4 +270,19 @@ export class PrismaServicesRepository implements ServicesRepository {
       rethrowPrismaRepositoryError(error);
     }
   }
+
+  async clearCategoryFromServices(categoryId: string): Promise<number> {
+    try {
+      const result = await PrismaUnitOfWork.getClient(
+        this.prisma,
+      ).service.updateMany({
+        where: { categoryId },
+        data: { categoryId: null },
+      });
+
+      return result.count;
+    } catch (error) {
+      rethrowPrismaRepositoryError(error);
+    }
+  }
 }

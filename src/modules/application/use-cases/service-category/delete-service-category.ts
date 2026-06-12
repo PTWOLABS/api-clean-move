@@ -6,6 +6,8 @@ import { UnexpectedDomainError } from "../../../../shared/errors/unexpected-doma
 import { ServiceCategory } from "../../../catalog/domain/entities/service-category";
 import { ServiceCategoriesRepository } from "../../repositories/service-categories-repository";
 import { EstablishmentsRepository } from "../../repositories/establishment-repository";
+import { ServicesRepository } from "../../repositories/services-repository";
+import { UnitOfWork } from "../../repositories/unit-of-work";
 
 type DeleteServiceCategoryUseCaseRequest = {
   establishmentOwnerId: string;
@@ -13,24 +15,19 @@ type DeleteServiceCategoryUseCaseRequest = {
 };
 
 type DeleteServiceCategoryUseCaseResponse = Either<
-  ResourceNotFoundError | ServiceCategoryInUseError | UnexpectedDomainError,
+  ResourceNotFoundError | UnexpectedDomainError,
   {
     category: ServiceCategory;
   }
 >;
-
-export class ServiceCategoryInUseError extends Error {
-  constructor() {
-    super("Cannot delete a service category linked to active services.");
-    this.name = "ServiceCategoryInUseError";
-  }
-}
 
 @Injectable()
 export class DeleteServiceCategoryUseCase {
   constructor(
     private serviceCategoriesRepository: ServiceCategoriesRepository,
     private establishmentsRepository: EstablishmentsRepository,
+    private servicesRepository: ServicesRepository,
+    private unitOfWork: UnitOfWork,
   ) {}
 
   async execute({
@@ -54,18 +51,12 @@ export class DeleteServiceCategoryUseCase {
       return left(new ResourceNotFoundError({ resource: "service category" }));
     }
 
-    const activeServicesCount =
-      await this.serviceCategoriesRepository.countActiveServicesByCategoryId(
-        categoryId,
-      );
-
-    if (activeServicesCount > 0) {
-      return left(new ServiceCategoryInUseError());
-    }
-
     try {
-      category.softDelete();
-      await this.serviceCategoriesRepository.save(category);
+      await this.unitOfWork.execute(async () => {
+        await this.servicesRepository.clearCategoryFromServices(categoryId);
+        category.softDelete();
+        await this.serviceCategoriesRepository.save(category);
+      });
     } catch (error) {
       return left(error instanceof Error ? error : new UnexpectedDomainError());
     }

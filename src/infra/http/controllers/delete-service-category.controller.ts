@@ -7,7 +7,6 @@ import {
   Delete,
 } from "@nestjs/common";
 import {
-  ApiBadRequestResponse,
   ApiBearerAuth,
   ApiForbiddenResponse,
   ApiInternalServerErrorResponse,
@@ -20,10 +19,7 @@ import {
 } from "@nestjs/swagger";
 import z from "zod";
 
-import {
-  DeleteServiceCategoryUseCase,
-  ServiceCategoryInUseError,
-} from "../../../modules/application/use-cases/service-category/delete-service-category";
+import { DeleteServiceCategoryUseCase } from "../../../modules/application/use-cases/service-category/delete-service-category";
 import { ResourceNotFoundError } from "../../../shared/errors/resource-not-found-error";
 import { UnexpectedDomainError } from "../../../shared/errors/unexpected-domain-error";
 import { AuthenticatedUser } from "../../auth/authenticated-user";
@@ -57,9 +53,6 @@ export class DeleteServiceCategoryController {
     description: "Service category deleted successfully.",
     type: ServiceCategoryResponseDto,
   })
-  @ApiBadRequestResponse({
-    description: "Category is linked to active services.",
-  })
   @ApiUnauthorizedResponse({
     description: "Missing or invalid access token.",
   })
@@ -88,8 +81,6 @@ export class DeleteServiceCategoryController {
       switch (error.constructor) {
         case ResourceNotFoundError:
           throw new NotFoundException(error.message);
-        case ServiceCategoryInUseError:
-          throw new BadRequestException(error.message);
         case UnexpectedDomainError:
           throw new InternalServerErrorException(error.message);
         default:

@@ -177,20 +177,6 @@ export class PrismaServiceCategoriesRepository implements ServiceCategoriesRepos
     }
   }
 
-  async countActiveServicesByCategoryId(categoryId: string): Promise<number> {
-    try {
-      return await PrismaUnitOfWork.getClient(this.prisma).service.count({
-        where: {
-          categoryId,
-          deletedAt: null,
-          isActive: true,
-        },
-      });
-    } catch (error) {
-      rethrowPrismaRepositoryError(error);
-    }
-  }
-
   async save(category: ServiceCategory): Promise<void> {
     const data = PrismaServiceCategoryMapper.toPrismaUpdate(category);
 
