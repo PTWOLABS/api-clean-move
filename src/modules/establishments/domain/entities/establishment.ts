@@ -11,11 +11,17 @@ export type EstablishmentProps = {
   slug: Slug | null;
   cnpj: Cnpj | null;
   bannerImageUrl: string | null;
+  onboardingCompletedAt: Date | null;
 };
 
 export type EstablishmentCreateProps = Optional<
   EstablishmentProps,
-  "tradeName" | "legalBusinessName" | "slug" | "cnpj" | "bannerImageUrl"
+  | "tradeName"
+  | "legalBusinessName"
+  | "slug"
+  | "cnpj"
+  | "bannerImageUrl"
+  | "onboardingCompletedAt"
 >;
 
 export type EstablishmentCommercialProfileUpdate = {
@@ -50,6 +56,10 @@ export class Establishment extends AggregateRoot<EstablishmentProps> {
     return this.props.bannerImageUrl;
   }
 
+  get onboardingCompletedAt() {
+    return this.props.onboardingCompletedAt;
+  }
+
   setBannerImageUrl(url: string) {
     const normalized = Establishment.normalizeOptionalUrl(url);
     if (normalized === null) {
@@ -60,6 +70,10 @@ export class Establishment extends AggregateRoot<EstablishmentProps> {
 
   clearBannerImageUrl() {
     this.props.bannerImageUrl = null;
+  }
+
+  completeOnboarding(completedAt = new Date()) {
+    this.props.onboardingCompletedAt = completedAt;
   }
 
   updateCommercialProfile(data: EstablishmentCommercialProfileUpdate) {
@@ -78,7 +92,6 @@ export class Establishment extends AggregateRoot<EstablishmentProps> {
       }
       this.props.legalBusinessName = normalized;
     }
-
     if (data.cnpj !== undefined) {
       this.props.cnpj = Cnpj.create(data.cnpj);
     }
@@ -89,6 +102,14 @@ export class Establishment extends AggregateRoot<EstablishmentProps> {
         ? Slug.create(normalized)
         : Slug.createFromText(this.props.tradeName ?? "establishment");
     }
+  }
+
+  hasCompanyData() {
+    return (
+      !!this.props.tradeName ||
+      !!this.props.cnpj ||
+      !!this.props.legalBusinessName
+    );
   }
 
   static createOAuthDraft(
@@ -103,6 +124,7 @@ export class Establishment extends AggregateRoot<EstablishmentProps> {
         slug: null,
         cnpj: null,
         bannerImageUrl: null,
+        onboardingCompletedAt: null,
       },
       id,
     );
@@ -124,6 +146,7 @@ export class Establishment extends AggregateRoot<EstablishmentProps> {
         bannerImageUrl: Establishment.normalizeOptionalUrl(
           props.bannerImageUrl,
         ),
+        onboardingCompletedAt: props.onboardingCompletedAt ?? null,
       },
       id,
     );

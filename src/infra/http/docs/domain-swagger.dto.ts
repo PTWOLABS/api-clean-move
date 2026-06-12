@@ -1060,6 +1060,277 @@ export class CreateServiceResponseDto {
   service!: ServiceDto;
 }
 
+export class CompleteOnboardingEstablishmentBodyDto {
+  @ApiPropertyOptional({
+    example: "Clean Move",
+    description: "Optional establishment trade name.",
+  })
+  tradeName?: string;
+
+  @ApiPropertyOptional({
+    example: "Clean Move Servicos LTDA",
+    description: "Optional establishment legal business name.",
+  })
+  legalBusinessName?: string;
+
+  @ApiPropertyOptional({
+    example: "61911322000187",
+    description: "Optional establishment CNPJ.",
+  })
+  cnpj?: string;
+}
+
+export class CompleteOnboardingServiceEstimatedDurationBodyDto {
+  @ApiPropertyOptional({
+    example: 30,
+    description:
+      "Minimum estimated service duration in minutes. Required when any service data is provided.",
+  })
+  minInMinutes?: number;
+
+  @ApiPropertyOptional({
+    example: 60,
+    description: "Optional maximum estimated service duration in minutes.",
+  })
+  maxInMinutes?: number;
+}
+
+export class CompleteOnboardingServiceBodyDto {
+  @ApiPropertyOptional({
+    example: "Lavagem premium",
+    description: "Required when any service data is provided.",
+  })
+  serviceName?: string;
+
+  @ApiPropertyOptional({
+    example: "Lavagem externa com acabamento e brilho.",
+    description: "Optional service description.",
+  })
+  description?: string;
+
+  @ApiPropertyOptional({
+    enum: [
+      "WASH",
+      "SANITIZATION",
+      "AUTOMATIVE_DETAILING",
+      "PROTECTION",
+      "UPHOLSTERY",
+    ],
+    example: "WASH",
+    description: "Required when any service data is provided.",
+  })
+  category?:
+    | "WASH"
+    | "SANITIZATION"
+    | "AUTOMATIVE_DETAILING"
+    | "PROTECTION"
+    | "UPHOLSTERY";
+
+  @ApiPropertyOptional({
+    type: CompleteOnboardingServiceEstimatedDurationBodyDto,
+    description:
+      "Required with minInMinutes when any service data is provided.",
+  })
+  estimatedDuration?: CompleteOnboardingServiceEstimatedDurationBodyDto;
+
+  @ApiPropertyOptional({
+    example: 3000,
+    description: "Required when any service data is provided. Price in cents.",
+  })
+  price?: number;
+
+  @ApiPropertyOptional({
+    example: true,
+    description: "Whether the service is immediately available for booking.",
+  })
+  isActive?: boolean;
+}
+
+export class CompleteOnboardingCustomerBodyDto {
+  @ApiPropertyOptional({
+    type: String,
+    example: "52998224725",
+    nullable: true,
+    description: "Optional CPF or CNPJ.",
+  })
+  cpfCnpj?: string | null;
+
+  @ApiPropertyOptional({
+    example: "Maria Silva",
+    description: "Required when any customer data is provided.",
+  })
+  fullName?: string;
+
+  @ApiPropertyOptional({
+    example: "11999999999",
+    description: "Required when any customer data is provided.",
+  })
+  phone?: string;
+
+  @ApiPropertyOptional({
+    example: "maria@example.com",
+    format: "email",
+    nullable: true,
+    description: "Optional customer email address.",
+  })
+  email?: string | null;
+
+  @ApiPropertyOptional({
+    type: AddressDto,
+    nullable: true,
+    description: "Optional customer address.",
+  })
+  address?: AddressDto | null;
+
+  @ApiPropertyOptional({
+    type: String,
+    example: "1990-01-01T00:00:00.000Z",
+    nullable: true,
+    format: "date-time",
+    description: "Optional customer birth date.",
+  })
+  birthDate?: string | null;
+
+  @ApiPropertyOptional({
+    type: String,
+    example: "Maria",
+    nullable: true,
+    description: "Optional customer nickname.",
+  })
+  nickname?: string | null;
+}
+
+export class CompleteOnboardingVehicleBodyDto {
+  @ApiPropertyOptional({ example: "ABC-1D23", nullable: true })
+  plate?: string | null;
+
+  @ApiPropertyOptional({ example: "Toyota", nullable: true })
+  brand?: string | null;
+
+  @ApiPropertyOptional({ example: "Corolla", nullable: true })
+  model?: string | null;
+
+  @ApiPropertyOptional({ example: "Prata", nullable: true })
+  color?: string | null;
+
+  @ApiPropertyOptional({ example: 2022, nullable: true })
+  year?: number | null;
+
+  @ApiPropertyOptional({ example: "Veiculo principal", nullable: true })
+  notes?: string | null;
+}
+
+export class CompleteOnboardingAppointmentBodyDto {
+  @ApiPropertyOptional({
+    type: String,
+    example: "2026-04-22T14:00:00.000Z",
+    format: "date-time",
+    description:
+      "Required when any appointment data is provided. The appointment uses the service and customer created in this onboarding request.",
+  })
+  startsAt?: string;
+
+  @ApiPropertyOptional({
+    type: String,
+    example: "2026-04-22T14:45:00.000Z",
+    nullable: true,
+    format: "date-time",
+    description:
+      "Optional appointment end date-time. When provided, it must be after startsAt.",
+  })
+  endsAt?: string | null;
+
+  @ApiPropertyOptional({
+    type: String,
+    example: "Cliente prefere lavagem externa.",
+    nullable: true,
+  })
+  description?: string | null;
+
+  @ApiPropertyOptional({
+    type: Number,
+    example: 500,
+    nullable: true,
+    minimum: 0,
+    description: "Optional non-negative integer discount in cents.",
+  })
+  discountInCents?: number | null;
+}
+
+export class CompleteOnboardingBodyDto {
+  @ApiPropertyOptional({
+    type: CompleteOnboardingEstablishmentBodyDto,
+    description:
+      "Optional establishment data. Empty or omitted section is skipped.",
+  })
+  establishment?: CompleteOnboardingEstablishmentBodyDto;
+
+  @ApiPropertyOptional({
+    type: CompleteOnboardingServiceBodyDto,
+    description:
+      "Optional service data. Empty or omitted section is skipped; partial section requires serviceName, price, category, and estimatedDuration.minInMinutes.",
+  })
+  service?: CompleteOnboardingServiceBodyDto;
+
+  @ApiPropertyOptional({
+    type: CompleteOnboardingCustomerBodyDto,
+    description:
+      "Optional customer data. Empty or omitted section is skipped; partial section requires fullName and phone.",
+  })
+  customer?: CompleteOnboardingCustomerBodyDto;
+
+  @ApiPropertyOptional({
+    type: CompleteOnboardingVehicleBodyDto,
+    description:
+      "Optional vehicle data. Requires customer data when any vehicle data is provided.",
+  })
+  vehicle?: CompleteOnboardingVehicleBodyDto;
+
+  @ApiPropertyOptional({
+    type: CompleteOnboardingAppointmentBodyDto,
+    description:
+      "Optional appointment data. Empty or omitted section is skipped; partial section requires startsAt, service data, and customer data in the same request.",
+  })
+  appointment?: CompleteOnboardingAppointmentBodyDto;
+}
+
+export class CompleteOnboardingSummaryDto {
+  @ApiProperty({
+    example: true,
+    description: "Whether establishment commercial data was updated.",
+  })
+  establishmentUpdated!: boolean;
+
+  @ApiProperty({
+    example: true,
+    description: "Whether a service was created.",
+  })
+  serviceCreated!: boolean;
+
+  @ApiProperty({
+    example: true,
+    description: "Whether a customer was created.",
+  })
+  customerCreated!: boolean;
+
+  @ApiProperty({
+    example: true,
+    description: "Whether a customer vehicle was created.",
+  })
+  vehicleCreated!: boolean;
+
+  @ApiProperty({
+    example: true,
+    description: "Whether an appointment was created.",
+  })
+  appointmentCreated!: boolean;
+}
+
+export class CompleteOnboardingResponseDto {
+  @ApiProperty({ type: CompleteOnboardingSummaryDto })
+  onboarding!: CompleteOnboardingSummaryDto;
+}
+
 export class UpdateServiceEstimatedDurationBodyDto {
   @ApiProperty({
     example: 30,

@@ -21,6 +21,7 @@ import {
 const authenticateWithGoogleResponseSchema = z.object({
   accessToken: z.string().min(1),
   userId: z.uuid(),
+  onboardingCompletedAt: z.string().nullable(),
 });
 
 const singleMessageResponseSchema = z.object({
@@ -161,6 +162,7 @@ describe("AuthenticateWithGoogleController (e2e)", () => {
     expect(response.status).toBe(200);
     expect(responseBody.userId).toBe(linkedUser.id);
     expect(responseBody.accessToken).toEqual(expect.any(String));
+    expect(responseBody.onboardingCompletedAt).toBeNull();
     expect("refreshToken" in responseBody).toBe(false);
     expect(refreshTokenCookie).toBeDefined();
     expect(refreshTokenCookie).toContain("HttpOnly");
@@ -178,6 +180,58 @@ describe("AuthenticateWithGoogleController (e2e)", () => {
     expect(linkedSession).not.toBeNull();
     expect(linkedSession?.userAgent).toBe("Mozilla/5.0 OAuth Browser");
     expect(linkedSession?.ipAddress).toBe("198.51.100.20");
+  });
+
+  it("should return onboarding completion timestamp for an establishment user", async () => {
+    const onboardingCompletedAt = new Date("2026-06-11T12:00:00.000Z");
+    const linkedUser = await prisma.user.create({
+      data: {
+        name: "OAuth Establishment",
+        email: "oauth-establishment@example.com",
+        hashedPassword: null,
+        role: "ESTABLISHMENT",
+        phone: null,
+        address: Prisma.JsonNull,
+        socialAccounts: {
+          create: {
+            provider: "GOOGLE",
+            subjectId: "google-sub-establishment-completed",
+          },
+        },
+        ownedEstablishment: {
+          create: {
+            tradeName: "OAuth Clean Move",
+            legalBusinessName: null,
+            cnpj: null,
+            onboardingCompletedAt,
+          },
+        },
+      },
+    });
+
+    mockedClaimsByToken.set("completed-establishment-token", {
+      provider: "GOOGLE",
+      subjectId: "google-sub-establishment-completed",
+      email: "oauth-establishment@example.com",
+      emailVerified: true,
+      name: "OAuth Establishment",
+    });
+
+    const response = await request(getHttpServer(app))
+      .post("/auth/google")
+      .send({
+        idToken: "completed-establishment-token",
+        role: "ESTABLISHMENT",
+      });
+    const responseBody = authenticateWithGoogleResponseSchema.parse(
+      response.body,
+    );
+
+    expect(response.status).toBe(200);
+    expect(responseBody.userId).toBe(linkedUser.id);
+    expect(responseBody.onboardingCompletedAt).toBe(
+      onboardingCompletedAt.toISOString(),
+    );
   });
 
   it("should refresh the session after Google authentication", async () => {
@@ -257,6 +311,7 @@ describe("AuthenticateWithGoogleController (e2e)", () => {
       response.body,
     );
     expect(responseBody.userId).toBe(existingUser.id);
+    expect(responseBody.onboardingCompletedAt).toBeNull();
 
     const linkedAccount = await prisma.socialAccount.findUnique({
       where: {
@@ -295,6 +350,7 @@ describe("AuthenticateWithGoogleController (e2e)", () => {
     expect(createdUser).not.toBeNull();
     expect(createdUser?.profileImageUrl).toBeNull();
     expect(createdUser?.ownedEstablishment).toBeNull();
+    expect(responseBody.onboardingCompletedAt).toBeNull();
     expect(createdUser?.socialAccounts).toEqual([
       expect.objectContaining({
         provider: "GOOGLE",
@@ -329,8 +385,10 @@ describe("AuthenticateWithGoogleController (e2e)", () => {
         legalBusinessName: null,
         slug: null,
         cnpj: null,
+        onboardingCompletedAt: null,
       }),
     );
+    expect(responseBody.onboardingCompletedAt).toBeNull();
   });
 
   it("should return 400 when role is omitted", async () => {

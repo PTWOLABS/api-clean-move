@@ -11,6 +11,7 @@ import { PrismaService } from "../../database/prisma/prisma.service";
 const loginWithCredentialsResponseSchema = z.object({
   userId: z.uuid(),
   accessToken: z.string().min(1),
+  onboardingCompletedAt: z.string().nullable(),
 });
 
 const singleMessageResponseSchema = z.object({
@@ -83,6 +84,7 @@ describe("LoginWithCredentialsController (e2e)", () => {
     expect(response.status).toBe(200);
     expect(responseBody.userId).toBe(createdUser.id);
     expect(responseBody.accessToken).toEqual(expect.any(String));
+    expect(responseBody.onboardingCompletedAt).toBeNull();
     expect("refreshToken" in responseBody).toBe(false);
     expect(refreshTokenCookie).toBeDefined();
     expect(refreshTokenCookie).toContain("HttpOnly");
@@ -103,6 +105,46 @@ describe("LoginWithCredentialsController (e2e)", () => {
     expect(createdSession?.revokedAt).toBeNull();
     expect(createdSession?.expiresAt.getTime()).toBeGreaterThan(
       createdSession?.createdAt.getTime() ?? 0,
+    );
+  });
+
+  it("should return onboarding completion timestamp for an establishment user", async () => {
+    const password = "strong-password";
+    const hashedPassword = await hashGenerator.hash(password);
+    const onboardingCompletedAt = new Date("2026-06-11T12:00:00.000Z");
+
+    const createdUser = await prisma.user.create({
+      data: {
+        name: "Establishment Owner",
+        email: "owner@example.com",
+        hashedPassword,
+        role: "ESTABLISHMENT",
+        phone: null,
+        ownedEstablishment: {
+          create: {
+            tradeName: "Clean Move",
+            legalBusinessName: "Clean Move Servicos LTDA",
+            cnpj: "61911322000187",
+            onboardingCompletedAt,
+          },
+        },
+      },
+    });
+
+    const response = await request(getHttpServer(app))
+      .post("/auth/login")
+      .send({
+        email: "owner@example.com",
+        password,
+      });
+    const responseBody = loginWithCredentialsResponseSchema.parse(
+      response.body,
+    );
+
+    expect(response.status).toBe(200);
+    expect(responseBody.userId).toBe(createdUser.id);
+    expect(responseBody.onboardingCompletedAt).toBe(
+      onboardingCompletedAt.toISOString(),
     );
   });
 
