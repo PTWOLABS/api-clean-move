@@ -50,6 +50,7 @@ describe("Get me", () => {
 
     expect(result.value.user).toBe(createdUser);
     expect(result.value.establishmentId).toBeNull();
+    expect(result.value.onboardingCompletedAt).toBeNull();
   });
 
   it("not should be able to get me with unknown user id", async () => {
@@ -78,13 +79,39 @@ describe("Get me", () => {
     }
 
     expect(result.value.establishmentId).toBe(establishment.id.toString());
+    expect(result.value.onboardingCompletedAt).toBeNull();
+  });
+
+  it("should return onboarding completion date for establishment owner", async () => {
+    const onboardingCompletedAt = new Date("2026-06-11T12:00:00.000Z");
+    const owner = makeUser("ESTABLISHMENT");
+    await inMemoryUsersRepository.create(owner);
+
+    const establishment = makeEstablishment({
+      ownerId: owner.id,
+      onboardingCompletedAt,
+    });
+    await inMemoryEstablishmentsRepository.create(establishment);
+
+    const result = await sut.execute({ userId: owner.id.toString() });
+
+    expect(result.isRight()).toBe(true);
+    if (result.isLeft()) {
+      throw result.value;
+    }
+
+    expect(result.value.establishmentId).toBe(establishment.id.toString());
+    expect(result.value.onboardingCompletedAt).toBe(onboardingCompletedAt);
   });
 
   it("should return establishment id for employee", async () => {
+    const onboardingCompletedAt = new Date("2026-06-11T12:00:00.000Z");
     const employeeUser = makeUser("EMPLOYEE");
     await inMemoryUsersRepository.create(employeeUser);
 
-    const establishment = makeEstablishment();
+    const establishment = makeEstablishment({
+      onboardingCompletedAt,
+    });
     await inMemoryEstablishmentsRepository.create(establishment);
 
     const employee = makeEmployee({
@@ -101,6 +128,7 @@ describe("Get me", () => {
     }
 
     expect(result.value.establishmentId).toBe(establishment.id.toString());
+    expect(result.value.onboardingCompletedAt).toBe(onboardingCompletedAt);
   });
 
   it("should return null establishment id when owner has no establishment row", async () => {
@@ -115,5 +143,6 @@ describe("Get me", () => {
     }
 
     expect(result.value.establishmentId).toBeNull();
+    expect(result.value.onboardingCompletedAt).toBeNull();
   });
 });

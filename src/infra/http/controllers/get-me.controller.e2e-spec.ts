@@ -31,6 +31,7 @@ const getMeResponseSchema = z.object({
     role: z.enum(["CUSTOMER", "ESTABLISHMENT", "ADMIN", "EMPLOYEE"]),
     profileImageUrl: z.string().nullable(),
     establishmentId: z.uuid().nullable(),
+    onboardingCompletedAt: z.string().nullable(),
     phone: z.string().nullable(),
     address: addressSchema.nullable(),
     socialAccounts: z.array(
@@ -102,6 +103,7 @@ describe("GetMeController (e2e)", () => {
     expect(JSON.stringify(response.body)).not.toContain("hashedPassword");
     expect("hashedPassword" in body.user).toBe(false);
     expect(body.user.establishmentId).toBeNull();
+    expect(body.user.onboardingCompletedAt).toBeNull();
   });
 
   it("should return establishment id for establishment owner with oauth draft", async () => {
@@ -129,5 +131,37 @@ describe("GetMeController (e2e)", () => {
 
     const body = getMeResponseSchema.parse(response.body);
     expect(body.user.establishmentId).toBe(establishment.id.toString());
+    expect(body.user.onboardingCompletedAt).toBeNull();
+  });
+
+  it("should return onboarding completion date for establishment owner", async () => {
+    const onboardingCompletedAt = new Date("2026-06-11T12:00:00.000Z");
+    const { user, plainPassword } = await userFactory.makePrismaUser({
+      role: "ESTABLISHMENT",
+      plainPassword: "strong-password",
+    });
+    const establishment = await establishmentFactory.makePrismaEstablishment({
+      ownerId: user.id,
+      onboardingCompletedAt,
+    });
+    const { loginBody } = await loginUser({
+      app,
+      prisma,
+      userId: user.id.toString(),
+      email: user.email.toString(),
+      password: plainPassword ?? "",
+    });
+
+    const response = await request(getHttpServer(app))
+      .get("/user/me")
+      .set("Authorization", `Bearer ${loginBody.accessToken}`);
+
+    expect(response.status).toBe(200);
+
+    const body = getMeResponseSchema.parse(response.body);
+    expect(body.user.establishmentId).toBe(establishment.id.toString());
+    expect(body.user.onboardingCompletedAt).toBe(
+      onboardingCompletedAt.toISOString(),
+    );
   });
 });
