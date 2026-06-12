@@ -29,7 +29,12 @@ export class AppointmentPresenter {
       services: appointment.services.map((service) => ({
         id: service.serviceId.toString(),
         name: service.serviceName,
-        category: service.category ?? null,
+        category: service.category
+          ? {
+              id: service.category.id.toString(),
+              name: service.category.name,
+            }
+          : null,
         durationInMinutes: service.durationInMinutes ?? null,
         priceInCents: service.priceInCents,
       })),

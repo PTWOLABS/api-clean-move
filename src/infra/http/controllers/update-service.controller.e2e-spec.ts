@@ -13,25 +13,25 @@ import {
   loginUser,
 } from "../../../../tests/helpers/auth-session.e2e-helpers";
 import { expectSingleMessageResponseWithoutIssues } from "../../../../tests/helpers/http-response-assertions";
+import { seedServiceCategory } from "../../../../tests/helpers/service-category-seed";
 import { HashGenerator } from "../../../modules/application/repositories/hash-generator";
 import { Cnpj } from "../../../modules/establishments/domain/value-objects/cnpj";
 import { AppModule } from "../../app.module";
 import { PrismaService } from "../../database/prisma/prisma.service";
 
-const serviceCategories = [
-  "WASH",
-  "SANITIZATION",
-  "AUTOMATIVE_DETAILING",
-  "PROTECTION",
-  "UPHOLSTERY",
-] as const;
+const serviceCategorySchema = z
+  .object({
+    id: z.uuid(),
+    name: z.string().min(1),
+  })
+  .nullable();
 
 const serviceResponseSchema = z.object({
   id: z.uuid(),
   establishmentId: z.uuid(),
   name: z.string().min(1),
   description: z.string().min(1).nullable(),
-  category: z.enum(serviceCategories).nullable(),
+  category: serviceCategorySchema,
   estimatedDuration: z
     .object({
       minInMinutes: z.number().int().positive(),
@@ -63,11 +63,18 @@ const validationErrorResponseSchema = z.object({
   target: z.literal("body"),
 });
 
-function makeCreateServicePayload() {
+async function seedLavagemCategory(
+  prisma: PrismaService,
+  establishmentId: string,
+) {
+  return seedServiceCategory(prisma, establishmentId, "Lavagem");
+}
+
+function makeCreateServicePayload(categoryId: string) {
   return {
     serviceName: "Lavagem premium",
     description: "Lavagem externa com acabamento e brilho.",
-    category: "WASH" as const,
+    categoryId,
     estimatedDuration: {
       minInMinutes: 30,
       maxInMinutes: 60,
@@ -175,6 +182,10 @@ describe("UpdateServiceController (e2e)", () => {
     const establishment = await establishmentFactory.makePrismaEstablishment({
       ownerId: user.id,
     });
+    const category = await seedLavagemCategory(
+      prisma,
+      establishment.id.toString(),
+    );
     const establishmentLogin = await loginUser({
       app,
       prisma,
@@ -189,7 +200,7 @@ describe("UpdateServiceController (e2e)", () => {
         "Authorization",
         `Bearer ${establishmentLogin.loginBody.accessToken}`,
       )
-      .send(makeCreateServicePayload());
+      .send(makeCreateServicePayload(category.id));
     const created = updateServiceResponseSchema.parse(createResponse.body);
     const serviceId = created.service.id;
     const createdAtBefore = created.service.createdAt;
@@ -214,7 +225,10 @@ describe("UpdateServiceController (e2e)", () => {
     expect(body.service.description).toBe(
       "Lavagem externa com acabamento e brilho.",
     );
-    expect(body.service.category).toBe("WASH");
+    expect(body.service.category).toEqual({
+      id: category.id,
+      name: "Lavagem",
+    });
     expect(body.service.estimatedDuration).toEqual({
       minInMinutes: 30,
       maxInMinutes: 60,
@@ -232,9 +246,13 @@ describe("UpdateServiceController (e2e)", () => {
       role: "ESTABLISHMENT",
       plainPassword: "strong-password",
     });
-    await establishmentFactory.makePrismaEstablishment({
+    const establishment = await establishmentFactory.makePrismaEstablishment({
       ownerId: user.id,
     });
+    const category = await seedLavagemCategory(
+      prisma,
+      establishment.id.toString(),
+    );
     const establishmentLogin = await loginUser({
       app,
       prisma,
@@ -249,7 +267,7 @@ describe("UpdateServiceController (e2e)", () => {
         "Authorization",
         `Bearer ${establishmentLogin.loginBody.accessToken}`,
       )
-      .send(makeCreateServicePayload());
+      .send(makeCreateServicePayload(category.id));
     const created = updateServiceResponseSchema.parse(createResponse.body);
     const serviceId = created.service.id;
 
@@ -274,9 +292,13 @@ describe("UpdateServiceController (e2e)", () => {
       role: "ESTABLISHMENT",
       plainPassword: "strong-password",
     });
-    await establishmentFactory.makePrismaEstablishment({
+    const establishment = await establishmentFactory.makePrismaEstablishment({
       ownerId: user.id,
     });
+    const category = await seedLavagemCategory(
+      prisma,
+      establishment.id.toString(),
+    );
     const establishmentLogin = await loginUser({
       app,
       prisma,
@@ -291,7 +313,7 @@ describe("UpdateServiceController (e2e)", () => {
         "Authorization",
         `Bearer ${establishmentLogin.loginBody.accessToken}`,
       )
-      .send(makeCreateServicePayload());
+      .send(makeCreateServicePayload(category.id));
     const created = updateServiceResponseSchema.parse(createResponse.body);
 
     const response = await request(getHttpServer(app))
@@ -355,9 +377,13 @@ describe("UpdateServiceController (e2e)", () => {
         plainPassword: "strong-password",
       });
 
-    await establishmentFactory.makePrismaEstablishment({
+    const establishmentA = await establishmentFactory.makePrismaEstablishment({
       ownerId: ownerA.id,
     });
+    const category = await seedLavagemCategory(
+      prisma,
+      establishmentA.id.toString(),
+    );
     await establishmentFactory.makePrismaEstablishment({
       ownerId: ownerB.id,
       cnpj: Cnpj.create("41437902000177"),
@@ -374,7 +400,7 @@ describe("UpdateServiceController (e2e)", () => {
     const createResponse = await request(getHttpServer(app))
       .post("/services")
       .set("Authorization", `Bearer ${loginA.loginBody.accessToken}`)
-      .send(makeCreateServicePayload());
+      .send(makeCreateServicePayload(category.id));
     const created = updateServiceResponseSchema.parse(createResponse.body);
     const serviceId = created.service.id;
 

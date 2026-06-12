@@ -1,8 +1,12 @@
 import { UniqueEntityId } from "../../../../shared/entities/unique-entity-id";
+import { makeServiceCategoryRef } from "../../../../../tests/helpers/service-category-ref";
 import {
   BookedServiceSnapshot,
   InvalidBookedServiceSnapshotError,
 } from "./booked-service-snapshot";
+
+const protectionCategory = makeServiceCategoryRef("Proteção");
+const washCategory = makeServiceCategoryRef("Lavagem");
 
 describe("BookedServiceSnapshot", () => {
   it("should be able to create a valid service snapshot", () => {
@@ -11,14 +15,14 @@ describe("BookedServiceSnapshot", () => {
     const snapshot = BookedServiceSnapshot.create({
       serviceId,
       serviceName: "Lavagem premium",
-      category: "PROTECTION",
+      category: protectionCategory,
       durationInMinutes: 90,
       priceInCents: 15000,
     });
 
     expect(snapshot.serviceId.equals(serviceId)).toBe(true);
     expect(snapshot.serviceName).toBe("Lavagem premium");
-    expect(snapshot.category).toBe("PROTECTION");
+    expect(snapshot.category).toEqual(protectionCategory);
     expect(snapshot.durationInMinutes).toBe(90);
     expect(snapshot.priceInCents).toBe(15000);
     expect(snapshot.price).toBe(150);
@@ -28,7 +32,7 @@ describe("BookedServiceSnapshot", () => {
     const snapshot = BookedServiceSnapshot.create({
       serviceId: new UniqueEntityId(),
       serviceName: "  Lavagem simples  ",
-      category: "WASH",
+      category: washCategory,
       durationInMinutes: 60,
       priceInCents: 7500,
     });
@@ -52,7 +56,7 @@ describe("BookedServiceSnapshot", () => {
       BookedServiceSnapshot.create({
         serviceId: new UniqueEntityId(),
         serviceName: "   ",
-        category: "WASH",
+        category: washCategory,
         durationInMinutes: 60,
         priceInCents: 7500,
       }),
@@ -64,7 +68,7 @@ describe("BookedServiceSnapshot", () => {
       BookedServiceSnapshot.create({
         serviceId: new UniqueEntityId(),
         serviceName: "Lavagem simples",
-        category: "WASH",
+        category: washCategory,
         durationInMinutes: 0,
         priceInCents: 7500,
       }),
@@ -76,7 +80,7 @@ describe("BookedServiceSnapshot", () => {
       BookedServiceSnapshot.create({
         serviceId: new UniqueEntityId(),
         serviceName: "Lavagem simples",
-        category: "WASH",
+        category: washCategory,
         durationInMinutes: 60,
         priceInCents: -1,
       }),

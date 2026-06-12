@@ -4,6 +4,10 @@ import { Money } from "../../../catalog/domain/value-objects/money";
 import { ResourceNotFoundError } from "../../../../shared/errors/resource-not-found-error";
 import { UniqueEntityId } from "../../../../shared/entities/unique-entity-id";
 import { makeAppointment } from "../../../../../tests/factories/appointment-factory";
+import { makeServiceCategoryRef } from "../../../../../tests/helpers/service-category-ref";
+
+const washCategoryId = new UniqueEntityId("wash-category");
+const washCategory = makeServiceCategoryRef("Lavagem", washCategoryId);
 import { makeEstablishment } from "../../../../../tests/factories/establishment-factory";
 import { makeService } from "../../../../../tests/factories/service-factory";
 import { InMemoryAppointmentsRepository } from "../../../../../tests/repositories/in-memory-appointments-repository";
@@ -68,7 +72,7 @@ describe("Get establishment dashboard overview", () => {
     const washService = makeService(
       {
         establishmentId: establishment.id,
-        category: "WASH",
+        category: washCategory,
       },
       new UniqueEntityId("service-1"),
     );
@@ -269,7 +273,7 @@ describe("Get establishment dashboard overview", () => {
     const washService = makeService(
       {
         establishmentId: establishment.id,
-        category: "WASH",
+        category: washCategory,
       },
       new UniqueEntityId("service-1"),
     );
@@ -362,7 +366,7 @@ describe("Get establishment dashboard overview", () => {
     const washService = makeService(
       {
         establishmentId: establishment.id,
-        category: "WASH",
+        category: washCategory,
       },
       new UniqueEntityId("service-1"),
     );
@@ -405,7 +409,7 @@ describe("Get establishment dashboard overview", () => {
     );
 
     const filters: EstablishmentMetricsFilters = {
-      categories: ["WASH"],
+      categoryIds: [washCategoryId.toString()],
       status: ["DONE", "CANCELLED"],
     };
 
@@ -468,7 +472,7 @@ describe("Get establishment dashboard overview", () => {
     const washService = makeService(
       {
         establishmentId: establishment.id,
-        category: "WASH",
+        category: washCategory,
       },
       new UniqueEntityId("service-1"),
     );
@@ -537,7 +541,7 @@ describe("Get establishment dashboard overview", () => {
         "2026-03-31T23:59:59.999Z",
       ),
       filters: {
-        categories: ["WASH"],
+        categoryIds: [washCategoryId.toString()],
         status: ["DONE"],
       },
     });

@@ -3,8 +3,12 @@ import {
   Money,
 } from "../../../catalog/domain/value-objects/money";
 import { UniqueEntityId } from "../../../../shared/entities/unique-entity-id";
+import { makeServiceCategoryRef } from "../../../../../tests/helpers/service-category-ref";
 import { InvalidAppointmentInputError } from "../errors/invalid-appointment-input-error";
 import { Appointment } from "./appointment";
+
+const washCategory = makeServiceCategoryRef("Lavagem");
+const detailingCategory = makeServiceCategoryRef("Detailing Automotivo");
 
 const baseProps = {
   establishmentId: new UniqueEntityId("establishment-1"),
@@ -17,7 +21,7 @@ const baseProps = {
     {
       serviceId: new UniqueEntityId("service-1"),
       serviceName: "Lavagem simples",
-      category: "WASH" as const,
+      category: washCategory,
       durationInMinutes: 60,
       priceInCents: 3000,
     },
@@ -179,7 +183,7 @@ describe("Appointment", () => {
     const updatedService = {
       serviceId: new UniqueEntityId("service-2"),
       serviceName: "Lavagem completa",
-      category: "AUTOMATIVE_DETAILING" as const,
+      category: detailingCategory,
       durationInMinutes: 120,
       priceInCents: 12000,
     };

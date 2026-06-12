@@ -23,6 +23,8 @@ import { HashGenerator } from "../../../modules/application/repositories/hash-ge
 import { Money } from "../../../modules/catalog/domain/value-objects/money";
 import { Service } from "../../../modules/catalog/domain/entities/services";
 import { UniqueEntityId } from "../../../shared/entities/unique-entity-id";
+import { makeServiceCategoryRef } from "../../../../tests/helpers/service-category-ref";
+import { seedServiceCategory } from "../../../../tests/helpers/service-category-seed";
 import { AppointmentStatus } from "../../../modules/scheduling/domain/entities/appointment";
 
 const referenceDate = new Date("2026-05-15T12:00:00.000Z");
@@ -271,19 +273,41 @@ describe("Dashboard metrics controller (e2e)", () => {
     });
   }
 
+  async function seedPrismaCategory(
+    establishmentId: UniqueEntityId,
+    name: string,
+  ) {
+    const row = await seedServiceCategory(
+      prisma,
+      establishmentId.toString(),
+      name,
+    );
+
+    return makeServiceCategoryRef(name, new UniqueEntityId(row.id));
+  }
+
   async function seedDashboardMetrics() {
     const { accessToken, establishment, customer } = await makeAuthContext();
+    const washCategory = await seedPrismaCategory(establishment.id, "Lavagem");
+    const detailsCategory = await seedPrismaCategory(
+      establishment.id,
+      "Detailing Automotivo",
+    );
+    const protectionCategory = await seedPrismaCategory(
+      establishment.id,
+      "Proteção",
+    );
     const washService = await serviceFactory.makePrismaService({
       establishmentId: establishment.id,
-      category: "WASH",
+      category: washCategory,
     });
     const detailsService = await serviceFactory.makePrismaService({
       establishmentId: establishment.id,
-      category: "AUTOMATIVE_DETAILING",
+      category: detailsCategory,
     });
     const protectionService = await serviceFactory.makePrismaService({
       establishmentId: establishment.id,
-      category: "PROTECTION",
+      category: protectionCategory,
     });
     const shared = {
       establishmentId: establishment.id,
@@ -374,18 +398,30 @@ describe("Dashboard metrics controller (e2e)", () => {
       priceInCents: 4000,
     });
 
-    return { accessToken, washService, detailsService, protectionService };
+    return {
+      accessToken,
+      washService,
+      detailsService,
+      protectionService,
+      washCategory,
+      detailsCategory,
+    };
   }
 
   it("should return overview card metrics with comparison values and daily points", async () => {
     const { accessToken, establishment, customer } = await makeAuthContext();
+    const washCategory = await seedPrismaCategory(establishment.id, "Lavagem");
+    const detailsCategory = await seedPrismaCategory(
+      establishment.id,
+      "Detailing Automotivo",
+    );
     const washService = await serviceFactory.makePrismaService({
       establishmentId: establishment.id,
-      category: "WASH",
+      category: washCategory,
     });
     const detailsService = await serviceFactory.makePrismaService({
       establishmentId: establishment.id,
-      category: "AUTOMATIVE_DETAILING",
+      category: detailsCategory,
     });
     const shared = {
       establishmentId: establishment.id,
@@ -435,7 +471,7 @@ describe("Dashboard metrics controller (e2e)", () => {
       .query({
         startsAt: "2026-04-01T00:00:00.000Z",
         endsAt: "2026-04-03T23:59:59.999Z",
-        categories: ["WASH", "AUTOMATIVE_DETAILING"],
+        categories: [washCategory.id.toString(), detailsCategory.id.toString()],
         status: ["SCHEDULED", "CANCELLED"],
       })
       .set("Authorization", `Bearer ${accessToken}`);

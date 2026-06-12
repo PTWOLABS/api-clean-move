@@ -26,7 +26,6 @@ import {
   CompleteOnboardingUseCase,
   InvalidOnboardingInputError,
 } from "../../../modules/application/use-cases/onboarding/complete-onboarding";
-import { ServiceCategory } from "../../../modules/catalog/domain/value-objects/service-category";
 import { ResourceAlreadyExistsError } from "../../../shared/errors/resource-already-exists-error";
 import { ResourceNotFoundError } from "../../../shared/errors/resource-not-found-error";
 import { UnexpectedDomainError } from "../../../shared/errors/unexpected-domain-error";
@@ -39,14 +38,6 @@ import {
   CompleteOnboardingResponseDto,
 } from "../docs/domain-swagger.dto";
 import { ZodValidationPipe } from "../pipes/zod-validation.pipe";
-
-const serviceCategories = [
-  "WASH",
-  "SANITIZATION",
-  "AUTOMATIVE_DETAILING",
-  "PROTECTION",
-  "UPHOLSTERY",
-] as const satisfies readonly ServiceCategory[];
 
 const onboardingBodySchema = z
   .object({
@@ -62,7 +53,7 @@ const onboardingBodySchema = z
       .object({
         serviceName: z.string().trim().min(1).optional(),
         description: z.string().trim().optional(),
-        category: z.enum(serviceCategories).optional(),
+        categoryId: z.uuid().optional(),
         estimatedDuration: z
           .object({
             minInMinutes: z.coerce.number().int().positive().optional(),
@@ -143,11 +134,11 @@ const onboardingBodySchema = z
         });
       }
 
-      if (body.service?.category === undefined) {
+      if (body.service?.categoryId === undefined) {
         ctx.addIssue({
           code: "custom",
           message: "Required when service data is provided.",
-          path: ["service", "category"],
+          path: ["service", "categoryId"],
         });
       }
 

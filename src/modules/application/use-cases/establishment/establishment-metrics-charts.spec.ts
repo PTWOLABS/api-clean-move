@@ -2,6 +2,20 @@ import { Money } from "../../../catalog/domain/value-objects/money";
 import { ResourceNotFoundError } from "../../../../shared/errors/resource-not-found-error";
 import { UniqueEntityId } from "../../../../shared/entities/unique-entity-id";
 import { makeAppointment } from "../../../../../tests/factories/appointment-factory";
+import { makeServiceCategoryRef } from "../../../../../tests/helpers/service-category-ref";
+
+const washCategoryId = new UniqueEntityId("wash-category");
+const protectionCategoryId = new UniqueEntityId("protection-category");
+const detailingCategoryId = new UniqueEntityId("detailing-category");
+const washCategory = makeServiceCategoryRef("Lavagem", washCategoryId);
+const protectionCategory = makeServiceCategoryRef(
+  "Proteção",
+  protectionCategoryId,
+);
+const detailingCategory = makeServiceCategoryRef(
+  "Detailing Automotivo",
+  detailingCategoryId,
+);
 import { makeEstablishment } from "../../../../../tests/factories/establishment-factory";
 import { makeService } from "../../../../../tests/factories/service-factory";
 import { InMemoryAppointmentsRepository } from "../../../../../tests/repositories/in-memory-appointments-repository";
@@ -84,28 +98,28 @@ describe("Establishment metrics charts", () => {
     const washService = makeService(
       {
         establishmentId: establishment.id,
-        category: "WASH",
+        category: washCategory,
       },
       new UniqueEntityId("service-1"),
     );
     const detailsService = makeService(
       {
         establishmentId: establishment.id,
-        category: "AUTOMATIVE_DETAILING",
+        category: detailingCategory,
       },
       new UniqueEntityId("service-2"),
     );
     const cancelledService = makeService(
       {
         establishmentId: establishment.id,
-        category: "WASH",
+        category: washCategory,
       },
       new UniqueEntityId("service-3"),
     );
     const otherWashService = makeService(
       {
         establishmentId: otherEstablishment.id,
-        category: "WASH",
+        category: washCategory,
       },
       new UniqueEntityId("service-4"),
     );
@@ -227,7 +241,10 @@ describe("Establishment metrics charts", () => {
         size: 2,
       },
       filters: {
-        categories: ["WASH", "AUTOMATIVE_DETAILING"],
+        categoryIds: [
+          washCategoryId.toString(),
+          detailingCategoryId.toString(),
+        ],
         status: ["SCHEDULED"],
       },
     });
@@ -245,7 +262,10 @@ describe("Establishment metrics charts", () => {
           size: 2,
         },
         filters: {
-          categories: ["WASH", "AUTOMATIVE_DETAILING"],
+          categoryIds: [
+            washCategoryId.toString(),
+            detailingCategoryId.toString(),
+          ],
           status: ["SCHEDULED"],
         },
       });
@@ -255,7 +275,7 @@ describe("Establishment metrics charts", () => {
     ).toHaveBeenNthCalledWith(1, establishment.id.toString(), {
       startsAt: new Date("2026-04-01T00:00:00.000Z"),
       endsAt: new Date("2026-04-02T23:59:59.999Z"),
-      categories: ["WASH", "AUTOMATIVE_DETAILING"],
+      categoryIds: [washCategoryId.toString(), detailingCategoryId.toString()],
       status: ["SCHEDULED"],
       page: 1,
       size: 2,
@@ -265,7 +285,7 @@ describe("Establishment metrics charts", () => {
     ).toHaveBeenNthCalledWith(2, establishment.id.toString(), {
       startsAt: new Date("2026-04-01T00:00:00.000Z"),
       endsAt: new Date("2026-04-02T23:59:59.999Z"),
-      categories: ["WASH", "AUTOMATIVE_DETAILING"],
+      categoryIds: [washCategoryId.toString(), detailingCategoryId.toString()],
       status: ["SCHEDULED"],
       page: 2,
       size: 2,
@@ -366,7 +386,7 @@ describe("Establishment metrics charts", () => {
         size: 5,
       },
       filters: {
-        categories: ["WASH"],
+        categoryIds: [washCategoryId.toString()],
       },
     });
 
@@ -428,14 +448,14 @@ describe("Establishment metrics charts", () => {
     const washService = makeService(
       {
         establishmentId: establishment.id,
-        category: "WASH",
+        category: washCategory,
       },
       new UniqueEntityId("service-1"),
     );
     const protectionService = makeService(
       {
         establishmentId: establishment.id,
-        category: "PROTECTION",
+        category: protectionCategory,
       },
       new UniqueEntityId("service-2"),
     );
@@ -543,7 +563,7 @@ describe("Establishment metrics charts", () => {
           {
             serviceId: new UniqueEntityId("service-1"),
             serviceName: "Lavagem simples",
-            category: "WASH",
+            category: washCategory,
             durationInMinutes: 60,
             priceInCents: 10000,
           },
@@ -561,7 +581,7 @@ describe("Establishment metrics charts", () => {
           {
             serviceId: new UniqueEntityId("service-2"),
             serviceName: "Lavagem simples",
-            category: "WASH",
+            category: washCategory,
             durationInMinutes: 60,
             priceInCents: 20000,
           },
@@ -579,7 +599,7 @@ describe("Establishment metrics charts", () => {
           {
             serviceId: new UniqueEntityId("service-3"),
             serviceName: "Lavagem simples",
-            category: "WASH",
+            category: washCategory,
             durationInMinutes: 60,
             priceInCents: 30000,
           },
@@ -597,7 +617,7 @@ describe("Establishment metrics charts", () => {
           {
             serviceId: new UniqueEntityId("service-4"),
             serviceName: "Lavagem simples",
-            category: "WASH",
+            category: washCategory,
             durationInMinutes: 60,
             priceInCents: 5000,
           },
@@ -706,7 +726,7 @@ describe("Establishment metrics charts", () => {
           {
             serviceId: new UniqueEntityId("service-1"),
             serviceName: "Lavagem simples",
-            category: "WASH",
+            category: washCategory,
             durationInMinutes: 60,
             priceInCents: 12000,
           },
@@ -724,7 +744,7 @@ describe("Establishment metrics charts", () => {
           {
             serviceId: new UniqueEntityId("service-2"),
             serviceName: "Lavagem simples",
-            category: "WASH",
+            category: washCategory,
             durationInMinutes: 60,
             priceInCents: 50000,
           },
@@ -742,7 +762,7 @@ describe("Establishment metrics charts", () => {
           {
             serviceId: new UniqueEntityId("service-3"),
             serviceName: "Lavagem simples",
-            category: "WASH",
+            category: washCategory,
             durationInMinutes: 60,
             priceInCents: 6000,
           },
@@ -802,7 +822,7 @@ describe("Establishment metrics charts", () => {
           {
             serviceId: new UniqueEntityId("service-1"),
             serviceName: "Lavagem simples",
-            category: "WASH",
+            category: washCategory,
             durationInMinutes: 60,
             priceInCents: 10000,
           },
@@ -820,7 +840,7 @@ describe("Establishment metrics charts", () => {
           {
             serviceId: new UniqueEntityId("service-2"),
             serviceName: "Lavagem completa",
-            category: "WASH",
+            category: washCategory,
             durationInMinutes: 60,
             priceInCents: 20000,
           },
@@ -838,7 +858,7 @@ describe("Establishment metrics charts", () => {
           {
             serviceId: new UniqueEntityId("service-3"),
             serviceName: "Lavagem simples",
-            category: "WASH",
+            category: washCategory,
             durationInMinutes: 60,
             priceInCents: 20000,
           },
@@ -915,7 +935,7 @@ describe("Establishment metrics charts", () => {
           {
             serviceId: new UniqueEntityId("service-1"),
             serviceName: "Lavagem simples",
-            category: "WASH",
+            category: washCategory,
             durationInMinutes: 60,
             priceInCents: 10000,
           },
@@ -933,7 +953,7 @@ describe("Establishment metrics charts", () => {
           {
             serviceId: new UniqueEntityId("service-2"),
             serviceName: "Lavagem completa",
-            category: "WASH",
+            category: washCategory,
             durationInMinutes: 60,
             priceInCents: 20000,
           },
@@ -1004,7 +1024,7 @@ describe("Establishment metrics charts", () => {
           {
             serviceId: new UniqueEntityId("service-1"),
             serviceName: "Lavagem simples",
-            category: "WASH",
+            category: washCategory,
             durationInMinutes: 60,
             priceInCents: 10000,
           },
@@ -1022,7 +1042,7 @@ describe("Establishment metrics charts", () => {
           {
             serviceId: new UniqueEntityId("service-2"),
             serviceName: "Lavagem completa",
-            category: "WASH",
+            category: washCategory,
             durationInMinutes: 60,
             priceInCents: 20000,
           },
@@ -1099,7 +1119,7 @@ describe("Establishment metrics charts", () => {
           {
             serviceId: new UniqueEntityId("service-1"),
             serviceName: "Lavagem simples",
-            category: "WASH",
+            category: washCategory,
             durationInMinutes: 60,
             priceInCents: 10000,
           },

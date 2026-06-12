@@ -17,6 +17,8 @@ import { AppModule } from "../../app.module";
 import { PrismaService } from "../../database/prisma/prisma.service";
 import { EnvService } from "../../env/env.service";
 
+const dummyCategoryId = "f47ac10b-58cc-4372-a567-0e02b2c3d479";
+
 const onboardingResponseSchema = z.object({
   onboarding: z.object({
     establishmentUpdated: z.boolean(),
@@ -27,7 +29,7 @@ const onboardingResponseSchema = z.object({
   }),
 });
 
-function makeOnboardingPayload() {
+function makeOnboardingPayload(categoryId: string) {
   return {
     establishment: {
       tradeName: "Clean Move",
@@ -37,7 +39,7 @@ function makeOnboardingPayload() {
     service: {
       serviceName: "Lavagem premium",
       description: "Lavagem externa com acabamento e brilho.",
-      category: "WASH",
+      categoryId,
       estimatedDuration: {
         minInMinutes: 30,
         maxInMinutes: 60,
@@ -118,11 +120,20 @@ describe("CompleteOnboardingController (e2e)", () => {
 
   it("should update establishment and create optional onboarding resources", async () => {
     const { accessToken, establishment } = await makeDraftEstablishmentAuth();
+    const washCategory = await prisma.serviceCategory.findFirst({
+      where: {
+        establishmentId: establishment.id.toString(),
+        name: "Lavagem",
+        deletedAt: null,
+      },
+    });
+
+    expect(washCategory).not.toBeNull();
 
     const response = await request(getHttpServer(app))
       .post("/onboarding")
       .set("Authorization", `Bearer ${accessToken}`)
-      .send(makeOnboardingPayload());
+      .send(makeOnboardingPayload(washCategory!.id));
     const body = onboardingResponseSchema.parse(response.body);
 
     expect(response.status).toBe(201);
@@ -336,15 +347,24 @@ describe("CompleteOnboardingController (e2e)", () => {
   });
 
   it("should reject appointment data without startsAt", async () => {
-    const { accessToken } = await makeEstablishmentAccessToken({
+    const { accessToken, establishment } = await makeEstablishmentAccessToken({
       app,
       prisma,
       userFactory,
       establishmentFactory,
       envService,
     });
+    const washCategory = await prisma.serviceCategory.findFirst({
+      where: {
+        establishmentId: establishment.id.toString(),
+        name: "Lavagem",
+        deletedAt: null,
+      },
+    });
 
-    const payload = makeOnboardingPayload();
+    expect(washCategory).not.toBeNull();
+
+    const payload = makeOnboardingPayload(washCategory!.id);
     delete (payload.appointment as Partial<typeof payload.appointment>)
       .startsAt;
 
@@ -372,19 +392,19 @@ describe("CompleteOnboardingController (e2e)", () => {
 
     const noTokenResponse = await request(getHttpServer(app))
       .post("/onboarding")
-      .send(makeOnboardingPayload());
+      .send(makeOnboardingPayload(dummyCategoryId));
     const invalidTokenResponse = await request(getHttpServer(app))
       .post("/onboarding")
       .set("Authorization", "Bearer invalid-token")
-      .send(makeOnboardingPayload());
+      .send(makeOnboardingPayload(dummyCategoryId));
     const expiredTokenResponse = await request(getHttpServer(app))
       .post("/onboarding")
       .set("Authorization", `Bearer ${establishmentRole.expiredAccessToken}`)
-      .send(makeOnboardingPayload());
+      .send(makeOnboardingPayload(dummyCategoryId));
     const customerRoleResponse = await request(getHttpServer(app))
       .post("/onboarding")
       .set("Authorization", `Bearer ${customerRole.accessToken}`)
-      .send(makeOnboardingPayload());
+      .send(makeOnboardingPayload(dummyCategoryId));
 
     expect(noTokenResponse.status).toBe(401);
     expect(invalidTokenResponse.status).toBe(401);

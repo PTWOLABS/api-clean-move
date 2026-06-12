@@ -4,30 +4,52 @@ import { ResourceAlreadyExistsError } from "../../../../shared/errors/resource-a
 import { ResourceNotFoundError } from "../../../../shared/errors/resource-not-found-error";
 import { makeCustomer } from "../../../../../tests/factories/customer-factory";
 import { makeCustomerVehicle } from "../../../../../tests/factories/customer-vehicle-factory";
+import { UniqueEntityId } from "../../../../shared/entities/unique-entity-id";
 import { makeEstablishment } from "../../../../../tests/factories/establishment-factory";
 import { InMemoryAppointmentsRepository } from "../../../../../tests/repositories/in-memory-appointments-repository";
 import { InMemoryCustomerVehiclesRepository } from "../../../../../tests/repositories/in-memory-customer-vehicles-repository";
 import { InMemoryCustomersRepository } from "../../../../../tests/repositories/in-memory-customers-repository";
 import { InMemoryEstablishmentsRepository } from "../../../../../tests/repositories/in-memory-establishment-repository";
+import { InMemoryServiceCategoriesRepository } from "../../../../../tests/repositories/in-memory-service-categories-repository";
 import { InMemoryServicesRepository } from "../../../../../tests/repositories/in-memory-services-repository";
 import { InMemoryUnitOfWork } from "../../../../../tests/repositories/in-memory-unit-of-work";
+import { ServiceCategory } from "../../../catalog/domain/entities/service-category";
+import { CategoryName } from "../../../catalog/domain/value-objects/category-name";
+import { Establishment } from "../../../establishments/domain/entities/establishment";
 import {
   CompleteOnboardingUseCase,
   InvalidOnboardingInputError,
 } from "./complete-onboarding";
 
+const washCategoryId = new UniqueEntityId("wash-category");
+
 let inMemoryUnitOfWork: InMemoryUnitOfWork;
 let inMemoryServicesRepository: InMemoryServicesRepository;
+let inMemoryServiceCategoriesRepository: InMemoryServiceCategoriesRepository;
 let inMemoryCustomersRepository: InMemoryCustomersRepository;
 let inMemoryCustomerVehiclesRepository: InMemoryCustomerVehiclesRepository;
 let inMemoryEstablishmentsRepository: InMemoryEstablishmentsRepository;
 let inMemoryAppointmentsRepository: InMemoryAppointmentsRepository;
 let sut: CompleteOnboardingUseCase;
 
+async function seedWashCategory(establishment: Establishment) {
+  await inMemoryServiceCategoriesRepository.create(
+    ServiceCategory.create(
+      {
+        establishmentId: establishment.id,
+        name: CategoryName.create("Lavagem"),
+      },
+      washCategoryId,
+    ),
+  );
+}
+
 describe("Complete onboarding", () => {
   beforeEach(() => {
     inMemoryUnitOfWork = new InMemoryUnitOfWork();
     inMemoryServicesRepository = new InMemoryServicesRepository();
+    inMemoryServiceCategoriesRepository =
+      new InMemoryServiceCategoriesRepository();
     inMemoryCustomersRepository = new InMemoryCustomersRepository();
     inMemoryCustomerVehiclesRepository = new InMemoryCustomerVehiclesRepository(
       inMemoryCustomersRepository,
@@ -42,6 +64,7 @@ describe("Complete onboarding", () => {
     sut = new CompleteOnboardingUseCase(
       inMemoryUnitOfWork,
       inMemoryEstablishmentsRepository,
+      inMemoryServiceCategoriesRepository,
       inMemoryServicesRepository,
       inMemoryCustomersRepository,
       inMemoryCustomerVehiclesRepository,
@@ -52,6 +75,7 @@ describe("Complete onboarding", () => {
   it("should be able to create an appointment with inactive service", async () => {
     const establishment = makeEstablishment();
     await inMemoryEstablishmentsRepository.create(establishment);
+    await seedWashCategory(establishment);
 
     const startsAt = new Date("2026-06-10T14:00:00.000Z");
 
@@ -59,7 +83,7 @@ describe("Complete onboarding", () => {
       establishmentOwnerId: establishment.ownerId.toString(),
       service: {
         serviceName: "Lavagem premium",
-        category: "WASH",
+        categoryId: washCategoryId.toString(),
         estimatedDuration: {
           minInMinutes: 30,
         },
@@ -112,6 +136,7 @@ describe("Complete onboarding", () => {
       cnpj: null,
     });
     await inMemoryEstablishmentsRepository.create(establishment);
+    await seedWashCategory(establishment);
 
     const startedAt = new Date();
     const result = await sut.execute({
@@ -124,7 +149,7 @@ describe("Complete onboarding", () => {
       service: {
         serviceName: "Lavagem premium",
         description: "Lavagem externa com acabamento e brilho.",
-        category: "WASH",
+        categoryId: washCategoryId.toString(),
         estimatedDuration: {
           minInMinutes: 30,
           maxInMinutes: 60,
@@ -236,7 +261,7 @@ describe("Complete onboarding", () => {
       establishmentOwnerId: "non-existent-owner",
       service: {
         serviceName: "Lavagem premium",
-        category: "WASH",
+        categoryId: washCategoryId.toString(),
         estimatedDuration: {
           minInMinutes: 30,
         },
@@ -316,12 +341,13 @@ describe("Complete onboarding", () => {
   it("should reject appointment data without startsAt", async () => {
     const establishment = makeEstablishment();
     await inMemoryEstablishmentsRepository.create(establishment);
+    await seedWashCategory(establishment);
 
     const result = await sut.execute({
       establishmentOwnerId: establishment.ownerId.toString(),
       service: {
         serviceName: "Lavagem premium",
-        category: "WASH",
+        categoryId: washCategoryId.toString(),
         estimatedDuration: {
           minInMinutes: 30,
         },
@@ -492,12 +518,13 @@ describe("Complete onboarding", () => {
   it("should return invalid onboarding input for invalid appointment dates", async () => {
     const establishment = makeEstablishment();
     await inMemoryEstablishmentsRepository.create(establishment);
+    await seedWashCategory(establishment);
 
     const result = await sut.execute({
       establishmentOwnerId: establishment.ownerId.toString(),
       service: {
         serviceName: "Lavagem premium",
-        category: "WASH",
+        categoryId: washCategoryId.toString(),
         estimatedDuration: {
           minInMinutes: 30,
         },

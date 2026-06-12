@@ -2,7 +2,6 @@ import {
   Appointment,
   AppointmentStatus,
 } from "../../../scheduling/domain/entities/appointment";
-import { ServiceCategory } from "../../../catalog/domain/value-objects/service-category";
 import {
   AppointmentFilters,
   AppointmentsRepository,
@@ -11,7 +10,7 @@ import {
 export type EstablishmentMetricsFilters = {
   startsAt?: Date;
   endsAt?: Date;
-  categories?: ServiceCategory[];
+  categoryIds?: string[];
   status?: AppointmentStatus[];
 };
 
@@ -30,7 +29,7 @@ export async function findAllAppointmentsByEstablishment(
       ...(filters?.startsAt ? { startsAt: filters.startsAt } : {}),
       ...(filters?.endsAt ? { endsAt: filters.endsAt } : {}),
       ...(filters?.status ? { status: filters.status } : {}),
-      ...(filters?.categories ? { categories: filters.categories } : {}),
+      ...(filters?.categoryIds ? { categoryIds: filters.categoryIds } : {}),
       page,
       size: PAGE_SIZE,
     };
@@ -84,10 +83,11 @@ export function filterAppointmentsByMetrics(
       return false;
     }
 
-    if (filters?.categories?.length) {
+    if (filters?.categoryIds?.length) {
       const hasMatchingCategory = appointment.services.some(
         (service) =>
-          service.category && filters.categories!.includes(service.category),
+          service.category &&
+          filters.categoryIds!.includes(service.category.id.toString()),
       );
 
       if (!hasMatchingCategory) {

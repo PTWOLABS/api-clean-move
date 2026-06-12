@@ -1,4 +1,4 @@
-import { ServiceCategory } from "../../../catalog/domain/value-objects/service-category";
+import { ServiceCategorySnapshot } from "../../../catalog/domain/value-objects/service-category-ref";
 import { ValueObject } from "../../../../shared/entities/value-object";
 import { UniqueEntityId } from "../../../../shared/entities/unique-entity-id";
 import { InvalidQuoteInputError } from "../errors/invalid-quote-input-error";
@@ -6,7 +6,7 @@ import { InvalidQuoteInputError } from "../errors/invalid-quote-input-error";
 export type QuoteServiceSnapshot = {
   serviceId: UniqueEntityId;
   serviceName: string;
-  category?: ServiceCategory | undefined;
+  category?: ServiceCategorySnapshot | undefined;
   durationInMinutes?: number | undefined;
   priceInCents: number;
   isCourtesy: boolean;

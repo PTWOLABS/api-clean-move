@@ -7,7 +7,12 @@ export class ServicePresenter {
       establishmentId: service.establishmentId.toString(),
       name: service.serviceName.value,
       description: service.description ?? null,
-      category: service.category ?? null,
+      category: service.category
+        ? {
+            id: service.category.id.toString(),
+            name: service.category.name,
+          }
+        : null,
       estimatedDuration: service.estimatedDuration
         ? {
             minInMinutes: service.estimatedDuration.minInMinutes,

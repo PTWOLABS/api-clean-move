@@ -5,6 +5,7 @@ import { makeCustomerVehicle } from "../../../../../tests/factories/customer-veh
 import { makeEmployee } from "../../../../../tests/factories/employee-factory";
 import { makeEstablishment } from "../../../../../tests/factories/establishment-factory";
 import { makeService } from "../../../../../tests/factories/service-factory";
+import { makeServiceCategoryRef } from "../../../../../tests/helpers/service-category-ref";
 import { makeUser } from "../../../../../tests/factories/user-factory";
 import { InMemoryAppointmentsRepository } from "../../../../../tests/repositories/in-memory-appointments-repository";
 import { InMemoryCustomerVehiclesRepository } from "../../../../../tests/repositories/in-memory-customer-vehicles-repository";
@@ -59,9 +60,10 @@ describe("Update appointment", () => {
       establishmentId: establishment.id,
       cpfCnpj: null,
     });
+    const protectionCategory = makeServiceCategoryRef("Proteção");
     const service = makeService({
       establishmentId: establishment.id,
-      category: "PROTECTION",
+      category: protectionCategory,
     });
     const vehicle = makeCustomerVehicle({
       establishmentId: establishment.id,
@@ -110,7 +112,7 @@ describe("Update appointment", () => {
       {
         serviceId: service.id,
         serviceName: service.serviceName.value,
-        category: "PROTECTION",
+        category: protectionCategory,
         durationInMinutes: service.estimatedDuration?.upperBoundInMinutes,
         priceInCents: service.price.amountInCents,
       },

@@ -2,6 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { Either, left, right } from "../../../../shared/either";
 import { ResourceNotFoundError } from "../../../../shared/errors/resource-not-found-error";
 import { UnexpectedDomainError } from "../../../../shared/errors/unexpected-domain-error";
+import { UniqueEntityId } from "../../../../shared/entities/unique-entity-id";
 import { Service } from "../../../catalog/domain/entities/services";
 import { InvalidEstimatedDurationTransitionError } from "../../../catalog/domain/errors/invalid-estimated-duration-transition-error";
 import {
@@ -12,11 +13,11 @@ import {
   InvalidMoneyError,
   Money,
 } from "../../../catalog/domain/value-objects/money";
-import { ServiceCategory } from "../../../catalog/domain/value-objects/service-category";
 import {
   InvalidServiceNameError,
   ServiceName,
 } from "../../../catalog/domain/value-objects/service-name";
+import { ServiceCategoriesRepository } from "../../repositories/service-categories-repository";
 import { EstablishmentsRepository } from "../../repositories/establishment-repository";
 import { ServicesRepository } from "../../repositories/services-repository";
 import { InvalidServiceUpdateInputError } from "./update-service";
@@ -25,7 +26,7 @@ type CreateServiceUseCaseRequest = {
   establishmentOwnerId: string;
   serviceName: string;
   description?: string | undefined;
-  category?: ServiceCategory | undefined;
+  categoryId?: string | null | undefined;
   estimatedDuration?:
     | {
         minInMinutes: number;
@@ -50,13 +51,14 @@ export class CreateServiceUseCase {
   constructor(
     private servicesRepository: ServicesRepository,
     private establishmentsRepository: EstablishmentsRepository,
+    private serviceCategoriesRepository: ServiceCategoriesRepository,
   ) {}
 
   async execute({
     establishmentOwnerId,
     serviceName,
     description,
-    category,
+    categoryId,
     estimatedDuration,
     price,
     isActive = true,
@@ -68,7 +70,33 @@ export class CreateServiceUseCase {
       return left(new ResourceNotFoundError({ resource: "Establishment" }));
     }
 
-    let service;
+    let category:
+      | {
+          id: UniqueEntityId;
+          name: string;
+        }
+      | undefined;
+
+    if (categoryId) {
+      const serviceCategory =
+        await this.serviceCategoriesRepository.findByIdAndEstablishmentId(
+          categoryId,
+          establishment.id.toString(),
+        );
+
+      if (!serviceCategory || serviceCategory.isDeleted()) {
+        return left(
+          new ResourceNotFoundError({ resource: "service category" }),
+        );
+      }
+
+      category = {
+        id: serviceCategory.id,
+        name: serviceCategory.name.value,
+      };
+    }
+
+    let service: Service;
 
     try {
       service = Service.create({
@@ -96,8 +124,12 @@ export class CreateServiceUseCase {
 
     await this.servicesRepository.create(service);
 
+    const createdService = await this.servicesRepository.findById(
+      service.id.toString(),
+    );
+
     return right({
-      service,
+      service: createdService ?? service,
     });
   }
 }

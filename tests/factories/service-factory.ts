@@ -9,6 +9,7 @@ import { ServiceName } from "../../src/modules/catalog/domain/value-objects/serv
 import { makeProductDescription, makeProductName } from "./random-data";
 import { PrismaService } from "../../src/infra/database/prisma/prisma.service";
 import { PrismaServiceMapper } from "../../src/infra/database/prisma/mappers/prisma-service-mapper";
+import { makeServiceCategoryRef } from "../helpers/service-category-ref";
 
 export function makeService(
   override?: Partial<ServiceProps>,
@@ -19,7 +20,7 @@ export function makeService(
       establishmentId: new UniqueEntityId(),
       serviceName: ServiceName.create(makeProductName()),
       description: makeProductDescription(),
-      category: "WASH",
+      category: makeServiceCategoryRef(),
       estimatedDuration: EstimatedDuration.create({
         minInMinutes: 30,
         maxInMinutes: 60,
@@ -40,7 +41,29 @@ export class ServiceFactory {
     override?: Partial<ServiceProps>,
     id?: UniqueEntityId,
   ) {
-    const service = makeService(override, id);
+    const service = makeService(
+      {
+        category: undefined,
+        ...override,
+      },
+      id,
+    );
+
+    if (service.category) {
+      const categoryExists = await this.prisma.serviceCategory.findUnique({
+        where: { id: service.category.id.toString() },
+      });
+
+      if (!categoryExists) {
+        await this.prisma.serviceCategory.create({
+          data: {
+            id: service.category.id.toString(),
+            establishmentId: service.establishmentId.toString(),
+            name: service.category.name,
+          },
+        });
+      }
+    }
 
     await this.prisma.service.create({
       data: PrismaServiceMapper.toPrisma(service),

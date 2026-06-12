@@ -1,11 +1,18 @@
 import { ResourceNotFoundError } from "../../../../shared/errors/resource-not-found-error";
+import { UniqueEntityId } from "../../../../shared/entities/unique-entity-id";
 import { makeEstablishment } from "../../../../../tests/factories/establishment-factory";
 import { InMemoryEstablishmentsRepository } from "../../../../../tests/repositories/in-memory-establishment-repository";
+import { InMemoryServiceCategoriesRepository } from "../../../../../tests/repositories/in-memory-service-categories-repository";
 import { InMemoryServicesRepository } from "../../../../../tests/repositories/in-memory-services-repository";
+import { ServiceCategory } from "../../../catalog/domain/entities/service-category";
+import { CategoryName } from "../../../catalog/domain/value-objects/category-name";
 import { CreateServiceUseCase } from "./create-service";
+
+const washCategoryId = new UniqueEntityId("wash-category");
 
 let inMemoryServicesRepository: InMemoryServicesRepository;
 let inMemoryEstablishmentsRepository: InMemoryEstablishmentsRepository;
+let inMemoryServiceCategoriesRepository: InMemoryServiceCategoriesRepository;
 
 let sut: CreateServiceUseCase;
 
@@ -15,10 +22,13 @@ describe("Create a service", () => {
     inMemoryEstablishmentsRepository = new InMemoryEstablishmentsRepository(
       inMemoryServicesRepository,
     );
+    inMemoryServiceCategoriesRepository =
+      new InMemoryServiceCategoriesRepository();
 
     sut = new CreateServiceUseCase(
       inMemoryServicesRepository,
       inMemoryEstablishmentsRepository,
+      inMemoryServiceCategoriesRepository,
     );
   });
 
@@ -26,13 +36,22 @@ describe("Create a service", () => {
     const establishment = makeEstablishment();
 
     await inMemoryEstablishmentsRepository.create(establishment);
+    await inMemoryServiceCategoriesRepository.create(
+      ServiceCategory.create(
+        {
+          establishmentId: establishment.id,
+          name: CategoryName.create("Lavagem"),
+        },
+        washCategoryId,
+      ),
+    );
 
     const result = await sut.execute({
       establishmentOwnerId: establishment.ownerId.toString(),
       serviceName: "Lavagem simples",
       description:
         "Lavagem externa com lavadora de pressao, shampoo proprio e secagem com pano de microfibra.",
-      category: "WASH",
+      categoryId: washCategoryId.toString(),
       estimatedDuration: {
         minInMinutes: 30,
         maxInMinutes: 60,
@@ -63,7 +82,7 @@ describe("Create a service", () => {
       establishmentOwnerId: "non-existent-establishment",
       serviceName: "Lavagem tecnica",
       description: "Lavagem detalhada",
-      category: "WASH",
+      categoryId: washCategoryId.toString(),
       estimatedDuration: {
         minInMinutes: 45,
         maxInMinutes: 90,

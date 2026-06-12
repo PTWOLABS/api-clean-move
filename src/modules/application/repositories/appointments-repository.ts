@@ -1,5 +1,4 @@
 import { PaginationParams } from "../../../shared/types/pagination-params";
-import { ServiceCategory } from "../../catalog/domain/value-objects/service-category";
 import {
   Appointment,
   AppointmentStatus,
@@ -23,7 +22,7 @@ export type AppointmentFilters = {
   serviceId?: string;
   serviceName?: string;
   status?: AppointmentStatus | AppointmentStatus[];
-  categories?: ServiceCategory[];
+  categoryIds?: string[];
   startsAt?: Date;
   endsAt?: Date;
 } & PaginationParams;

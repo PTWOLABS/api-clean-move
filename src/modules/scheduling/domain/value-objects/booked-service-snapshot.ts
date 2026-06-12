@@ -1,11 +1,11 @@
 import { ValueObject } from "../../../../shared/entities/value-object";
 import { UniqueEntityId } from "../../../../shared/entities/unique-entity-id";
-import { ServiceCategory } from "../../../catalog/domain/value-objects/service-category";
+import { ServiceCategorySnapshot } from "../../../catalog/domain/value-objects/service-category-ref";
 
 export type BookedServiceSnapshotProps = {
   serviceId: UniqueEntityId;
   serviceName: string;
-  category?: ServiceCategory | undefined;
+  category?: ServiceCategorySnapshot | undefined;
   durationInMinutes?: number | undefined;
   priceInCents: number;
 };

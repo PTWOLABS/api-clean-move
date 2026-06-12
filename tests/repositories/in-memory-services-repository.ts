@@ -56,7 +56,10 @@ export class InMemoryServicesRepository implements ServicesRepository {
         return false;
       }
 
-      if (filters?.category && item.category !== filters.category) {
+      if (
+        filters?.categoryId &&
+        item.category?.id.toString() !== filters.categoryId
+      ) {
         return false;
       }
 
@@ -186,6 +189,19 @@ export class InMemoryServicesRepository implements ServicesRepository {
       items: filtered.slice(start, end),
       totalItems,
     };
+  }
+
+  async clearCategoryFromServices(categoryId: string): Promise<number> {
+    let count = 0;
+
+    for (const item of this.items) {
+      if (item.category?.id.toString() === categoryId) {
+        item.clearCategory();
+        count++;
+      }
+    }
+
+    return count;
   }
 }
 

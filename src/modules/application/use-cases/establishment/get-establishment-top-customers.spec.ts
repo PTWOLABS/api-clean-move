@@ -4,6 +4,11 @@ import { ResourceNotFoundError } from "../../../../shared/errors/resource-not-fo
 import { UniqueEntityId } from "../../../../shared/entities/unique-entity-id";
 import { Money } from "../../../catalog/domain/value-objects/money";
 import { makeAppointment } from "../../../../../tests/factories/appointment-factory";
+import { makeServiceCategoryRef } from "../../../../../tests/helpers/service-category-ref";
+
+const washCategory = makeServiceCategoryRef("Lavagem");
+const detailingCategory = makeServiceCategoryRef("Detailing Automotivo");
+const protectionCategory = makeServiceCategoryRef("Proteção");
 import { makeEstablishment } from "../../../../../tests/factories/establishment-factory";
 import { InMemoryAppointmentsRepository } from "../../../../../tests/repositories/in-memory-appointments-repository";
 import { InMemoryEstablishmentsRepository } from "../../../../../tests/repositories/in-memory-establishment-repository";
@@ -68,7 +73,7 @@ describe("Get establishment top customers", () => {
           {
             serviceId: new UniqueEntityId("service-a"),
             serviceName: "Lavagem",
-            category: "WASH",
+            category: washCategory,
             durationInMinutes: 60,
             priceInCents: 10000,
           },
@@ -87,7 +92,7 @@ describe("Get establishment top customers", () => {
           {
             serviceId: new UniqueEntityId("service-b"),
             serviceName: "Polimento",
-            category: "AUTOMATIVE_DETAILING",
+            category: detailingCategory,
             durationInMinutes: 60,
             priceInCents: 5000,
           },
@@ -106,7 +111,7 @@ describe("Get establishment top customers", () => {
           {
             serviceId: new UniqueEntityId("service-c"),
             serviceName: "Cristalizacao",
-            category: "PROTECTION",
+            category: protectionCategory,
             durationInMinutes: 60,
             priceInCents: 20000,
           },
@@ -182,7 +187,7 @@ describe("Get establishment top customers", () => {
             {
               serviceId: new UniqueEntityId(`service-${customer[0]}`),
               serviceName: "Lavagem",
-              category: "WASH",
+              category: washCategory,
               durationInMinutes: 60,
               priceInCents: customer[2],
             },

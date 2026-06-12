@@ -1,10 +1,8 @@
 import { PaginationParams } from "../../../shared/types/pagination-params";
 import { Service } from "../../catalog/domain/entities/services";
-import { ServiceCategory } from "../../catalog/domain/value-objects/service-category";
-
 export type ServiceFilters = {
   serviceName?: string;
-  category?: ServiceCategory;
+  categoryId?: string;
   minPrice?: number;
   maxPrice?: number;
   isActive?: boolean;
@@ -43,4 +41,5 @@ export abstract class ServicesRepository {
   ): Promise<Service | null>;
   abstract save(service: Service): Promise<void>;
   abstract findMany(filters?: ServiceFilters): Promise<PaginatedServices>;
+  abstract clearCategoryFromServices(categoryId: string): Promise<number>;
 }
