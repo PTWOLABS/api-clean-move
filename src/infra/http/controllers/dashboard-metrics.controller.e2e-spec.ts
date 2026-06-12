@@ -24,6 +24,7 @@ import { Money } from "../../../modules/catalog/domain/value-objects/money";
 import { Service } from "../../../modules/catalog/domain/entities/services";
 import { UniqueEntityId } from "../../../shared/entities/unique-entity-id";
 import { makeServiceCategoryRef } from "../../../../tests/helpers/service-category-ref";
+import { seedServiceCategory } from "../../../../tests/helpers/service-category-seed";
 import { AppointmentStatus } from "../../../modules/scheduling/domain/entities/appointment";
 
 const referenceDate = new Date("2026-05-15T12:00:00.000Z");
@@ -276,12 +277,11 @@ describe("Dashboard metrics controller (e2e)", () => {
     establishmentId: UniqueEntityId,
     name: string,
   ) {
-    const row = await prisma.serviceCategory.create({
-      data: {
-        establishmentId: establishmentId.toString(),
-        name,
-      },
-    });
+    const row = await seedServiceCategory(
+      prisma,
+      establishmentId.toString(),
+      name,
+    );
 
     return makeServiceCategoryRef(name, new UniqueEntityId(row.id));
   }

@@ -13,6 +13,7 @@ import {
   loginUser,
 } from "../../../../tests/helpers/auth-session.e2e-helpers";
 import { expectSingleMessageResponseWithoutIssues } from "../../../../tests/helpers/http-response-assertions";
+import { seedServiceCategory } from "../../../../tests/helpers/service-category-seed";
 import { HashGenerator } from "../../../modules/application/repositories/hash-generator";
 import { Cnpj } from "../../../modules/establishments/domain/value-objects/cnpj";
 import { AppModule } from "../../app.module";
@@ -66,12 +67,7 @@ async function seedLavagemCategory(
   prisma: PrismaService,
   establishmentId: string,
 ) {
-  return prisma.serviceCategory.create({
-    data: {
-      establishmentId,
-      name: "Lavagem",
-    },
-  });
+  return seedServiceCategory(prisma, establishmentId, "Lavagem");
 }
 
 function makeCreateServicePayload(categoryId: string) {

@@ -11,6 +11,8 @@ import {
 } from "./random-data";
 import { PrismaService } from "../../src/infra/database/prisma/prisma.service";
 import { PrismaEstablishmentMapper } from "../../src/infra/database/prisma/mappers/prisma-establishment-mapper";
+import { PrismaServiceCategoryMapper } from "../../src/infra/database/prisma/mappers/prisma-service-category-mapper";
+import { createDefaultServiceCategories } from "../../src/modules/application/services/default-service-categories.factory";
 
 function calculateCnpjCheckDigit(numbers: number[], weights: number[]) {
   const total = numbers.reduce((sum, number, index) => {
@@ -77,6 +79,7 @@ export class EstablishmentFactory {
     await this.prisma.establishment.create({
       data: PrismaEstablishmentMapper.toPrisma(establishment),
     });
+    await this.seedDefaultServiceCategories(establishment.id);
 
     return establishment;
   }
@@ -91,7 +94,18 @@ export class EstablishmentFactory {
     await this.prisma.establishment.create({
       data: PrismaEstablishmentMapper.toPrisma(establishment),
     });
+    await this.seedDefaultServiceCategories(establishment.id);
 
     return establishment;
+  }
+
+  private async seedDefaultServiceCategories(establishmentId: UniqueEntityId) {
+    const categories = createDefaultServiceCategories(establishmentId);
+
+    await this.prisma.serviceCategory.createMany({
+      data: categories.map((category) =>
+        PrismaServiceCategoryMapper.toPrisma(category),
+      ),
+    });
   }
 }

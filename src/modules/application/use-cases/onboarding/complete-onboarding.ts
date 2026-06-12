@@ -28,7 +28,6 @@ import {
   InvalidMoneyError,
   Money,
 } from "../../../catalog/domain/value-objects/money";
-import { ServiceCategory } from "../../../catalog/domain/value-objects/service-category";
 import {
   InvalidServiceNameError,
   ServiceName,
@@ -45,6 +44,7 @@ import { AppointmentsRepository } from "../../repositories/appointments-reposito
 import { CustomerVehiclesRepository } from "../../repositories/customer-vehicles-repository";
 import { CustomersRepository } from "../../repositories/customers-repository";
 import { EstablishmentsRepository } from "../../repositories/establishment-repository";
+import { ServiceCategoriesRepository } from "../../repositories/service-categories-repository";
 import { ServicesRepository } from "../../repositories/services-repository";
 import { UnitOfWork } from "../../repositories/unit-of-work";
 
@@ -64,7 +64,7 @@ type OnboardingEstablishmentInput = {
 type OnboardingServiceInput = {
   serviceName?: string | undefined;
   description?: string | undefined;
-  category?: ServiceCategory | undefined;
+  categoryId?: string | undefined;
   estimatedDuration?:
     | {
         minInMinutes?: number | undefined;
@@ -129,6 +129,7 @@ export class CompleteOnboardingUseCase {
   constructor(
     private readonly unitOfWork: UnitOfWork,
     private readonly establishmentsRepository: EstablishmentsRepository,
+    private readonly serviceCategoriesRepository: ServiceCategoriesRepository,
     private readonly servicesRepository: ServicesRepository,
     private readonly customersRepository: CustomersRepository,
     private readonly customerVehiclesRepository: CustomerVehiclesRepository,
@@ -259,6 +260,10 @@ export class CompleteOnboardingUseCase {
         return left(error);
       }
 
+      if (error instanceof ResourceNotFoundError) {
+        return left(error);
+      }
+
       return left(new UnexpectedDomainError());
     }
   }
@@ -284,11 +289,11 @@ export class CompleteOnboardingUseCase {
       if (
         !service?.serviceName?.trim() ||
         service.price === undefined ||
-        service.category === undefined ||
+        service.categoryId === undefined ||
         service.estimatedDuration?.minInMinutes === undefined
       ) {
         return new InvalidOnboardingInputError(
-          "Service onboarding requires serviceName, price, category, and estimatedDuration.minInMinutes.",
+          "Service onboarding requires serviceName, price, categoryId, and estimatedDuration.minInMinutes.",
         );
       }
     }
@@ -328,11 +333,24 @@ export class CompleteOnboardingUseCase {
     establishment: Establishment,
     serviceInput: OnboardingServiceInput,
   ) {
+    const serviceCategory =
+      await this.serviceCategoriesRepository.findByIdAndEstablishmentId(
+        serviceInput.categoryId!,
+        establishment.id.toString(),
+      );
+
+    if (!serviceCategory || serviceCategory.isDeleted()) {
+      throw new ResourceNotFoundError({ resource: "service category" });
+    }
+
     const service = Service.create({
       establishmentId: establishment.id,
       serviceName: ServiceName.create(serviceInput.serviceName!),
       description: serviceInput.description,
-      category: serviceInput.category,
+      category: {
+        id: serviceCategory.id,
+        name: serviceCategory.name.value,
+      },
       estimatedDuration: EstimatedDuration.create({
         minInMinutes: serviceInput.estimatedDuration!.minInMinutes!,
         maxInMinutes: serviceInput.estimatedDuration?.maxInMinutes,

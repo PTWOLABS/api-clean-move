@@ -1109,22 +1109,11 @@ export class CompleteOnboardingServiceBodyDto {
   description?: string;
 
   @ApiPropertyOptional({
-    enum: [
-      "WASH",
-      "SANITIZATION",
-      "AUTOMATIVE_DETAILING",
-      "PROTECTION",
-      "UPHOLSTERY",
-    ],
-    example: "WASH",
+    format: "uuid",
+    example: "f47ac10b-58cc-4372-a567-0e02b2c3d479",
     description: "Required when any service data is provided.",
   })
-  category?:
-    | "WASH"
-    | "SANITIZATION"
-    | "AUTOMATIVE_DETAILING"
-    | "PROTECTION"
-    | "UPHOLSTERY";
+  categoryId?: string;
 
   @ApiPropertyOptional({
     type: CompleteOnboardingServiceEstimatedDurationBodyDto,
@@ -1268,7 +1257,7 @@ export class CompleteOnboardingBodyDto {
   @ApiPropertyOptional({
     type: CompleteOnboardingServiceBodyDto,
     description:
-      "Optional service data. Empty or omitted section is skipped; partial section requires serviceName, price, category, and estimatedDuration.minInMinutes.",
+      "Optional service data. Empty or omitted section is skipped; partial section requires serviceName, price, categoryId, and estimatedDuration.minInMinutes.",
   })
   service?: CompleteOnboardingServiceBodyDto;
 
