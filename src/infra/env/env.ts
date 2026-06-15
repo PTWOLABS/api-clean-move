@@ -53,8 +53,8 @@ export const envSchema = z
   .object({
     PORT: z.coerce.number().int().min(1).max(65535).optional().default(8080),
     FRONTEND_URL: z.url(),
-    CORS_ALLOWED_ORIGINS: z.string(),
-    POSTGRES_HOST: nonEmptyStringSchema,
+    CORS_ALLOWED_ORIGINS: optionalNonEmptyStringSchema,
+    POSTGRES_HOST: optionalNonEmptyStringSchema,
     POSTGRES_PORT: z.coerce
       .number()
       .int()
@@ -62,9 +62,9 @@ export const envSchema = z
       .max(65535)
       .optional()
       .default(5432),
-    POSTGRES_DB: nonEmptyStringSchema,
-    POSTGRES_USER: nonEmptyStringSchema,
-    POSTGRES_PASSWORD: nonEmptyStringSchema,
+    POSTGRES_DB: optionalNonEmptyStringSchema,
+    POSTGRES_USER: optionalNonEmptyStringSchema,
+    POSTGRES_PASSWORD: optionalNonEmptyStringSchema,
     DATABASE_URL: databaseUrlSchema,
     NODE_ENV: nodeEnvSchema.default("development"),
     GOOGLE_CLIENT_ID: nonEmptyStringSchema.default("google-client-id"),
@@ -152,7 +152,11 @@ export const envSchema = z
         }
       }
     },
-  );
+  )
+  .transform((env) => ({
+    ...env,
+    CORS_ALLOWED_ORIGINS: env.CORS_ALLOWED_ORIGINS ?? env.FRONTEND_URL,
+  }));
 
 export type NodeEnv = z.infer<typeof nodeEnvSchema>;
 export type Env = z.infer<typeof envSchema>;
