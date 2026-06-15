@@ -26,6 +26,7 @@ import {
 } from "../../../modules/accounts/domain/value-objects/email";
 import { AuthenticateWithOAuthUseCase } from "../../../modules/application/use-cases/auth/authenticate-with-oauth";
 import { AuthSessionService } from "../../../modules/application/services/auth-session.service";
+import { OAuthEmailMismatchError } from "../../../shared/errors/oauth-email-mismatch-error";
 import { OAuthEmailNotVerifiedError } from "../../../shared/errors/oauth-email-not-verified-error";
 import { InvalidCredentialsError } from "../../../shared/errors/invalid-credentials-error";
 import { InvalidSessionCreationError } from "../../../modules/accounts/domain/errors/invalid-session-creation-error";
@@ -166,6 +167,10 @@ export class AuthenticateWithGoogleController {
 
       if (error instanceof OAuthEmailNotVerifiedError) {
         throw new BadRequestException(error.message);
+      }
+
+      if (error instanceof OAuthEmailMismatchError) {
+        throw new UnauthorizedException(error.message);
       }
 
       throw new InternalServerErrorException("OAuth authentication failed.");
