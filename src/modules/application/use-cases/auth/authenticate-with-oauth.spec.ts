@@ -1,4 +1,5 @@
 import { Email } from "../../../accounts/domain/value-objects/email";
+import { OAuthEmailMismatchError } from "../../../../shared/errors/oauth-email-mismatch-error";
 import { OAuthEmailNotVerifiedError } from "../../../../shared/errors/oauth-email-not-verified-error";
 import { makeUser } from "../../../../../tests/factories/user-factory";
 import { InMemoryEstablishmentsRepository } from "../../../../../tests/repositories/in-memory-establishment-repository";
@@ -40,7 +41,31 @@ describe("Authenticate with OAuth", () => {
     expect(result.value).toBeInstanceOf(OAuthEmailNotVerifiedError);
   });
 
-  it("should return user found by provider and subject", async () => {
+  it("should return user found by provider and subject when email matches", async () => {
+    const user = makeUser("CUSTOMER", {
+      email: new Email("john@example.com"),
+      socialAccounts: [{ provider: "GOOGLE", subjectId: "google-sub-1" }],
+    });
+
+    await inMemoryUsersRepository.create(user);
+
+    const result = await sut.execute({
+      provider: "GOOGLE",
+      subjectId: "google-sub-1",
+      email: new Email("john@example.com"),
+      emailVerified: true,
+    });
+
+    expect(result.isRight()).toBe(true);
+
+    if (result.isLeft()) {
+      throw result.value;
+    }
+
+    expect(result.value.user).toBe(user);
+  });
+
+  it("should reject when linked user email does not match OAuth email", async () => {
     const user = makeUser("CUSTOMER", {
       email: new Email("john@example.com"),
       socialAccounts: [{ provider: "GOOGLE", subjectId: "google-sub-1" }],
@@ -55,13 +80,51 @@ describe("Authenticate with OAuth", () => {
       emailVerified: true,
     });
 
+    expect(result.isLeft()).toBe(true);
+    expect(result.value).toBeInstanceOf(OAuthEmailMismatchError);
+  });
+
+  it("should authenticate after email update when OAuth email matches the new account email", async () => {
+    const user = makeUser("CUSTOMER", {
+      email: new Email("new-email@example.com"),
+      socialAccounts: [{ provider: "GOOGLE", subjectId: "google-sub-1" }],
+    });
+
+    await inMemoryUsersRepository.create(user);
+
+    const result = await sut.execute({
+      provider: "GOOGLE",
+      subjectId: "google-sub-1",
+      email: new Email("new-email@example.com"),
+      emailVerified: true,
+    });
+
     expect(result.isRight()).toBe(true);
 
     if (result.isLeft()) {
       throw result.value;
     }
 
-    expect(result.value.user).toBe(user);
+    expect(result.value.user.email.toString()).toBe("new-email@example.com");
+  });
+
+  it("should reject OAuth login with old email after account email was updated", async () => {
+    const user = makeUser("CUSTOMER", {
+      email: new Email("new-email@example.com"),
+      socialAccounts: [{ provider: "GOOGLE", subjectId: "google-sub-1" }],
+    });
+
+    await inMemoryUsersRepository.create(user);
+
+    const result = await sut.execute({
+      provider: "GOOGLE",
+      subjectId: "google-sub-1",
+      email: new Email("old-email@example.com"),
+      emailVerified: true,
+    });
+
+    expect(result.isLeft()).toBe(true);
+    expect(result.value).toBeInstanceOf(OAuthEmailMismatchError);
   });
 
   it("should link provider when user exists by email without creating establishment", async () => {

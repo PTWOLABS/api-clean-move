@@ -5,6 +5,7 @@ import type { OAuthProvider } from "../../../accounts/domain/value-objects/oauth
 import { UserRole } from "../../../accounts/domain/value-objects/user-role";
 import { Establishment } from "../../../establishments/domain/entities/establishment";
 import { Either, left, right } from "../../../../shared/either";
+import { OAuthEmailMismatchError } from "../../../../shared/errors/oauth-email-mismatch-error";
 import { OAuthEmailNotVerifiedError } from "../../../../shared/errors/oauth-email-not-verified-error";
 import { EstablishmentsRepository } from "../../repositories/establishment-repository";
 import { UnitOfWork } from "../../repositories/unit-of-work";
@@ -20,7 +21,7 @@ type AuthenticateWithOAuthUseCaseRequest = {
 };
 
 type AuthenticateWithOAuthUseCaseResponse = Either<
-  OAuthEmailNotVerifiedError,
+  OAuthEmailNotVerifiedError | OAuthEmailMismatchError,
   { user: User }
 >;
 
@@ -50,6 +51,10 @@ export class AuthenticateWithOAuthUseCase {
     );
 
     if (userByLink) {
+      if (!userByLink.email.equals(email)) {
+        return left(new OAuthEmailMismatchError());
+      }
+
       return right({ user: userByLink });
     }
 

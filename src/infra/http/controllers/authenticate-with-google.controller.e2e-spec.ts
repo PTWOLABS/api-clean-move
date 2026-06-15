@@ -410,6 +410,113 @@ describe("AuthenticateWithGoogleController (e2e)", () => {
     expect(responseBody.message).toBe("OAuth email is not verified.");
   });
 
+  it("should return 401 when OAuth email does not match the account email", async () => {
+    await prisma.user.create({
+      data: {
+        name: "Email Updated User",
+        email: "new-email@example.com",
+        hashedPassword: null,
+        role: "CUSTOMER",
+        phone: null,
+        address: Prisma.JsonNull,
+        socialAccounts: {
+          create: {
+            provider: "GOOGLE",
+            subjectId: "google-sub-email-updated",
+          },
+        },
+      },
+    });
+
+    mockedClaimsByToken.set("old-email-after-update-token", {
+      provider: "GOOGLE",
+      subjectId: "google-sub-email-updated",
+      email: "old-email@example.com",
+      emailVerified: true,
+      name: "Email Updated User",
+    });
+
+    const response = await request(getHttpServer(app))
+      .post("/auth/google")
+      .send({ idToken: "old-email-after-update-token", role: "CUSTOMER" });
+
+    expect(response.status).toBe(401);
+
+    const responseBody = singleMessageResponseSchema.parse(response.body);
+    expect(responseBody.message).toBe(
+      "OAuth email does not match the account email.",
+    );
+  });
+
+  it("should allow OAuth login after email update when Google email matches", async () => {
+    const linkedUser = await prisma.user.create({
+      data: {
+        name: "Email Updated User",
+        email: "old-email@example.com",
+        hashedPassword: null,
+        role: "CUSTOMER",
+        phone: null,
+        address: Prisma.JsonNull,
+        socialAccounts: {
+          create: {
+            provider: "GOOGLE",
+            subjectId: "google-sub-email-update-flow",
+          },
+        },
+      },
+    });
+
+    mockedClaimsByToken.set("email-update-flow-old-token", {
+      provider: "GOOGLE",
+      subjectId: "google-sub-email-update-flow",
+      email: "old-email@example.com",
+      emailVerified: true,
+      name: "Email Updated User",
+    });
+
+    mockedClaimsByToken.set("email-update-flow-new-token", {
+      provider: "GOOGLE",
+      subjectId: "google-sub-email-update-flow",
+      email: "new-email@example.com",
+      emailVerified: true,
+      name: "Email Updated User",
+    });
+
+    const loginResponse = await request(getHttpServer(app))
+      .post("/auth/google")
+      .send({ idToken: "email-update-flow-old-token", role: "CUSTOMER" });
+
+    const loginBody = authenticateWithGoogleResponseSchema.parse(
+      loginResponse.body,
+    );
+
+    expect(loginResponse.status).toBe(200);
+
+    const updateResponse = await request(getHttpServer(app))
+      .patch("/user/me")
+      .set("Authorization", `Bearer ${loginBody.accessToken}`)
+      .send({ email: "new-email@example.com" });
+
+    expect(updateResponse.status).toBe(200);
+
+    const oldEmailLoginResponse = await request(getHttpServer(app))
+      .post("/auth/google")
+      .send({ idToken: "email-update-flow-old-token", role: "CUSTOMER" });
+
+    expect(oldEmailLoginResponse.status).toBe(401);
+
+    const newEmailLoginResponse = await request(getHttpServer(app))
+      .post("/auth/google")
+      .send({ idToken: "email-update-flow-new-token", role: "CUSTOMER" });
+
+    const newEmailLoginBody = authenticateWithGoogleResponseSchema.parse(
+      newEmailLoginResponse.body,
+    );
+
+    expect(newEmailLoginResponse.status).toBe(200);
+    expect(newEmailLoginBody.userId).toBe(linkedUser.id);
+  });
+
   it("should return 401 when OAuth token is invalid", async () => {
     const response = await request(getHttpServer(app))
       .post("/auth/google")
