@@ -14,6 +14,7 @@ type GetMeUseCaseResponse = Either<
   {
     user: User;
     establishmentId: string | null;
+    onboardingCompletedAt: Date | null;
   }
 >;
 
@@ -33,12 +34,13 @@ export class GetMeUseCase {
       return left(new ResourceNotFoundError({ resource: "user" }));
     }
 
-    const establishmentId =
-      await this.userEstablishmentResolver.resolveEstablishmentId(user);
+    const establishmentContext =
+      await this.userEstablishmentResolver.resolveEstablishmentContext(user);
 
     return right({
       user,
-      establishmentId,
+      establishmentId: establishmentContext.establishmentId,
+      onboardingCompletedAt: establishmentContext.onboardingCompletedAt,
     });
   }
 }

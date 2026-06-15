@@ -2,6 +2,7 @@ import { User } from "../../../modules/accounts/domain/entities/user";
 
 type UserPresenterOptions = {
   establishmentId?: string | null;
+  onboardingCompletedAt?: Date | null;
 };
 
 export class UserPresenter {
@@ -36,6 +37,11 @@ export class UserPresenter {
 
     if (options?.establishmentId !== undefined) {
       payload.establishmentId = options.establishmentId;
+    }
+
+    if (options?.onboardingCompletedAt !== undefined) {
+      payload.onboardingCompletedAt =
+        options.onboardingCompletedAt?.toISOString() ?? null;
     }
 
     return payload;

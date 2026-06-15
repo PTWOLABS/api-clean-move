@@ -38,6 +38,16 @@ export class GetMeUserResponseDto {
 
   @ApiPropertyOptional({
     type: String,
+    format: "date-time",
+    nullable: true,
+    example: null,
+    description:
+      "When the scoped establishment completed onboarding. Null when incomplete or unavailable.",
+  })
+  onboardingCompletedAt?: string | null;
+
+  @ApiPropertyOptional({
+    type: String,
     nullable: true,
     example: "https://cdn.example.com/user-profile/avatar.png",
     description: "User profile image URL when set via profile upload.",

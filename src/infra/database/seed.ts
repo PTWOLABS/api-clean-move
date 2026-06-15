@@ -385,10 +385,14 @@ const SERVICE_SELECTION_SEQUENCE = [
 ] as const;
 
 async function main() {
+  await prisma.quotePaymentOption.deleteMany();
+  await prisma.quoteService.deleteMany();
+  await prisma.quote.deleteMany();
   await prisma.appointment.deleteMany();
   await prisma.customerVehicle.deleteMany();
   await prisma.customer.deleteMany();
   await prisma.service.deleteMany();
+  await prisma.serviceCategory.deleteMany();
   await prisma.employee.deleteMany();
   await prisma.establishment.deleteMany();
   await prisma.passwordResetToken.deleteMany();
