@@ -2,6 +2,15 @@ import { Money } from "../../../catalog/domain/value-objects/money";
 import { ResourceNotFoundError } from "../../../../shared/errors/resource-not-found-error";
 import { UniqueEntityId } from "../../../../shared/entities/unique-entity-id";
 import { makeAppointment } from "../../../../../tests/factories/appointment-factory";
+import { makeServiceCategoryRef } from "../../../../../tests/helpers/service-category-ref";
+
+const washCategoryId = new UniqueEntityId("wash-category");
+const protectionCategoryId = new UniqueEntityId("protection-category");
+const washCategory = makeServiceCategoryRef("Lavagem", washCategoryId);
+const protectionCategory = makeServiceCategoryRef(
+  "Proteção",
+  protectionCategoryId,
+);
 import { makeEstablishment } from "../../../../../tests/factories/establishment-factory";
 import { makeService } from "../../../../../tests/factories/service-factory";
 import { InMemoryAppointmentsRepository } from "../../../../../tests/repositories/in-memory-appointments-repository";
@@ -95,21 +104,21 @@ describe("Establishment metrics KPIs", () => {
     const washService = makeService(
       {
         establishmentId: establishment.id,
-        category: "WASH",
+        category: washCategory,
       },
       new UniqueEntityId("service-1"),
     );
     const protectionService = makeService(
       {
         establishmentId: establishment.id,
-        category: "PROTECTION",
+        category: protectionCategory,
       },
       new UniqueEntityId("service-2"),
     );
     const otherWashService = makeService(
       {
         establishmentId: otherEstablishment.id,
-        category: "WASH",
+        category: washCategory,
       },
       new UniqueEntityId("service-3"),
     );
@@ -233,7 +242,7 @@ describe("Establishment metrics KPIs", () => {
     const filters: EstablishmentMetricsFilters = {
       startsAt: new Date("2026-04-01T00:00:00Z"),
       endsAt: new Date("2026-04-02T23:59:59Z"),
-      categories: ["WASH"],
+      categoryIds: [washCategoryId.toString()],
       status: ["SCHEDULED", "CANCELLED"],
     };
 
@@ -281,17 +290,21 @@ describe("Establishment metrics KPIs", () => {
     expect(totalRevenueResult.value.totalRevenueInCents).toBe(19000);
     expect(averageTicketResult.value.averageTicketInCents).toBe(9500);
     expect(appointmentsCountResult.value.appointmentsCount).toBe(2);
-    expect(typeof cancellationRateResult.value.appointmentsCount).toBe(
-      "number",
-    );
-    expect(cancellationRateResult.value.appointmentsCount).toBe(2);
-    expect(cancellationRateResult.value.cancellationRate).toEqual({
-      currentPercent: 50,
-      comparisonPercentPoints: 50,
+    expect(cancellationRateResult.value).toEqual({
+      total: 2,
+      byStatus: {
+        scheduled: 1,
+        done: 0,
+        cancelled: 1,
+      },
+      rates: {
+        completion: 0,
+        cancellation: 50,
+      },
     });
   });
 
-  it("should calculate cancellation rate percentages from current and comparison ranges", async () => {
+  it("should calculate appointment status summary from the current range", async () => {
     const repositories = makeRepositories();
     const { appointmentsRepository, establishmentsRepository } = repositories;
 
@@ -305,23 +318,23 @@ describe("Establishment metrics KPIs", () => {
 
     const washService = makeService({
       establishmentId: establishment.id,
-      category: "WASH",
+      category: washCategory,
     });
     const protectionService = makeService({
       establishmentId: establishment.id,
-      category: "PROTECTION",
+      category: protectionCategory,
     });
 
     const createAppointment = async ({
       status,
       startsAt,
-      category = "WASH",
+      categoryKind = "wash",
     }: {
       status: "SCHEDULED" | "DONE" | "CANCELLED";
       startsAt: string;
-      category?: "WASH" | "PROTECTION";
+      categoryKind?: "wash" | "protection";
     }) => {
-      const service = category === "WASH" ? washService : protectionService;
+      const service = categoryKind === "wash" ? washService : protectionService;
 
       await appointmentsRepository.create(
         makeAppointment({
@@ -358,7 +371,7 @@ describe("Establishment metrics KPIs", () => {
     await createAppointment({
       status: "CANCELLED",
       startsAt: "2026-04-01T12:00:00Z",
-      category: "PROTECTION",
+      categoryKind: "protection",
     });
     await createAppointment({
       status: "CANCELLED",
@@ -379,7 +392,7 @@ describe("Establishment metrics KPIs", () => {
     await createAppointment({
       status: "CANCELLED",
       startsAt: "2026-03-29T12:00:00Z",
-      category: "PROTECTION",
+      categoryKind: "protection",
     });
 
     const { cancellationRateUseCase } = makeKpiUseCases(repositories);
@@ -393,7 +406,7 @@ describe("Establishment metrics KPIs", () => {
         "2026-03-31T23:59:59Z",
       ),
       filters: {
-        categories: ["WASH"],
+        categoryIds: [washCategoryId.toString()],
         status: ["DONE"],
       },
     });
@@ -404,15 +417,21 @@ describe("Establishment metrics KPIs", () => {
       throw new Error("Expected cancellation rate to be calculated");
     }
 
-    expect(typeof result.value.appointmentsCount).toBe("number");
-    expect(result.value.appointmentsCount).toBe(3);
-    expect(result.value.cancellationRate).toEqual({
-      currentPercent: 33.3,
-      comparisonPercentPoints: 8.3,
+    expect(result.value).toEqual({
+      total: 3,
+      byStatus: {
+        scheduled: 1,
+        done: 1,
+        cancelled: 1,
+      },
+      rates: {
+        completion: 33.3,
+        cancellation: 33.3,
+      },
     });
   });
 
-  it("should return null comparison percent points when comparison has no appointments", async () => {
+  it("should return zero completion rate when there are no completed appointments", async () => {
     const repositories = makeRepositories();
     const { appointmentsRepository, establishmentsRepository } = repositories;
 
@@ -426,7 +445,7 @@ describe("Establishment metrics KPIs", () => {
 
     const washService = makeService({
       establishmentId: establishment.id,
-      category: "WASH",
+      category: washCategory,
     });
 
     await appointmentsRepository.create(
@@ -466,9 +485,17 @@ describe("Establishment metrics KPIs", () => {
       throw new Error("Expected cancellation rate to be calculated");
     }
 
-    expect(result.value.cancellationRate).toEqual({
-      currentPercent: 100,
-      comparisonPercentPoints: null,
+    expect(result.value).toEqual({
+      total: 1,
+      byStatus: {
+        scheduled: 0,
+        done: 0,
+        cancelled: 1,
+      },
+      rates: {
+        completion: 0,
+        cancellation: 100,
+      },
     });
   });
 
@@ -532,14 +559,16 @@ describe("Establishment metrics KPIs", () => {
     expect(totalRevenueResult.value.totalRevenueInCents).toBe(0);
     expect(averageTicketResult.value.averageTicketInCents).toBe(0);
     expect(appointmentsCountResult.value.appointmentsCount).toBe(0);
-    expect(typeof cancellationRateResult.value.appointmentsCount).toBe(
-      "number",
-    );
     expect(cancellationRateResult.value).toEqual({
-      appointmentsCount: 0,
-      cancellationRate: {
-        currentPercent: 0,
-        comparisonPercentPoints: null,
+      total: 0,
+      byStatus: {
+        scheduled: 0,
+        done: 0,
+        cancelled: 0,
+      },
+      rates: {
+        completion: 0,
+        cancellation: 0,
       },
     });
   });

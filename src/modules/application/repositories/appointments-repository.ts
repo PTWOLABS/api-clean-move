@@ -1,5 +1,4 @@
 import { PaginationParams } from "../../../shared/types/pagination-params";
-import { ServiceCategory } from "../../catalog/domain/value-objects/service-category";
 import {
   Appointment,
   AppointmentStatus,
@@ -23,10 +22,15 @@ export type AppointmentFilters = {
   serviceId?: string;
   serviceName?: string;
   status?: AppointmentStatus | AppointmentStatus[];
-  categories?: ServiceCategory[];
+  categoryIds?: string[];
   startsAt?: Date;
   endsAt?: Date;
 } & PaginationParams;
+
+export type AppointmentListResult = {
+  appointments: Appointment[];
+  totalItems: number;
+};
 
 export type PopularServiceUsageMetric = {
   serviceId: string;
@@ -39,6 +43,23 @@ export type PopularServiceUsageMetrics = {
   totalUsages: number;
 };
 
+export type TopCustomerMetric = {
+  customerId: string;
+  customerName: string;
+  completedAppointmentsCount: number;
+  totalSpentInCents: number;
+};
+
+export type TopCustomerMetrics = {
+  items: TopCustomerMetric[];
+  totalCustomers: number;
+};
+
+export type TopCustomersFilters = {
+  startsAt?: Date;
+  endsAt?: Date;
+} & PaginationParams;
+
 export abstract class AppointmentsRepository {
   abstract create(appointment: Appointment): Promise<void>;
   abstract findById(id: string): Promise<Appointment | null>;
@@ -49,14 +70,18 @@ export abstract class AppointmentsRepository {
   abstract findManyByEstablishmentId(
     establishmentId: string,
     filters?: AppointmentFilters,
-  ): Promise<Appointment[]>;
+  ): Promise<AppointmentListResult>;
   abstract findManyByEstablishmentIdInCalendarRange(
     establishmentId: string,
     filters: CalendarAppointmentFilters,
-  ): Promise<Appointment[]>;
+  ): Promise<AppointmentListResult>;
   abstract findPopularServiceUsagesByEstablishmentId(
     establishmentId: string,
     filters?: AppointmentFilters,
   ): Promise<PopularServiceUsageMetrics>;
+  abstract findTopCustomersByEstablishmentId(
+    establishmentId: string,
+    filters?: TopCustomersFilters,
+  ): Promise<TopCustomerMetrics>;
   abstract save(appointment: Appointment): Promise<void>;
 }

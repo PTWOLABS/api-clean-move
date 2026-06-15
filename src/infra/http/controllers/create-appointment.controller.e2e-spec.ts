@@ -60,6 +60,16 @@ const appointmentResponseSchema = z.object({
   }),
 });
 
+const appointmentStatusUpdateResponseSchema = z.object({
+  appointment: z.object({
+    id: z.uuid(),
+    status: appointmentStatusSchema,
+    updatedAt: z.string(),
+    doneAt: z.string().nullable(),
+    cancelledAt: z.string().nullable(),
+  }),
+});
+
 const listAppointmentsResponseSchema = z.object({
   appointments: z.array(appointmentResponseSchema.shape.appointment),
 });
@@ -539,32 +549,40 @@ describe("Appointment controllers (e2e)", () => {
       .patch(`/appointments/${appointmentId}/status`)
       .set("Authorization", `Bearer ${accessToken}`)
       .send({ status: "DONE" });
-    const doneBody = appointmentResponseSchema.parse(doneResponse.body);
+    const doneBody = appointmentStatusUpdateResponseSchema.parse(
+      doneResponse.body,
+    );
     const cancelledResponse = await request(getHttpServer(app))
       .patch(`/appointments/${appointmentId}/status`)
       .set("Authorization", `Bearer ${accessToken}`)
       .send({ status: "CANCELLED" });
-    const cancelledBody = appointmentResponseSchema.parse(
+    const cancelledBody = appointmentStatusUpdateResponseSchema.parse(
       cancelledResponse.body,
     );
     const scheduledResponse = await request(getHttpServer(app))
       .patch(`/appointments/${appointmentId}/status`)
       .set("Authorization", `Bearer ${accessToken}`)
       .send({ status: "SCHEDULED" });
-    const scheduledBody = appointmentResponseSchema.parse(
+    const scheduledBody = appointmentStatusUpdateResponseSchema.parse(
       scheduledResponse.body,
     );
 
     expect(doneResponse.status).toBe(200);
+    expect(doneBody.appointment.id).toBe(appointmentId);
     expect(doneBody.appointment.status).toBe("DONE");
+    expect(doneBody.appointment.updatedAt).toEqual(expect.any(String));
     expect(doneBody.appointment.doneAt).not.toBeNull();
     expect(doneBody.appointment.cancelledAt).toBeNull();
     expect(cancelledResponse.status).toBe(200);
+    expect(cancelledBody.appointment.id).toBe(appointmentId);
     expect(cancelledBody.appointment.status).toBe("CANCELLED");
+    expect(cancelledBody.appointment.updatedAt).toEqual(expect.any(String));
     expect(cancelledBody.appointment.doneAt).toBeNull();
     expect(cancelledBody.appointment.cancelledAt).not.toBeNull();
     expect(scheduledResponse.status).toBe(200);
+    expect(scheduledBody.appointment.id).toBe(appointmentId);
     expect(scheduledBody.appointment.status).toBe("SCHEDULED");
+    expect(scheduledBody.appointment.updatedAt).toEqual(expect.any(String));
     expect(scheduledBody.appointment.doneAt).toBeNull();
     expect(scheduledBody.appointment.cancelledAt).toBeNull();
   });

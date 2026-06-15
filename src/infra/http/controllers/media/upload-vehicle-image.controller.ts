@@ -12,6 +12,7 @@ import { FileInterceptor } from "@nestjs/platform-express";
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
+  ApiBody,
   ApiConsumes,
   ApiCreatedResponse,
   ApiForbiddenResponse,
@@ -29,6 +30,10 @@ import { AuthenticatedUser } from "../../../auth/authenticated-user";
 import { CurrentUser } from "../../../auth/current-user";
 import { Roles } from "../../../auth/roles";
 import {
+  UploadImageFileBodyDto,
+  UploadImageResponseDto,
+} from "../../docs/upload-swagger.dto";
+import {
   ensureUploadedFile,
   throwUploadError,
   UploadedImageHttpFile,
@@ -37,7 +42,7 @@ import {
 const customerIdParamSchema = z.uuid();
 const vehicleIdParamSchema = z.uuid();
 
-@ApiTags("media")
+@ApiTags("customer vehicles")
 @ApiBearerAuth("access-token")
 @Controller("/customers/:customerId/vehicles/:vehicleId/image")
 @Roles(["ESTABLISHMENT"])
@@ -50,18 +55,13 @@ export class UploadVehicleImageController {
     FileInterceptor("file", { limits: { fileSize: 5 * 1024 * 1024 } }),
   )
   @ApiConsumes("multipart/form-data")
+  @ApiBody({ type: UploadImageFileBodyDto })
   @ApiOperation({ summary: "Upload image for a customer vehicle." })
   @ApiParam({ name: "customerId", format: "uuid" })
   @ApiParam({ name: "vehicleId", format: "uuid" })
   @ApiCreatedResponse({
     description: "Image uploaded successfully.",
-    schema: {
-      type: "object",
-      properties: {
-        url: { type: "string" },
-        objectKey: { type: "string" },
-      },
-    },
+    type: UploadImageResponseDto,
   })
   @ApiBadRequestResponse({ description: "Invalid ids or image file." })
   @ApiUnauthorizedResponse({ description: "Missing or invalid access token." })

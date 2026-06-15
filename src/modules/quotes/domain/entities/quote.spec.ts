@@ -1,5 +1,9 @@
 import { UniqueEntityId } from "../../../../shared/entities/unique-entity-id";
+import { makeServiceCategoryRef } from "../../../../../tests/helpers/service-category-ref";
 import { InvalidQuoteInputError } from "../errors/invalid-quote-input-error";
+
+const washCategory = makeServiceCategoryRef("Lavagem");
+const protectionCategory = makeServiceCategoryRef("Proteção");
 import {
   Quote,
   QuoteCreateProps,
@@ -37,7 +41,7 @@ const baseProps = {
     {
       serviceId: new UniqueEntityId("service-1"),
       serviceName: "Lavagem detalhada",
-      category: "WASH" as const,
+      category: washCategory,
       durationInMinutes: 60,
       priceInCents: 32500,
       isCourtesy: false,
@@ -45,7 +49,7 @@ const baseProps = {
     {
       serviceId: new UniqueEntityId("service-2"),
       serviceName: "Cristalizacao dos vidros",
-      category: "PROTECTION" as const,
+      category: protectionCategory,
       durationInMinutes: 30,
       priceInCents: 40000,
       isCourtesy: true,
@@ -397,6 +401,20 @@ describe("Quote", () => {
 
     expect(() =>
       quote.markAsConverted(new UniqueEntityId("appointment-2")),
+    ).toThrow(InvalidQuoteInputError);
+  });
+
+  it("should link a prospect quote to a customer and vehicle once", () => {
+    const quote = Quote.create(baseProps);
+    const customerId = new UniqueEntityId("customer-1");
+    const vehicleId = new UniqueEntityId("vehicle-1");
+
+    quote.linkCustomer(customerId, vehicleId);
+
+    expect(quote.customerId).toEqual(customerId);
+    expect(quote.vehicleId).toEqual(vehicleId);
+    expect(() =>
+      quote.linkCustomer(new UniqueEntityId("customer-2"), null),
     ).toThrow(InvalidQuoteInputError);
   });
 });

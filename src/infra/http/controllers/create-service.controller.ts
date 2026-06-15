@@ -28,25 +28,16 @@ import { CreateServiceUseCase } from "../../../modules/application/use-cases/ser
 import { ResourceNotFoundError } from "../../../shared/errors/resource-not-found-error";
 import { InvalidServiceUpdateInputError } from "../../../modules/application/use-cases/service/update-service";
 import { UnexpectedDomainError } from "../../../shared/errors/unexpected-domain-error";
-import { ServiceCategory } from "../../../modules/catalog/domain/value-objects/service-category";
 import { ServicePresenter } from "../presenters/service-presenter";
 import {
   CreateServiceBodyDto,
   CreateServiceResponseDto,
 } from "../docs/domain-swagger.dto";
 
-const serviceCategories = [
-  "WASH",
-  "SANITIZATION",
-  "AUTOMATIVE_DETAILING",
-  "PROTECTION",
-  "UPHOLSTERY",
-] as const satisfies readonly ServiceCategory[];
-
 const createServiceBodySchema = z.object({
   serviceName: z.string().trim().min(1),
   description: z.string().trim().optional(),
-  category: z.enum(serviceCategories).optional(),
+  categoryId: z.uuid().optional().nullable(),
   estimatedDuration: z
     .object({
       minInMinutes: z.coerce.number().int().positive(),
@@ -101,7 +92,7 @@ export class CreateServiceController {
     const {
       serviceName,
       description,
-      category,
+      categoryId,
       estimatedDuration,
       price,
       isActive,
@@ -111,7 +102,7 @@ export class CreateServiceController {
       establishmentOwnerId: user.userId,
       serviceName,
       description,
-      category,
+      ...(categoryId !== undefined ? { categoryId } : {}),
       estimatedDuration,
       price,
       isActive,

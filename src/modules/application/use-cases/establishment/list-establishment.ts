@@ -1,12 +1,11 @@
 import { Either, right } from "../../../../shared/either";
-import { ServiceCategory } from "../../../catalog/domain/value-objects/service-category";
 import { Establishment } from "../../../establishments/domain/entities/establishment";
 import { EstablishmentsRepository } from "../../repositories/establishment-repository";
 
 type ListEstablishmentsUseCaseRequest = {
   filters?: {
     establishmentName?: string;
-    serviceCategory?: ServiceCategory;
+    serviceCategoryId?: string;
   };
 };
 

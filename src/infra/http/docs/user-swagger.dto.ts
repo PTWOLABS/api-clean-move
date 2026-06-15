@@ -26,6 +26,34 @@ export class GetMeUserResponseDto {
   })
   role!: string;
 
+  @ApiProperty({
+    type: String,
+    format: "uuid",
+    nullable: true,
+    example: null,
+    description:
+      "Establishment id when role is ESTABLISHMENT (owner) or EMPLOYEE.",
+  })
+  establishmentId!: string | null;
+
+  @ApiPropertyOptional({
+    type: String,
+    format: "date-time",
+    nullable: true,
+    example: null,
+    description:
+      "When the scoped establishment completed onboarding. Null when incomplete or unavailable.",
+  })
+  onboardingCompletedAt?: string | null;
+
+  @ApiPropertyOptional({
+    type: String,
+    nullable: true,
+    example: "https://cdn.example.com/user-profile/avatar.png",
+    description: "User profile image URL when set via profile upload.",
+  })
+  profileImageUrl?: string | null;
+
   @ApiPropertyOptional({
     type: String,
     nullable: true,
@@ -66,6 +94,25 @@ export class GetMeUserResponseDto {
 }
 
 export class GetMeResponseDto {
+  @ApiProperty({ type: GetMeUserResponseDto })
+  user!: GetMeUserResponseDto;
+}
+
+export class UpdateUserBodyDto {
+  @ApiPropertyOptional({ example: "Maria Silva" })
+  name?: string;
+
+  @ApiPropertyOptional({ example: "maria@example.com", format: "email" })
+  email?: string;
+
+  @ApiPropertyOptional({ example: "11987654321" })
+  phone?: string;
+
+  @ApiPropertyOptional({ type: AddressDto, nullable: true })
+  address?: AddressDto | null;
+}
+
+export class UpdateUserResponseDto {
   @ApiProperty({ type: GetMeUserResponseDto })
   user!: GetMeUserResponseDto;
 }

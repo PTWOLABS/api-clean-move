@@ -26,8 +26,10 @@ import {
   InvalidCnpjError,
 } from "../../../establishments/domain/value-objects/cnpj";
 import { Slug } from "../../../establishments/domain/value-objects/slug";
+import { createDefaultServiceCategories } from "../../services/default-service-categories.factory";
 import { EstablishmentsRepository } from "../../repositories/establishment-repository";
 import { HashGenerator } from "../../repositories/hash-generator";
+import { ServiceCategoriesRepository } from "../../repositories/service-categories-repository";
 import { UnitOfWork } from "../../repositories/unit-of-work";
 import { UsersRepository } from "../../repositories/users-repository";
 
@@ -57,6 +59,7 @@ export class RegisterEstablishmentUseCase {
   constructor(
     private usersRepository: UsersRepository,
     private establishmentsRepository: EstablishmentsRepository,
+    private serviceCategoriesRepository: ServiceCategoriesRepository,
     private hashGenerator: HashGenerator,
     private unitOfWork: UnitOfWork,
   ) {}
@@ -158,6 +161,9 @@ export class RegisterEstablishmentUseCase {
       await this.unitOfWork.execute(async () => {
         await this.usersRepository.create(user);
         await this.establishmentsRepository.create(establishment);
+        await this.serviceCategoriesRepository.createMany(
+          createDefaultServiceCategories(establishment.id),
+        );
       });
     } catch (error) {
       if (error instanceof UniqueConstraintViolationError) {

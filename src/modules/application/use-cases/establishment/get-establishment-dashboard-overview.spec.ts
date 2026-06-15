@@ -4,6 +4,10 @@ import { Money } from "../../../catalog/domain/value-objects/money";
 import { ResourceNotFoundError } from "../../../../shared/errors/resource-not-found-error";
 import { UniqueEntityId } from "../../../../shared/entities/unique-entity-id";
 import { makeAppointment } from "../../../../../tests/factories/appointment-factory";
+import { makeServiceCategoryRef } from "../../../../../tests/helpers/service-category-ref";
+
+const washCategoryId = new UniqueEntityId("wash-category");
+const washCategory = makeServiceCategoryRef("Lavagem", washCategoryId);
 import { makeEstablishment } from "../../../../../tests/factories/establishment-factory";
 import { makeService } from "../../../../../tests/factories/service-factory";
 import { InMemoryAppointmentsRepository } from "../../../../../tests/repositories/in-memory-appointments-repository";
@@ -68,7 +72,7 @@ describe("Get establishment dashboard overview", () => {
     const washService = makeService(
       {
         establishmentId: establishment.id,
-        category: "WASH",
+        category: washCategory,
       },
       new UniqueEntityId("service-1"),
     );
@@ -269,7 +273,7 @@ describe("Get establishment dashboard overview", () => {
     const washService = makeService(
       {
         establishmentId: establishment.id,
-        category: "WASH",
+        category: washCategory,
       },
       new UniqueEntityId("service-1"),
     );
@@ -362,7 +366,7 @@ describe("Get establishment dashboard overview", () => {
     const washService = makeService(
       {
         establishmentId: establishment.id,
-        category: "WASH",
+        category: washCategory,
       },
       new UniqueEntityId("service-1"),
     );
@@ -405,7 +409,7 @@ describe("Get establishment dashboard overview", () => {
     );
 
     const filters: EstablishmentMetricsFilters = {
-      categories: ["WASH"],
+      categoryIds: [washCategoryId.toString()],
       status: ["DONE", "CANCELLED"],
     };
 
@@ -452,6 +456,128 @@ describe("Get establishment dashboard overview", () => {
         valueInCents: 20000,
       },
     ]);
+  });
+
+  it("should ignore status filters only for cancellation rate metrics", async () => {
+    const repositories = makeRepositories();
+    const { appointmentsRepository, establishmentsRepository } = repositories;
+    const ownerId = new UniqueEntityId("owner-1");
+    const establishment = makeEstablishment(
+      { ownerId },
+      new UniqueEntityId("est-1"),
+    );
+
+    await establishmentsRepository.create(establishment);
+
+    const washService = makeService(
+      {
+        establishmentId: establishment.id,
+        category: washCategory,
+      },
+      new UniqueEntityId("service-1"),
+    );
+
+    const service = {
+      serviceId: washService.id,
+      serviceName: washService.serviceName.value,
+      category: washService.category,
+      durationInMinutes: 60,
+      priceInCents: 10000,
+    };
+
+    await appointmentsRepository.create(
+      makeAppointment({
+        establishmentId: establishment.id,
+        status: "DONE",
+        services: [service],
+        startsAt: new Date("2026-04-01T10:00:00Z"),
+        endsAt: new Date("2026-04-01T11:00:00Z"),
+      }),
+    );
+    await appointmentsRepository.create(
+      makeAppointment({
+        establishmentId: establishment.id,
+        status: "SCHEDULED",
+        services: [service],
+        startsAt: new Date("2026-04-02T10:00:00Z"),
+        endsAt: new Date("2026-04-02T11:00:00Z"),
+      }),
+    );
+    await appointmentsRepository.create(
+      makeAppointment({
+        establishmentId: establishment.id,
+        status: "CANCELLED",
+        services: [service],
+        startsAt: new Date("2026-04-03T10:00:00Z"),
+        endsAt: new Date("2026-04-03T11:00:00Z"),
+      }),
+    );
+    await appointmentsRepository.create(
+      makeAppointment({
+        establishmentId: establishment.id,
+        status: "DONE",
+        services: [service],
+        startsAt: new Date("2026-03-29T10:00:00Z"),
+        endsAt: new Date("2026-03-29T11:00:00Z"),
+      }),
+    );
+    await appointmentsRepository.create(
+      makeAppointment({
+        establishmentId: establishment.id,
+        status: "CANCELLED",
+        services: [service],
+        startsAt: new Date("2026-03-30T10:00:00Z"),
+        endsAt: new Date("2026-03-30T11:00:00Z"),
+      }),
+    );
+
+    const sut = makeSut(repositories);
+    const result = await sut.execute({
+      establishmentOwnerId: ownerId.toString(),
+      range: makeRange(
+        "2026-04-01T00:00:00.000Z",
+        "2026-04-03T23:59:59.999Z",
+        "2026-03-29T00:00:00.000Z",
+        "2026-03-31T23:59:59.999Z",
+      ),
+      filters: {
+        categoryIds: [washCategoryId.toString()],
+        status: ["DONE"],
+      },
+    });
+
+    expect(result.isRight()).toBe(true);
+
+    if (result.isLeft()) {
+      throw new Error(
+        "Expected overview metrics to be calculated successfully",
+      );
+    }
+
+    expect(result.value.appointments.value).toBe(1);
+    expect(result.value.averageTicket.valueInCents).toBe(10000);
+    expect(result.value.totalRevenue.valueInCents).toBe(10000);
+    expect(result.value.cancellationRate).toEqual({
+      value: 33.3,
+      variationInPercentagePoints: -16.7,
+      points: [
+        {
+          date: "2026-04-01",
+          label: "01/04",
+          value: 0,
+        },
+        {
+          date: "2026-04-02",
+          label: "02/04",
+          value: 0,
+        },
+        {
+          date: "2026-04-03",
+          label: "03/04",
+          value: 100,
+        },
+      ],
+    });
   });
 
   it("should return ResourceNotFoundError when owner has no establishment", async () => {

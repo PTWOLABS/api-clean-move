@@ -56,7 +56,10 @@ export class GetMeController {
     }
 
     return {
-      user: UserPresenter.toHTTP(result.value.user),
+      user: UserPresenter.toHTTP(result.value.user, {
+        establishmentId: result.value.establishmentId,
+        onboardingCompletedAt: result.value.onboardingCompletedAt,
+      }),
     };
   }
 }

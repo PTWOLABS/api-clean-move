@@ -30,7 +30,6 @@ describe("Employee", () => {
     expect(employee.name).toBe("Ana Silva");
     expect(employee.cpf?.toString()).toBe("52998224725");
     expect(employee.birthDate?.equals(birthDate)).toBe(true);
-    expect(employee.profileImageUrl).toBeNull();
     expect(employee.deletedAt).toBeNull();
     expect(employee.isDeleted()).toBe(false);
     expect(employee.features).toEqual([
@@ -54,7 +53,6 @@ describe("Employee", () => {
 
     expect(employee.cpf).toBeNull();
     expect(employee.birthDate).toBeNull();
-    expect(employee.profileImageUrl).toBeNull();
     expect(employee.features).toEqual([
       "read:appointments",
       "read:services",
@@ -63,30 +61,6 @@ describe("Employee", () => {
       "create:sessions:self",
       "read:sessions:self",
     ]);
-  });
-
-  it("should normalize profileImageUrl on create", () => {
-    const baseProps = {
-      establishmentId: new UniqueEntityId(),
-      userId: new UniqueEntityId(),
-      name: "Ana Silva",
-    };
-
-    const omitted = Employee.create(baseProps);
-    const withNull = Employee.create({ ...baseProps, profileImageUrl: null });
-    const withBlank = Employee.create({
-      ...baseProps,
-      profileImageUrl: "   ",
-    });
-    const withTrim = Employee.create({
-      ...baseProps,
-      profileImageUrl: " https://cdn.example/avatar.png ",
-    });
-
-    expect(omitted.profileImageUrl).toBeNull();
-    expect(withNull.profileImageUrl).toBeNull();
-    expect(withBlank.profileImageUrl).toBeNull();
-    expect(withTrim.profileImageUrl).toBe("https://cdn.example/avatar.png");
   });
 
   it("should reject an empty employee name", () => {
@@ -185,18 +159,6 @@ describe("Employee", () => {
     expect(employee.features).toEqual(originalFeatures);
   });
 
-  it("should set profile image URL", () => {
-    const employee = Employee.create({
-      establishmentId: new UniqueEntityId(),
-      userId: new UniqueEntityId(),
-      name: "Ana Silva",
-    });
-
-    employee.setProfileImageUrl("  https://cdn.example.com/a.png  ");
-
-    expect(employee.profileImageUrl).toBe("https://cdn.example.com/a.png");
-  });
-
   it("should soft-delete an employee and remove only session features", () => {
     const deletedAt = new Date("2026-05-05T10:00:00.000Z");
     const employee = Employee.create({
@@ -249,9 +211,6 @@ describe("Employee", () => {
     expect(() => employee.replaceFeatures(["update:employees:self"])).toThrow(
       EmployeeAlreadyDeletedError,
     );
-    expect(() =>
-      employee.setProfileImageUrl("https://cdn.example.com/a.png"),
-    ).toThrow(EmployeeAlreadyDeletedError);
     expect(() => employee.softDelete()).toThrow(EmployeeAlreadyDeletedError);
   });
 
@@ -284,7 +243,6 @@ describe("Employee", () => {
     const employee = Employee.restore({
       establishmentId,
       userId,
-      profileImageUrl: null,
       name: " Ana Silva ",
       cpf: null,
       birthDate: null,
@@ -308,7 +266,6 @@ describe("Employee", () => {
       Employee.restore({
         establishmentId: new UniqueEntityId(),
         userId: new UniqueEntityId(),
-        profileImageUrl: null,
         name: "Ana Silva",
         cpf: null,
         birthDate: null,

@@ -23,6 +23,8 @@ import { HashGenerator } from "../../../modules/application/repositories/hash-ge
 import { Money } from "../../../modules/catalog/domain/value-objects/money";
 import { Service } from "../../../modules/catalog/domain/entities/services";
 import { UniqueEntityId } from "../../../shared/entities/unique-entity-id";
+import { makeServiceCategoryRef } from "../../../../tests/helpers/service-category-ref";
+import { seedServiceCategory } from "../../../../tests/helpers/service-category-seed";
 import { AppointmentStatus } from "../../../modules/scheduling/domain/entities/appointment";
 
 const referenceDate = new Date("2026-05-15T12:00:00.000Z");
@@ -94,11 +96,18 @@ const overviewResponseSchema = z
 
 const appointmentsResponseSchema = z
   .object({
-    appointmentsCount: z.number(),
-    cancellationRate: z
+    total: z.number(),
+    byStatus: z
       .object({
-        currentPercent: z.number(),
-        comparisonPercentPoints: z.number().nullable(),
+        scheduled: z.number(),
+        done: z.number(),
+        cancelled: z.number(),
+      })
+      .strict(),
+    rates: z
+      .object({
+        completion: z.number(),
+        cancellation: z.number(),
       })
       .strict(),
   })
@@ -144,11 +153,29 @@ const popularServicesResponseSchema = z
   })
   .strict();
 
+const topCustomersResponseSchema = z
+  .object({
+    customers: z.array(
+      z
+        .object({
+          position: z.number(),
+          customerId: z.uuid(),
+          customerName: z.string(),
+          completedAppointmentsCount: z.number(),
+          totalSpentInCents: z.number(),
+        })
+        .strict(),
+    ),
+    totalCustomers: z.number(),
+  })
+  .strict();
+
 const dashboardMetricPaths = [
   "/dashboard/metrics/overview",
   "/dashboard/metrics/revenue",
   "/dashboard/metrics/appointments",
   "/dashboard/metrics/popular-services",
+  "/dashboard/metrics/top-customers",
 ] as const;
 
 describe("Dashboard metrics controller (e2e)", () => {
@@ -246,19 +273,41 @@ describe("Dashboard metrics controller (e2e)", () => {
     });
   }
 
+  async function seedPrismaCategory(
+    establishmentId: UniqueEntityId,
+    name: string,
+  ) {
+    const row = await seedServiceCategory(
+      prisma,
+      establishmentId.toString(),
+      name,
+    );
+
+    return makeServiceCategoryRef(name, new UniqueEntityId(row.id));
+  }
+
   async function seedDashboardMetrics() {
     const { accessToken, establishment, customer } = await makeAuthContext();
+    const washCategory = await seedPrismaCategory(establishment.id, "Lavagem");
+    const detailsCategory = await seedPrismaCategory(
+      establishment.id,
+      "Detailing Automotivo",
+    );
+    const protectionCategory = await seedPrismaCategory(
+      establishment.id,
+      "Proteção",
+    );
     const washService = await serviceFactory.makePrismaService({
       establishmentId: establishment.id,
-      category: "WASH",
+      category: washCategory,
     });
     const detailsService = await serviceFactory.makePrismaService({
       establishmentId: establishment.id,
-      category: "AUTOMATIVE_DETAILING",
+      category: detailsCategory,
     });
     const protectionService = await serviceFactory.makePrismaService({
       establishmentId: establishment.id,
-      category: "PROTECTION",
+      category: protectionCategory,
     });
     const shared = {
       establishmentId: establishment.id,
@@ -349,18 +398,30 @@ describe("Dashboard metrics controller (e2e)", () => {
       priceInCents: 4000,
     });
 
-    return { accessToken, washService, detailsService, protectionService };
+    return {
+      accessToken,
+      washService,
+      detailsService,
+      protectionService,
+      washCategory,
+      detailsCategory,
+    };
   }
 
   it("should return overview card metrics with comparison values and daily points", async () => {
     const { accessToken, establishment, customer } = await makeAuthContext();
+    const washCategory = await seedPrismaCategory(establishment.id, "Lavagem");
+    const detailsCategory = await seedPrismaCategory(
+      establishment.id,
+      "Detailing Automotivo",
+    );
     const washService = await serviceFactory.makePrismaService({
       establishmentId: establishment.id,
-      category: "WASH",
+      category: washCategory,
     });
     const detailsService = await serviceFactory.makePrismaService({
       establishmentId: establishment.id,
-      category: "AUTOMATIVE_DETAILING",
+      category: detailsCategory,
     });
     const shared = {
       establishmentId: establishment.id,
@@ -410,7 +471,7 @@ describe("Dashboard metrics controller (e2e)", () => {
       .query({
         startsAt: "2026-04-01T00:00:00.000Z",
         endsAt: "2026-04-03T23:59:59.999Z",
-        categories: ["WASH", "AUTOMATIVE_DETAILING"],
+        categories: [washCategory.id.toString(), detailsCategory.id.toString()],
         status: ["SCHEDULED", "CANCELLED"],
       })
       .set("Authorization", `Bearer ${accessToken}`);
@@ -460,7 +521,7 @@ describe("Dashboard metrics controller (e2e)", () => {
         ],
       },
       cancellationRate: {
-        value: 25,
+        value: 20,
         variationInPercentagePoints: null,
         points: [
           {
@@ -674,10 +735,15 @@ describe("Dashboard metrics controller (e2e)", () => {
 
     expect(response.status).toBe(200);
     expect(appointmentsResponseSchema.parse(response.body)).toEqual({
-      appointmentsCount: 5,
-      cancellationRate: {
-        currentPercent: 20,
-        comparisonPercentPoints: -5,
+      total: 5,
+      byStatus: {
+        scheduled: 0,
+        done: 4,
+        cancelled: 1,
+      },
+      rates: {
+        completion: 80,
+        cancellation: 20,
       },
     });
   });
@@ -772,6 +838,94 @@ describe("Dashboard metrics controller (e2e)", () => {
     });
   });
 
+  it("should return top customers ranked by done visits and total spent", async () => {
+    const { accessToken, establishment, customer } = await makeAuthContext();
+    const secondCustomer = await customerFactory.makePrismaCustomer({
+      establishmentId: establishment.id,
+      cpfCnpj: null,
+      fullName: "Bruno Almeida",
+    });
+    const thirdCustomer = await customerFactory.makePrismaCustomer({
+      establishmentId: establishment.id,
+      cpfCnpj: null,
+      fullName: "Carla Ramos",
+    });
+    const otherContext = await makeAuthContext();
+    const service = await serviceFactory.makePrismaService({
+      establishmentId: establishment.id,
+    });
+    const otherService = await serviceFactory.makePrismaService({
+      establishmentId: otherContext.establishment.id,
+    });
+
+    await createAppointment({
+      establishmentId: establishment.id,
+      customerId: customer.id,
+      service,
+      startsAt: "2026-05-03T10:00:00.000Z",
+      status: "DONE",
+      priceInCents: 10000,
+      discountInCents: 1000,
+    });
+    await createAppointment({
+      establishmentId: establishment.id,
+      customerId: customer.id,
+      service,
+      startsAt: "2026-05-04T10:00:00.000Z",
+      status: "DONE",
+      priceInCents: 5000,
+    });
+    await createAppointment({
+      establishmentId: establishment.id,
+      customerId: secondCustomer.id,
+      service,
+      startsAt: "2026-05-05T10:00:00.000Z",
+      status: "DONE",
+      priceInCents: 20000,
+    });
+    await createAppointment({
+      establishmentId: establishment.id,
+      customerId: thirdCustomer.id,
+      service,
+      startsAt: "2026-05-06T10:00:00.000Z",
+      status: "SCHEDULED",
+      priceInCents: 30000,
+    });
+    await createAppointment({
+      establishmentId: otherContext.establishment.id,
+      customerId: otherContext.customer.id,
+      service: otherService,
+      startsAt: "2026-05-07T10:00:00.000Z",
+      status: "DONE",
+      priceInCents: 99999,
+    });
+
+    const response = await request(getHttpServer(app))
+      .get("/dashboard/metrics/top-customers")
+      .set("Authorization", `Bearer ${accessToken}`)
+      .query({
+        startsAt: "2026-05-01T00:00:00.000Z",
+        endsAt: "2026-05-31T23:59:59.999Z",
+        page: 1,
+        size: 1,
+      });
+    const body = topCustomersResponseSchema.parse(response.body);
+
+    expect(response.status).toBe(200);
+    expect(body).toEqual({
+      customers: [
+        {
+          position: 1,
+          customerId: customer.id.toString(),
+          customerName: customer.fullName,
+          completedAppointmentsCount: 2,
+          totalSpentInCents: 14000,
+        },
+      ],
+      totalCustomers: 2,
+    });
+  });
+
   it.each([
     [
       "granularity on overview",
@@ -826,6 +980,8 @@ describe("Dashboard metrics controller (e2e)", () => {
     ],
     ["page=0", "/dashboard/metrics/popular-services", { page: 0 }],
     ["size=0", "/dashboard/metrics/popular-services", { size: 0 }],
+    ["page=0", "/dashboard/metrics/top-customers", { page: 0 }],
+    ["size=0", "/dashboard/metrics/top-customers", { size: 0 }],
   ])("should reject %s", async (_, path, query) => {
     const { accessToken } = await makeAuthContext();
 
@@ -887,7 +1043,7 @@ describe("Dashboard metrics controller (e2e)", () => {
   );
 
   it.each(dashboardMetricPaths)(
-    "should return not found when establishment profile does not exist for %s",
+    "should return metrics when establishment has oauth draft profile for %s",
     async (path) => {
       const { accessToken } =
         await makeEstablishmentUserWithoutProfileAccessToken({
@@ -900,7 +1056,7 @@ describe("Dashboard metrics controller (e2e)", () => {
         .get(path)
         .set("Authorization", `Bearer ${accessToken}`);
 
-      expect(response.status).toBe(404);
+      expect(response.status).toBe(200);
     },
   );
 });

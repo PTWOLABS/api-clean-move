@@ -1,20 +1,27 @@
-import { ServiceCategory } from "../../../modules/catalog/domain/value-objects/service-category";
 import { AppointmentStatus } from "../../../modules/scheduling/domain/entities/appointment";
 
-export type ServiceCategoryCode = ServiceCategory;
+export type ServiceCategoryDTO = {
+  id: string;
+  name: string;
+};
 
 export type AppointmentServiceDTO = {
   id: string;
   name: string;
-  category: ServiceCategoryCode | null;
+  category: ServiceCategoryDTO | null;
   durationInMinutes: number | null;
   priceInCents: number;
+};
+
+export type AppointmentCustomerDTO = {
+  fullName: string;
 };
 
 export type AppointmentItemDTO = {
   id: string;
   establishmentId: string;
   customerId: string;
+  customer: AppointmentCustomerDTO;
   vehicleId: string | null;
   services: AppointmentServiceDTO[];
   vehicle: {
@@ -23,6 +30,7 @@ export type AppointmentItemDTO = {
     model: string | null;
     color: string | null;
     year: number | null;
+    displayName: string | null;
   } | null;
   startsAt: string;
   endsAt: string | null;
@@ -37,6 +45,7 @@ export type AppointmentItemDTO = {
 
 export type AppointmentListDTO = {
   appointments: AppointmentItemDTO[];
+  totalItems: number;
 };
 
 export type AppointmentSingleResponseDTO = {

@@ -1,6 +1,8 @@
 import {
   type PaginatedServices,
   type ServiceFilters,
+  type ServiceOption,
+  type ServiceOptionsFilters,
   ServicesRepository,
 } from "../../src/modules/application/repositories/services-repository";
 import { Service } from "../../src/modules/catalog/domain/entities/services";
@@ -54,7 +56,10 @@ export class InMemoryServicesRepository implements ServicesRepository {
         return false;
       }
 
-      if (filters?.category && item.category !== filters.category) {
+      if (
+        filters?.categoryId &&
+        item.category?.id.toString() !== filters.categoryId
+      ) {
         return false;
       }
 
@@ -105,6 +110,33 @@ export class InMemoryServicesRepository implements ServicesRepository {
       items: filteredServices.slice(start, end),
       totalItems,
     };
+  }
+
+  async findOptionsByEstablishmentId(
+    establishmentId: string,
+    filters?: ServiceOptionsFilters,
+  ): Promise<ServiceOption[]> {
+    const limit = filters?.limit ?? 20;
+    const search = filters?.search?.trim().toLowerCase();
+
+    return this.items
+      .slice()
+      .filter((item) => item.establishmentId.toString() === establishmentId)
+      .filter((item) => !item.isDeleted())
+      .filter((item) => item.isActive)
+      .filter((item) => {
+        if (!search) {
+          return true;
+        }
+
+        return item.serviceName.value.toLowerCase().includes(search);
+      })
+      .sort((a, b) => compareStrings(a.serviceName.value, b.serviceName.value))
+      .slice(0, limit)
+      .map((service) => ({
+        id: service.id.toString(),
+        label: service.serviceName.value,
+      }));
   }
 
   async findByServiceIdAndEstablishmentId(
@@ -158,4 +190,29 @@ export class InMemoryServicesRepository implements ServicesRepository {
       totalItems,
     };
   }
+
+  async clearCategoryFromServices(categoryId: string): Promise<number> {
+    let count = 0;
+
+    for (const item of this.items) {
+      if (item.category?.id.toString() === categoryId) {
+        item.clearCategory();
+        count++;
+      }
+    }
+
+    return count;
+  }
+}
+
+function compareStrings(a: string, b: string) {
+  if (a < b) {
+    return -1;
+  }
+
+  if (a > b) {
+    return 1;
+  }
+
+  return 0;
 }

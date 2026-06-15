@@ -2,8 +2,13 @@ import { Injectable } from "@nestjs/common";
 
 import {
   CustomerVehicleFilters,
+  CustomerVehicleOption,
+  CustomerVehicleOptionsFilters,
   CustomerVehiclesRepository,
+  EstablishmentCustomerVehicleFilters,
+  PaginatedCustomerVehicles,
 } from "../../../../modules/application/repositories/customer-vehicles-repository";
+import { Prisma } from "../../../../generated/prisma/client";
 import { CustomerVehicle } from "../../../../modules/customer/domain/entities/customer-vehicle";
 import { PrismaCustomerVehicleMapper } from "../mappers/prisma-customer-vehicle-mapper";
 import { rethrowPrismaRepositoryError } from "../prisma-repository-error-handler";
@@ -127,10 +132,91 @@ export class PrismaCustomerVehiclesRepository implements CustomerVehiclesReposit
     customerId: string,
     establishmentId: string,
     filters?: CustomerVehicleFilters,
-  ): Promise<CustomerVehicle[]> {
+  ): Promise<PaginatedCustomerVehicles> {
     const page = filters?.page ?? 1;
     const size = filters?.size ?? 20;
 
+    const where: Prisma.CustomerVehicleWhereInput = {
+      customerId,
+      establishmentId,
+      ...(filters?.includeDeleted ? {} : { deletedAt: null }),
+    };
+
+    try {
+      const client = PrismaUnitOfWork.getClient(this.prisma);
+
+      const [totalItems, vehicles] = await Promise.all([
+        client.customerVehicle.count({ where }),
+        client.customerVehicle.findMany({
+          where,
+          orderBy: {
+            createdAt: "asc",
+          },
+          skip: (page - 1) * size,
+          take: size,
+        }),
+      ]);
+
+      return {
+        vehicles: vehicles.map((vehicle) =>
+          PrismaCustomerVehicleMapper.toDomain(vehicle),
+        ),
+        totalItems,
+      };
+    } catch (error) {
+      rethrowPrismaRepositoryError(error);
+    }
+  }
+
+  async findManyByEstablishmentId(
+    establishmentId: string,
+    filters?: EstablishmentCustomerVehicleFilters,
+  ): Promise<PaginatedCustomerVehicles> {
+    const page = filters?.page ?? 1;
+    const size = filters?.size ?? 20;
+    const filterWhere = buildVehicleListFiltersWhere(filters);
+
+    if (filterWhere === null) {
+      return { vehicles: [], totalItems: 0 };
+    }
+
+    const where: Prisma.CustomerVehicleWhereInput = {
+      establishmentId,
+      deletedAt: null,
+      ...(filters?.customerId ? { customerId: filters.customerId } : {}),
+      ...filterWhere,
+    };
+
+    try {
+      const client = PrismaUnitOfWork.getClient(this.prisma);
+
+      const [totalItems, vehicles] = await Promise.all([
+        client.customerVehicle.count({ where }),
+        client.customerVehicle.findMany({
+          where,
+          orderBy: {
+            createdAt: "asc",
+          },
+          skip: (page - 1) * size,
+          take: size,
+        }),
+      ]);
+
+      return {
+        vehicles: vehicles.map((vehicle) =>
+          PrismaCustomerVehicleMapper.toDomain(vehicle),
+        ),
+        totalItems,
+      };
+    } catch (error) {
+      rethrowPrismaRepositoryError(error);
+    }
+  }
+
+  async findAllActiveByCustomerIdAndEstablishmentId(
+    customerId: string,
+    establishmentId: string,
+  ): Promise<CustomerVehicle[]> {
     try {
       const vehicles = await PrismaUnitOfWork.getClient(
         this.prisma,
@@ -138,18 +224,91 @@ export class PrismaCustomerVehiclesRepository implements CustomerVehiclesReposit
         where: {
           customerId,
           establishmentId,
-          ...(filters?.includeDeleted ? {} : { deletedAt: null }),
+          deletedAt: null,
         },
         orderBy: {
           createdAt: "asc",
         },
-        skip: (page - 1) * size,
-        take: size,
       });
 
       return vehicles.map((vehicle) =>
         PrismaCustomerVehicleMapper.toDomain(vehicle),
       );
+    } catch (error) {
+      rethrowPrismaRepositoryError(error);
+    }
+  }
+
+  async findAllActiveByCustomerIdsAndEstablishmentId(
+    customerIds: string[],
+    establishmentId: string,
+  ): Promise<CustomerVehicle[]> {
+    if (customerIds.length === 0) {
+      return [];
+    }
+
+    try {
+      const vehicles = await PrismaUnitOfWork.getClient(
+        this.prisma,
+      ).customerVehicle.findMany({
+        where: {
+          customerId: { in: customerIds },
+          establishmentId,
+          deletedAt: null,
+        },
+        orderBy: {
+          createdAt: "asc",
+        },
+      });
+
+      return vehicles.map((vehicle) =>
+        PrismaCustomerVehicleMapper.toDomain(vehicle),
+      );
+    } catch (error) {
+      rethrowPrismaRepositoryError(error);
+    }
+  }
+
+  async findOptionsByEstablishmentId(
+    establishmentId: string,
+    filters?: CustomerVehicleOptionsFilters,
+  ): Promise<CustomerVehicleOption[]> {
+    const limit = filters?.limit ?? 20;
+    const search = filters?.search?.trim();
+    const plateSearch = search?.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+
+    try {
+      const vehicles = await PrismaUnitOfWork.getClient(
+        this.prisma,
+      ).customerVehicle.findMany({
+        select: {
+          id: true,
+          model: true,
+        },
+        where: {
+          establishmentId,
+          deletedAt: null,
+          ...(filters?.customerId ? { customerId: filters.customerId } : {}),
+          ...(search
+            ? {
+                OR: [
+                  ...(plateSearch
+                    ? [{ plate: { contains: plateSearch } }]
+                    : []),
+                  { model: { contains: search, mode: "insensitive" } },
+                  { brand: { contains: search, mode: "insensitive" } },
+                ],
+              }
+            : {}),
+        },
+        orderBy: [{ model: "asc" }, { plate: "asc" }],
+        take: limit,
+      });
+
+      return vehicles.map((vehicle) => ({
+        id: vehicle.id,
+        label: vehicle.model ?? "",
+      }));
     } catch (error) {
       rethrowPrismaRepositoryError(error);
     }
@@ -169,4 +328,56 @@ export class PrismaCustomerVehiclesRepository implements CustomerVehiclesReposit
       rethrowPrismaRepositoryError(error);
     }
   }
+}
+
+function buildVehicleListFiltersWhere(
+  filters?: EstablishmentCustomerVehicleFilters,
+): Prisma.CustomerVehicleWhereInput | null {
+  const where: Prisma.CustomerVehicleWhereInput = {};
+  const plate = filters?.plate?.trim();
+  const name = filters?.name?.trim();
+  const model = filters?.model?.trim();
+  const brand = filters?.brand?.trim();
+  const color = filters?.color?.trim();
+  const year = filters?.year?.trim();
+
+  if (plate !== undefined) {
+    const plateSearch = plate.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+
+    if (!plateSearch) {
+      return null;
+    }
+
+    where.plate = { contains: plateSearch };
+  }
+
+  if (name !== undefined) {
+    where.customer = {
+      fullName: { contains: name, mode: "insensitive" },
+    };
+  }
+
+  if (model !== undefined) {
+    where.model = { contains: model, mode: "insensitive" };
+  }
+
+  if (brand !== undefined) {
+    where.brand = { contains: brand, mode: "insensitive" };
+  }
+
+  if (color !== undefined) {
+    where.color = { contains: color, mode: "insensitive" };
+  }
+
+  if (year !== undefined) {
+    const parsedYear = Number.parseInt(year, 10);
+
+    if (!Number.isInteger(parsedYear)) {
+      return null;
+    }
+
+    where.year = parsedYear;
+  }
+
+  return where;
 }

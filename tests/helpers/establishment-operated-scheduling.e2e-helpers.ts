@@ -9,7 +9,6 @@ export const customerResponseSchema = z.object({
   customer: z.object({
     id: z.uuid(),
     establishmentId: z.uuid(),
-    profileImageUrl: z.string().nullable(),
     cpfCnpj: z.string().nullable(),
     documentType: z.enum(["CPF", "CNPJ"]).nullable(),
     fullName: z.string(),
@@ -32,10 +31,6 @@ export const customerResponseSchema = z.object({
   }),
 });
 
-export const listCustomersResponseSchema = z.object({
-  customers: z.array(customerResponseSchema.shape.customer),
-});
-
 export const vehicleResponseSchema = z.object({
   vehicle: z.object({
     id: z.uuid(),
@@ -54,9 +49,45 @@ export const vehicleResponseSchema = z.object({
   }),
 });
 
+export const listCustomersResponseSchema = z.object({
+  customers: z.array(
+    customerResponseSchema.shape.customer.extend({
+      vehicles: z.array(vehicleResponseSchema.shape.vehicle),
+      vehiclesCount: z.number().int().nonnegative(),
+    }),
+  ),
+  totalItems: z.number().int().nonnegative(),
+});
+
+export const optionItemSchema = z
+  .object({
+    id: z.uuid(),
+    label: z.string(),
+  })
+  .strict();
+
+export const customerOptionsResponseSchema = z
+  .object({
+    customers: z.array(optionItemSchema),
+  })
+  .strict();
+
 export const listVehiclesResponseSchema = z.object({
   vehicles: z.array(vehicleResponseSchema.shape.vehicle),
+  totalItems: z.number().int().nonnegative(),
 });
+
+export const vehicleOptionsResponseSchema = z
+  .object({
+    vehicles: z.array(optionItemSchema),
+  })
+  .strict();
+
+export const serviceOptionsResponseSchema = z
+  .object({
+    services: z.array(optionItemSchema),
+  })
+  .strict();
 
 export const appointmentStatusSchema = z.enum([
   "SCHEDULED",
@@ -69,6 +100,9 @@ export const appointmentResponseSchema = z.object({
     id: z.uuid(),
     establishmentId: z.uuid(),
     customerId: z.uuid(),
+    customer: z.object({
+      fullName: z.string(),
+    }),
     vehicleId: z.uuid().nullable(),
     services: z
       .array(
@@ -88,6 +122,7 @@ export const appointmentResponseSchema = z.object({
         model: z.string().nullable(),
         color: z.string().nullable(),
         year: z.number().int().nullable(),
+        displayName: z.string().nullable(),
       })
       .nullable(),
     startsAt: z.string(),
@@ -104,6 +139,7 @@ export const appointmentResponseSchema = z.object({
 
 export const listAppointmentsResponseSchema = z.object({
   appointments: z.array(appointmentResponseSchema.shape.appointment),
+  totalItems: z.number().int().nonnegative(),
 });
 
 type CustomerPayloadOverrides = {

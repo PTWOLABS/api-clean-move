@@ -135,6 +135,9 @@ export class CreateAppointmentUseCase {
       appointment = Appointment.create({
         establishmentId: establishment.id,
         customerId: customer.id,
+        customer: {
+          fullName: customer.fullName,
+        },
         vehicleId: vehicle?.id ?? null,
         services,
         vehicle: vehicle

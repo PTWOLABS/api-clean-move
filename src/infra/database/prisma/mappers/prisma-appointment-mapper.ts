@@ -7,16 +7,40 @@ import { Money } from "../../../../modules/catalog/domain/value-objects/money";
 import { Appointment } from "../../../../modules/scheduling/domain/entities/appointment";
 import { UniqueEntityId } from "../../../../shared/entities/unique-entity-id";
 
+function toCategorySnapshot(
+  categoryId: string | null,
+  categoryName: string | null,
+) {
+  if (!categoryId || !categoryName) {
+    return undefined;
+  }
+
+  return {
+    id: new UniqueEntityId(categoryId),
+    name: categoryName,
+  };
+}
+
 type PrismaAppointmentWithBookedServices = PrismaAppointmentRecord & {
   bookedServices: PrismaAppointmentBookedServiceRecord[];
 };
 
 export class PrismaAppointmentMapper {
   static toDomain(raw: PrismaAppointmentWithBookedServices): Appointment {
+    const hasVehicleSnapshot =
+      raw.vehiclePlate !== null ||
+      raw.vehicleBrand !== null ||
+      raw.vehicleModel !== null ||
+      raw.vehicleColor !== null ||
+      raw.vehicleYear !== null;
+
     return Appointment.create(
       {
         establishmentId: new UniqueEntityId(raw.establishmentId),
         customerId: new UniqueEntityId(raw.customerId),
+        customer: {
+          fullName: raw.customerFullName,
+        },
         vehicleId: raw.vehicleId ? new UniqueEntityId(raw.vehicleId) : null,
         services: raw.bookedServices
           .slice()
@@ -24,12 +48,15 @@ export class PrismaAppointmentMapper {
           .map((bookedService) => ({
             serviceId: new UniqueEntityId(bookedService.serviceId),
             serviceName: bookedService.serviceName,
-            category: bookedService.serviceCategory ?? undefined,
+            category: toCategorySnapshot(
+              bookedService.serviceCategoryId,
+              bookedService.serviceCategoryName,
+            ),
             durationInMinutes:
               bookedService.serviceDurationInMinutes ?? undefined,
             priceInCents: bookedService.servicePriceInCents,
           })),
-        vehicle: raw.vehicleId
+        vehicle: hasVehicleSnapshot
           ? {
               plate: raw.vehiclePlate,
               brand: raw.vehicleBrand,
@@ -61,7 +88,8 @@ export class PrismaAppointmentMapper {
     return raw.services.map((service, index) => ({
       serviceId: service.serviceId.toString(),
       serviceName: service.serviceName,
-      serviceCategory: service.category ?? null,
+      serviceCategoryId: service.category?.id.toString() ?? null,
+      serviceCategoryName: service.category?.name ?? null,
       serviceDurationInMinutes: service.durationInMinutes ?? null,
       servicePriceInCents: service.priceInCents,
       position: index,
@@ -73,6 +101,7 @@ export class PrismaAppointmentMapper {
       id: raw.id.toString(),
       establishmentId: raw.establishmentId.toString(),
       customerId: raw.customerId.toString(),
+      customerFullName: raw.customer.fullName,
       vehicleId: raw.vehicleId?.toString() ?? null,
       bookedServices: {
         create: PrismaAppointmentMapper.toBookedServicesCreate(raw),
@@ -98,6 +127,7 @@ export class PrismaAppointmentMapper {
     raw: Appointment,
   ): Prisma.AppointmentUncheckedUpdateInput {
     return {
+      customerFullName: raw.customer.fullName,
       vehicleId: raw.vehicleId?.toString() ?? null,
       bookedServices: {
         deleteMany: {},

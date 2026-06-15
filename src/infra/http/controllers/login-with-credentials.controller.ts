@@ -28,9 +28,10 @@ import { UnexpectedDomainError } from "../../../shared/errors/unexpected-domain-
 import { LoginWithCredentialsUseCase } from "../../../modules/application/use-cases/auth/login-with-credentials";
 import { InvalidCredentialsError } from "../../../shared/errors/invalid-credentials-error";
 import {
-  AuthSuccessResponseDto,
+  AuthWithOnboardingResponseDto,
   LoginWithCredentialsBodyDto,
 } from "../docs/auth-swagger.dto";
+import { EstablishmentsRepository } from "../../../modules/application/repositories/establishment-repository";
 
 type RequestLike = {
   headers: Record<string, string | string[] | undefined>;
@@ -56,6 +57,7 @@ export class LoginWithCredentialsController {
   constructor(
     private readonly loginWithCredentials: LoginWithCredentialsUseCase,
     private readonly refreshTokenCookieService: RefreshTokenCookieService,
+    private readonly establishmentsRepository: EstablishmentsRepository,
   ) {}
 
   private getUserAgent(req: RequestLike): string | null {
@@ -97,7 +99,7 @@ export class LoginWithCredentialsController {
   @ApiOkResponse({
     description:
       "Authenticated successfully and sets the refresh token cookie.",
-    type: AuthSuccessResponseDto,
+    type: AuthWithOnboardingResponseDto,
   })
   @ApiBadRequestResponse({
     description: "Invalid credentials or invalid request payload.",
@@ -131,9 +133,15 @@ export class LoginWithCredentialsController {
 
     this.refreshTokenCookieService.set(res, result.value.refreshToken);
 
+    const establishment = await this.establishmentsRepository.findByOwnerId(
+      result.value.user.id.toString(),
+    );
+
     return {
       userId: result.value.user.id.toString(),
       accessToken: result.value.accessToken,
+      onboardingCompletedAt:
+        establishment?.onboardingCompletedAt?.toISOString() ?? null,
     };
   }
 }

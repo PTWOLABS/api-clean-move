@@ -100,6 +100,8 @@ describe("ListCustomerVehiclesController (e2e)", () => {
     );
     expect(paginatedResponse.status).toBe(200);
     expect(paginatedBody.vehicles).toHaveLength(1);
+    expect(allBody.totalItems).toBe(2);
+    expect(paginatedBody.totalItems).toBe(2);
   });
 
   it("should enforce authentication and establishment role", async () => {
@@ -213,5 +215,6 @@ describe("ListCustomerVehiclesController (e2e)", () => {
     expect(crossEstablishmentResponse.status).toBe(404);
     expect(wrongCustomerResponse.status).toBe(200);
     expect(wrongCustomerBody.vehicles).toHaveLength(0);
+    expect(wrongCustomerBody.totalItems).toBe(0);
   });
 });

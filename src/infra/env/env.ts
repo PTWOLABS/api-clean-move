@@ -89,6 +89,7 @@ export const envSchema = z
         NODE_ENV,
         FRONTEND_URL,
         AWS_S3_PUBLIC_BASE_URL,
+        AWS_S3_ENDPOINT,
         AWS_ACCESS_KEY_ID,
         AWS_SECRET_ACCESS_KEY,
       },
@@ -127,6 +128,28 @@ export const envSchema = z
           message:
             "AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY must both be set or both omitted (use IAM role / default chain when omitted).",
         });
+      }
+
+      const isDeployedEnv = NODE_ENV === "production" || NODE_ENV === "staging";
+
+      if (isDeployedEnv) {
+        if (AWS_S3_ENDPOINT === undefined) {
+          context.addIssue({
+            code: "custom",
+            path: ["AWS_S3_ENDPOINT"],
+            message:
+              "AWS_S3_ENDPOINT is required when NODE_ENV is production or staging.",
+          });
+        }
+
+        if (!hasAccessKey || !hasSecretKey) {
+          context.addIssue({
+            code: "custom",
+            path: ["AWS_ACCESS_KEY_ID"],
+            message:
+              "AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY are required when NODE_ENV is production or staging.",
+          });
+        }
       }
     },
   );

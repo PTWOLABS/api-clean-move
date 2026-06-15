@@ -175,6 +175,7 @@ export class ListCalendarAppointmentsController {
       appointments: result.value.appointments.map((appointment) =>
         AppointmentPresenter.toHTTP(appointment),
       ),
+      totalItems: result.value.totalItems,
     };
   }
 }

@@ -3,6 +3,7 @@ import {
   AppointmentProps,
 } from "../../src/modules/scheduling/domain/entities/appointment";
 import { UniqueEntityId } from "../../src/shared/entities/unique-entity-id";
+import { makeServiceCategoryRef } from "../helpers/service-category-ref";
 
 export function makeAppointment(
   override?: Partial<AppointmentProps>,
@@ -12,12 +13,15 @@ export function makeAppointment(
     {
       establishmentId: new UniqueEntityId(),
       customerId: new UniqueEntityId(),
+      customer: {
+        fullName: "Maria Silva",
+      },
       vehicleId: null,
       services: [
         {
           serviceId: new UniqueEntityId(),
           serviceName: "Lavagem simples",
-          category: "WASH",
+          category: makeServiceCategoryRef("Lavagem"),
           durationInMinutes: 60,
           priceInCents: 30000,
         },

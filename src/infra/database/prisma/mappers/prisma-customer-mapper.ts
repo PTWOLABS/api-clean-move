@@ -24,11 +24,10 @@ export class PrismaCustomerMapper {
     return Customer.create(
       {
         establishmentId: new UniqueEntityId(raw.establishmentId),
-        profileImageUrl: raw.profileImageUrl,
         cpfCnpj: raw.cpfCnpj ? CustomerDocument.create(raw.cpfCnpj) : null,
         fullName: raw.fullName,
         phone: Phone.create(raw.phone),
-        email: new Email(raw.email),
+        email: raw.email ? new Email(raw.email) : null,
         address: this.toAddress(raw.address),
         birthDate: raw.birthDate,
         nickname: raw.nickname,
@@ -44,11 +43,10 @@ export class PrismaCustomerMapper {
     return {
       id: raw.id.toString(),
       establishmentId: raw.establishmentId.toString(),
-      profileImageUrl: raw.profileImageUrl,
       cpfCnpj: raw.cpfCnpj?.toString() ?? null,
       fullName: raw.fullName,
       phone: raw.phone.toString(),
-      email: raw.email.toString(),
+      email: raw.email?.toString() ?? null,
       address: this.toPrismaAddress(raw.address),
       birthDate: raw.birthDate,
       nickname: raw.nickname,
@@ -60,11 +58,10 @@ export class PrismaCustomerMapper {
 
   static toPrismaUpdate(raw: Customer): Prisma.CustomerUncheckedUpdateInput {
     return {
-      profileImageUrl: raw.profileImageUrl,
       cpfCnpj: raw.cpfCnpj?.toString() ?? null,
       fullName: raw.fullName,
       phone: raw.phone.toString(),
-      email: raw.email.toString(),
+      email: raw.email?.toString() ?? null,
       address: this.toPrismaAddress(raw.address),
       birthDate: raw.birthDate,
       nickname: raw.nickname,

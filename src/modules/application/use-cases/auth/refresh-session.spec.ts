@@ -182,7 +182,6 @@ describe("RefreshSessionUseCase", () => {
     const employee = Employee.restore({
       establishmentId: new UniqueEntityId(),
       userId: user.id,
-      profileImageUrl: null,
       name: user.name,
       cpf: null,
       birthDate: null,

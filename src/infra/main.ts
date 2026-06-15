@@ -112,7 +112,7 @@ async function bootstrap(): Promise<void> {
     .addTag("appointments", "Establishment-operated appointment management")
     .addTag("dashboard metrics", "Authenticated dashboard metric read models")
     .addTag("service", "Service catalog management")
-    .addTag("media", "Image uploads and media")
+    .addTag("establishment", "Establishment profile and commercial data")
     .addTag("user", "Authenticated user profile")
     .build();
   const documentFactory = () => SwaggerModule.createDocument(app, config);

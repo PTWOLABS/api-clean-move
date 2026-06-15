@@ -1,4 +1,4 @@
-import { ServiceCategory } from "../../../catalog/domain/value-objects/service-category";
+import { ServiceCategorySnapshot } from "../../../catalog/domain/value-objects/service-category-ref";
 import { Money } from "../../../catalog/domain/value-objects/money";
 import { AggregateRoot } from "../../../../shared/entities/aggregate-root";
 import { UniqueEntityId } from "../../../../shared/entities/unique-entity-id";
@@ -11,9 +11,13 @@ export type AppointmentStatus = "SCHEDULED" | "DONE" | "CANCELLED";
 export type AppointmentServiceSnapshot = {
   serviceId: UniqueEntityId;
   serviceName: string;
-  category: ServiceCategory | undefined;
+  category: ServiceCategorySnapshot | undefined;
   durationInMinutes: number | undefined;
   priceInCents: number;
+};
+
+export type AppointmentCustomerSnapshot = {
+  fullName: string;
 };
 
 export type AppointmentVehicleSnapshot = {
@@ -27,6 +31,7 @@ export type AppointmentVehicleSnapshot = {
 export type AppointmentProps = {
   establishmentId: UniqueEntityId;
   customerId: UniqueEntityId;
+  customer: AppointmentCustomerSnapshot;
   vehicleId: UniqueEntityId | null;
   services: AppointmentServiceSnapshot[];
   vehicle: AppointmentVehicleSnapshot;
@@ -46,6 +51,20 @@ type AppointmentCreateProps = Optional<
   "status" | "createdAt" | "updatedAt" | "doneAt" | "cancelledAt"
 >;
 
+type AppointmentUpdateProps = Partial<
+  Pick<
+    AppointmentProps,
+    | "customerId"
+    | "vehicleId"
+    | "services"
+    | "vehicle"
+    | "startsAt"
+    | "endsAt"
+    | "description"
+    | "discountInCents"
+  >
+>;
+
 export class Appointment extends AggregateRoot<AppointmentProps> {
   get establishmentId() {
     return this.props.establishmentId;
@@ -53,6 +72,10 @@ export class Appointment extends AggregateRoot<AppointmentProps> {
 
   get customerId() {
     return this.props.customerId;
+  }
+
+  get customer() {
+    return this.props.customer;
   }
 
   get vehicleId() {
@@ -150,6 +173,27 @@ export class Appointment extends AggregateRoot<AppointmentProps> {
     this.touch();
   }
 
+  update(props: AppointmentUpdateProps) {
+    const previousProps = this.props;
+
+    this.props = {
+      ...this.props,
+      ...props,
+      ...(props.description !== undefined
+        ? { description: Appointment.normalizeDescription(props.description) }
+        : {}),
+    };
+
+    try {
+      this.assertValidState();
+    } catch (error) {
+      this.props = previousProps;
+      throw error;
+    }
+
+    this.touch();
+  }
+
   private touch() {
     this.props.updatedAt = new Date();
   }
@@ -175,6 +219,10 @@ export class Appointment extends AggregateRoot<AppointmentProps> {
       throw new InvalidAppointmentInputError(
         "At least one service is required.",
       );
+    }
+
+    if (!this.props.customer?.fullName?.trim()) {
+      throw new InvalidAppointmentInputError("customer.fullName is required.");
     }
 
     const serviceIds = new Set<string>();

@@ -3,6 +3,7 @@ import { Test } from "@nestjs/testing";
 import { randomUUID } from "node:crypto";
 import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import z from "zod";
 
 import { CustomerFactory } from "../../../../tests/factories/customer-factory";
 import { EstablishmentFactory } from "../../../../tests/factories/establishment-factory";
@@ -23,6 +24,16 @@ import { AppModule } from "../../app.module";
 import { PrismaService } from "../../database/prisma/prisma.service";
 import { EnvService } from "../../env/env.service";
 import { UniqueEntityId } from "../../../shared/entities/unique-entity-id";
+
+const appointmentStatusUpdateResponseSchema = z.object({
+  appointment: z.object({
+    id: z.uuid(),
+    status: z.enum(["SCHEDULED", "DONE", "CANCELLED"]),
+    updatedAt: z.string(),
+    doneAt: z.string().nullable(),
+    cancelledAt: z.string().nullable(),
+  }),
+});
 
 describe("UpdateAppointmentStatusController (e2e)", () => {
   let app: INestApplication;
@@ -91,32 +102,40 @@ describe("UpdateAppointmentStatusController (e2e)", () => {
       .patch(`/appointments/${appointment.id}/status`)
       .set("Authorization", `Bearer ${accessToken}`)
       .send({ status: "DONE" });
-    const doneBody = appointmentResponseSchema.parse(doneResponse.body);
+    const doneBody = appointmentStatusUpdateResponseSchema.parse(
+      doneResponse.body,
+    );
     const cancelledResponse = await request(getHttpServer(app))
       .patch(`/appointments/${appointment.id}/status`)
       .set("Authorization", `Bearer ${accessToken}`)
       .send({ status: "CANCELLED" });
-    const cancelledBody = appointmentResponseSchema.parse(
+    const cancelledBody = appointmentStatusUpdateResponseSchema.parse(
       cancelledResponse.body,
     );
     const scheduledResponse = await request(getHttpServer(app))
       .patch(`/appointments/${appointment.id}/status`)
       .set("Authorization", `Bearer ${accessToken}`)
       .send({ status: "SCHEDULED" });
-    const scheduledBody = appointmentResponseSchema.parse(
+    const scheduledBody = appointmentStatusUpdateResponseSchema.parse(
       scheduledResponse.body,
     );
 
     expect(doneResponse.status).toBe(200);
+    expect(doneBody.appointment.id).toBe(appointment.id);
     expect(doneBody.appointment.status).toBe("DONE");
+    expect(doneBody.appointment.updatedAt).toEqual(expect.any(String));
     expect(doneBody.appointment.doneAt).not.toBeNull();
     expect(doneBody.appointment.cancelledAt).toBeNull();
     expect(cancelledResponse.status).toBe(200);
+    expect(cancelledBody.appointment.id).toBe(appointment.id);
     expect(cancelledBody.appointment.status).toBe("CANCELLED");
+    expect(cancelledBody.appointment.updatedAt).toEqual(expect.any(String));
     expect(cancelledBody.appointment.doneAt).toBeNull();
     expect(cancelledBody.appointment.cancelledAt).not.toBeNull();
     expect(scheduledResponse.status).toBe(200);
+    expect(scheduledBody.appointment.id).toBe(appointment.id);
     expect(scheduledBody.appointment.status).toBe("SCHEDULED");
+    expect(scheduledBody.appointment.updatedAt).toEqual(expect.any(String));
     expect(scheduledBody.appointment.doneAt).toBeNull();
     expect(scheduledBody.appointment.cancelledAt).toBeNull();
   });
@@ -240,7 +259,7 @@ describe("UpdateAppointmentStatusController (e2e)", () => {
       .patch(`/appointments/${appointment.id}/status`)
       .set("Authorization", `Bearer ${employee.accessToken}`)
       .send({ status: "DONE" });
-    const body = appointmentResponseSchema.parse(response.body);
+    const body = appointmentStatusUpdateResponseSchema.parse(response.body);
 
     expect(response.status).toBe(200);
     expect(body.appointment.status).toBe("DONE");
@@ -271,7 +290,7 @@ describe("UpdateAppointmentStatusController (e2e)", () => {
       .patch(`/appointments/${appointment.id}/status`)
       .set("Authorization", `Bearer ${employee.accessToken}`)
       .send({ status: "CANCELLED" });
-    const body = appointmentResponseSchema.parse(response.body);
+    const body = appointmentStatusUpdateResponseSchema.parse(response.body);
 
     expect(response.status).toBe(200);
     expect(body.appointment.status).toBe("CANCELLED");

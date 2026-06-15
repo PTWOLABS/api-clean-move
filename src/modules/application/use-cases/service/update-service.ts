@@ -4,7 +4,7 @@ import { Either, left, right } from "../../../../shared/either";
 import { ResourceNotFoundError } from "../../../../shared/errors/resource-not-found-error";
 import { NotAllowedError } from "../../../../shared/errors/not-allowed-error";
 import { Service } from "../../../catalog/domain/entities/services";
-import { ServiceCategory } from "../../../catalog/domain/value-objects/service-category";
+import { ServiceCategoriesRepository } from "../../repositories/service-categories-repository";
 import { EstablishmentsRepository } from "../../repositories/establishment-repository";
 import { ServicesRepository } from "../../repositories/services-repository";
 import { NoUpdateFieldsProvidedError } from "../../../../shared/errors/no-update-field-provided-error";
@@ -20,7 +20,7 @@ type UpdateServiceUseCaseRequest = {
   data: {
     serviceName?: string;
     description?: string;
-    category?: ServiceCategory;
+    categoryId?: string | null;
     estimatedDuration?: {
       minInMinutes: number;
       maxInMinutes?: number | null | undefined;
@@ -53,6 +53,7 @@ export class UpdateServiceUseCase {
   constructor(
     private servicesRepository: ServicesRepository,
     private establishmentsRepository: EstablishmentsRepository,
+    private serviceCategoriesRepository: ServiceCategoriesRepository,
   ) {}
 
   async execute({
@@ -90,8 +91,43 @@ export class UpdateServiceUseCase {
       return left(new NotAllowedError());
     }
 
+    const updatePayload: Parameters<Service["update"]>[0] = {
+      ...(data.serviceName !== undefined
+        ? { serviceName: data.serviceName }
+        : {}),
+      ...(data.description !== undefined
+        ? { description: data.description }
+        : {}),
+      ...(data.estimatedDuration !== undefined
+        ? { estimatedDuration: data.estimatedDuration }
+        : {}),
+      ...(data.price !== undefined ? { price: data.price } : {}),
+      ...(data.isActive !== undefined ? { isActive: data.isActive } : {}),
+    };
+
+    if (data.categoryId !== undefined) {
+      if (data.categoryId === null) {
+        updatePayload.categoryId = null;
+      } else {
+        const serviceCategory =
+          await this.serviceCategoriesRepository.findByIdAndEstablishmentId(
+            data.categoryId,
+            establishment.id.toString(),
+          );
+
+        if (!serviceCategory || serviceCategory.isDeleted()) {
+          return left(
+            new ResourceNotFoundError({ resource: "service category" }),
+          );
+        }
+
+        updatePayload.categoryId = data.categoryId;
+        updatePayload.categoryName = serviceCategory.name.value;
+      }
+    }
+
     try {
-      serviceToUpdate.update(data);
+      serviceToUpdate.update(updatePayload);
     } catch (error) {
       if (
         error instanceof InvalidServiceNameError ||
@@ -106,8 +142,10 @@ export class UpdateServiceUseCase {
 
     await this.servicesRepository.save(serviceToUpdate);
 
+    const updatedService = await this.servicesRepository.findById(serviceId);
+
     return right({
-      service: serviceToUpdate,
+      service: updatedService ?? serviceToUpdate,
     });
   }
 }

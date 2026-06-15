@@ -7,9 +7,9 @@ import {
   AppointmentStatus,
   Prisma,
   PrismaClient,
-  ServiceCategory,
   UserRole,
 } from "../../generated/prisma/client";
+import { DEFAULT_SERVICE_CATEGORY_NAMES } from "../../modules/catalog/domain/constants/default-service-categories";
 
 const databaseUrl = process.env.DATABASE_URL;
 
@@ -25,8 +25,10 @@ const prisma = new PrismaClient({
 
 type ServiceSeedData = Omit<
   Prisma.ServiceUncheckedCreateInput,
-  "id" | "establishmentId" | "createdAt" | "updatedAt"
->;
+  "id" | "establishmentId" | "createdAt" | "updatedAt" | "categoryId"
+> & {
+  categoryName: string | null;
+};
 
 type CustomerSeedData = Omit<
   Prisma.CustomerUncheckedCreateInput,
@@ -53,10 +55,14 @@ type EmployeeSeedData = {
   features: string[];
 };
 
+type SeededService = Awaited<ReturnType<typeof prisma.service.create>>;
+
 const DEFAULT_PASSWORD = "123456";
 const REFERENCE_DATE = new Date();
 const ESTABLISHMENT_SLUG = "clean-move";
 const OWNER_EMAIL = "felipe@cleanmove.com.br";
+const MULTI_VEHICLE_MIN_COUNT = 5;
+const MULTI_VEHICLE_MAX_COUNT = 10;
 const TIME_SLOTS = [
   { hour: 8, minute: 0 },
   { hour: 9, minute: 30 },
@@ -72,7 +78,7 @@ const SERVICE_CATALOG: ServiceSeedData[] = [
     serviceName: "Lavagem Express",
     description:
       "Lavagem externa com secagem rápida para rotinas do dia a dia.",
-    category: ServiceCategory.WASH,
+    categoryName: "Lavagem",
     estimatedDurationMinInMinutes: 25,
     estimatedDurationMaxInMinutes: 35,
     priceInCents: 4500,
@@ -81,7 +87,7 @@ const SERVICE_CATALOG: ServiceSeedData[] = [
   {
     serviceName: "Lavagem Completa",
     description: "Lavagem externa e interna com aspiração e acabamento.",
-    category: ServiceCategory.WASH,
+    categoryName: "Lavagem",
     estimatedDurationMinInMinutes: 60,
     estimatedDurationMaxInMinutes: 90,
     priceInCents: 9500,
@@ -90,7 +96,7 @@ const SERVICE_CATALOG: ServiceSeedData[] = [
   {
     serviceName: "Lavagem Premium com Cera",
     description: "Lavagem detalhada com aplicação de cera líquida.",
-    category: ServiceCategory.WASH,
+    categoryName: "Lavagem",
     estimatedDurationMinInMinutes: 90,
     estimatedDurationMaxInMinutes: 120,
     priceInCents: 16000,
@@ -99,7 +105,7 @@ const SERVICE_CATALOG: ServiceSeedData[] = [
   {
     serviceName: "Lavagem de Motor",
     description: "Limpeza técnica do cofre do motor com proteção básica.",
-    category: ServiceCategory.WASH,
+    categoryName: "Lavagem",
     estimatedDurationMinInMinutes: 45,
     estimatedDurationMaxInMinutes: 60,
     priceInCents: 14000,
@@ -108,7 +114,7 @@ const SERVICE_CATALOG: ServiceSeedData[] = [
   {
     serviceName: "Higienização Interna",
     description: "Limpeza profunda de bancos, carpetes e painel.",
-    category: ServiceCategory.SANITIZATION,
+    categoryName: "Higienização",
     estimatedDurationMinInMinutes: 180,
     estimatedDurationMaxInMinutes: 240,
     priceInCents: 28000,
@@ -117,7 +123,7 @@ const SERVICE_CATALOG: ServiceSeedData[] = [
   {
     serviceName: "Higienização de Ar-Condicionado",
     description: "Sanitização do sistema de ar-condicionado automotivo.",
-    category: ServiceCategory.SANITIZATION,
+    categoryName: "Higienização",
     estimatedDurationMinInMinutes: 45,
     estimatedDurationMaxInMinutes: 60,
     priceInCents: 12000,
@@ -126,7 +132,7 @@ const SERVICE_CATALOG: ServiceSeedData[] = [
   {
     serviceName: "Remoção de Odores",
     description: "Tratamento interno para redução de odores persistentes.",
-    category: ServiceCategory.SANITIZATION,
+    categoryName: "Higienização",
     estimatedDurationMinInMinutes: 60,
     estimatedDurationMaxInMinutes: 90,
     priceInCents: 15000,
@@ -135,7 +141,7 @@ const SERVICE_CATALOG: ServiceSeedData[] = [
   {
     serviceName: "Polimento Técnico",
     description: "Correção de pintura com foco em brilho e remoção de marcas.",
-    category: ServiceCategory.AUTOMATIVE_DETAILING,
+    categoryName: "Detailing Automotivo",
     estimatedDurationMinInMinutes: 240,
     estimatedDurationMaxInMinutes: 360,
     priceInCents: 45000,
@@ -144,7 +150,7 @@ const SERVICE_CATALOG: ServiceSeedData[] = [
   {
     serviceName: "Polimento Comercial",
     description: "Polimento de uma etapa para renovação visual da pintura.",
-    category: ServiceCategory.AUTOMATIVE_DETAILING,
+    categoryName: "Detailing Automotivo",
     estimatedDurationMinInMinutes: 180,
     estimatedDurationMaxInMinutes: 240,
     priceInCents: 32000,
@@ -153,7 +159,7 @@ const SERVICE_CATALOG: ServiceSeedData[] = [
   {
     serviceName: "Revitalização de Faróis",
     description: "Restauração estética de faróis opacos ou amarelados.",
-    category: ServiceCategory.AUTOMATIVE_DETAILING,
+    categoryName: "Detailing Automotivo",
     estimatedDurationMinInMinutes: 60,
     estimatedDurationMaxInMinutes: 90,
     priceInCents: 18000,
@@ -162,7 +168,7 @@ const SERVICE_CATALOG: ServiceSeedData[] = [
   {
     serviceName: "Detailing de Motor",
     description: null,
-    category: ServiceCategory.AUTOMATIVE_DETAILING,
+    categoryName: "Detailing Automotivo",
     estimatedDurationMinInMinutes: 90,
     estimatedDurationMaxInMinutes: 120,
     priceInCents: 22000,
@@ -171,7 +177,7 @@ const SERVICE_CATALOG: ServiceSeedData[] = [
   {
     serviceName: "Vitrificação de Pintura",
     description: "Aplicação de coating cerâmico com alta durabilidade.",
-    category: ServiceCategory.PROTECTION,
+    categoryName: "Proteção",
     estimatedDurationMinInMinutes: 360,
     estimatedDurationMaxInMinutes: 480,
     priceInCents: 92000,
@@ -180,7 +186,7 @@ const SERVICE_CATALOG: ServiceSeedData[] = [
   {
     serviceName: "Cristalização de Vidros",
     description: "Aplicação de repelente de água nos vidros.",
-    category: ServiceCategory.PROTECTION,
+    categoryName: "Proteção",
     estimatedDurationMinInMinutes: 45,
     estimatedDurationMaxInMinutes: 60,
     priceInCents: 12000,
@@ -189,7 +195,7 @@ const SERVICE_CATALOG: ServiceSeedData[] = [
   {
     serviceName: "Proteção de Plásticos",
     description: "Revitalização e proteção de plásticos externos.",
-    category: ServiceCategory.PROTECTION,
+    categoryName: "Proteção",
     estimatedDurationMinInMinutes: 60,
     estimatedDurationMaxInMinutes: 90,
     priceInCents: 17000,
@@ -198,7 +204,7 @@ const SERVICE_CATALOG: ServiceSeedData[] = [
   {
     serviceName: "PPF Parcial",
     description: "Proteção parcial de áreas críticas com película.",
-    category: ServiceCategory.PROTECTION,
+    categoryName: "Proteção",
     estimatedDurationMinInMinutes: 300,
     estimatedDurationMaxInMinutes: 420,
     priceInCents: 125000,
@@ -207,7 +213,7 @@ const SERVICE_CATALOG: ServiceSeedData[] = [
   {
     serviceName: "Impermeabilização de Bancos",
     description: "Proteção têxtil para bancos e áreas internas.",
-    category: ServiceCategory.UPHOLSTERY,
+    categoryName: "Estofamento",
     estimatedDurationMinInMinutes: 120,
     estimatedDurationMaxInMinutes: 180,
     priceInCents: 22000,
@@ -216,7 +222,7 @@ const SERVICE_CATALOG: ServiceSeedData[] = [
   {
     serviceName: "Hidratação de Couro",
     description: "Tratamento e hidratação de bancos e detalhes em couro.",
-    category: ServiceCategory.UPHOLSTERY,
+    categoryName: "Estofamento",
     estimatedDurationMinInMinutes: 90,
     estimatedDurationMaxInMinutes: 120,
     priceInCents: 21000,
@@ -225,7 +231,7 @@ const SERVICE_CATALOG: ServiceSeedData[] = [
   {
     serviceName: "Limpeza de Teto",
     description: "Limpeza e recuperação de teto automotivo.",
-    category: ServiceCategory.UPHOLSTERY,
+    categoryName: "Estofamento",
     estimatedDurationMinInMinutes: 90,
     estimatedDurationMaxInMinutes: 120,
     priceInCents: 19000,
@@ -234,7 +240,7 @@ const SERVICE_CATALOG: ServiceSeedData[] = [
   {
     serviceName: "Consultoria de Detailing",
     description: "Serviço interno para análise de estado e orçamento.",
-    category: null,
+    categoryName: null,
     estimatedDurationMinInMinutes: 30,
     estimatedDurationMaxInMinutes: 45,
     priceInCents: 5000,
@@ -243,7 +249,7 @@ const SERVICE_CATALOG: ServiceSeedData[] = [
   {
     serviceName: "Lavagem Premium Legado",
     description: "Serviço antigo mantido apenas para histórico.",
-    category: ServiceCategory.WASH,
+    categoryName: "Lavagem",
     estimatedDurationMinInMinutes: 90,
     estimatedDurationMaxInMinutes: 120,
     priceInCents: 18000,
@@ -379,10 +385,14 @@ const SERVICE_SELECTION_SEQUENCE = [
 ] as const;
 
 async function main() {
+  await prisma.quotePaymentOption.deleteMany();
+  await prisma.quoteService.deleteMany();
+  await prisma.quote.deleteMany();
   await prisma.appointment.deleteMany();
   await prisma.customerVehicle.deleteMany();
   await prisma.customer.deleteMany();
   await prisma.service.deleteMany();
+  await prisma.serviceCategory.deleteMany();
   await prisma.employee.deleteMany();
   await prisma.establishment.deleteMany();
   await prisma.passwordResetToken.deleteMany();
@@ -411,10 +421,16 @@ async function main() {
     },
   });
 
+  await prisma.user.update({
+    where: { id: owner.id },
+    data: {
+      profileImageUrl: "https://example.com/images/clean-move-profile.png",
+    },
+  });
+
   const establishment = await prisma.establishment.create({
     data: {
       ownerId: owner.id,
-      profileImageUrl: "https://example.com/images/clean-move-profile.png",
       bannerImageUrl: "https://example.com/images/clean-move-banner.png",
       tradeName: "Clean Move Estetica Automotiva",
       legalBusinessName: "Clean Move Servicos Automotivos LTDA",
@@ -427,14 +443,19 @@ async function main() {
     establishmentId: establishment.id,
     hashedPassword,
   });
-  const services = await seedServices(establishment.id);
+  const categoryNameById = await seedServiceCategories(establishment.id);
+  const services = await seedServices(establishment.id, categoryNameById);
   const customers = await seedCustomers(establishment.id);
-  const vehicles = await seedVehicles(establishment.id, customers);
+  const { vehicles, vehiclesByCustomerId } = await seedVehicles(
+    establishment.id,
+    customers,
+  );
   const appointmentsCreated = await seedAppointments({
     establishmentId: establishment.id,
     customers,
-    vehicles,
+    vehiclesByCustomerId,
     services,
+    categoryNameById,
   });
 
   console.log("Database seed completed successfully.");
@@ -468,6 +489,7 @@ async function seedEmployees({
         role: UserRole.EMPLOYEE,
         phone: employeeData.phone,
         address: Prisma.JsonNull,
+        profileImageUrl: employeeData.profileImageUrl,
       },
     });
 
@@ -475,7 +497,6 @@ async function seedEmployees({
       data: {
         establishmentId,
         userId: user.id,
-        profileImageUrl: employeeData.profileImageUrl,
         name: employeeData.name,
         cpf: employeeData.cpf,
         birthDate: employeeData.birthDate,
@@ -489,14 +510,40 @@ async function seedEmployees({
   return employees;
 }
 
-async function seedServices(establishmentId: string) {
-  const services: Awaited<ReturnType<typeof prisma.service.create>>[] = [];
+async function seedServiceCategories(establishmentId: string) {
+  const categoryNameById = new Map<string, string>();
 
-  for (const serviceData of SERVICE_CATALOG) {
+  for (const name of DEFAULT_SERVICE_CATEGORY_NAMES) {
+    const category = await prisma.serviceCategory.create({
+      data: {
+        establishmentId,
+        name,
+      },
+    });
+
+    categoryNameById.set(category.id, category.name);
+  }
+
+  return categoryNameById;
+}
+
+async function seedServices(
+  establishmentId: string,
+  categoryNameById: Map<string, string>,
+) {
+  const categoryIdByName = new Map(
+    [...categoryNameById.entries()].map(([id, name]) => [name, id]),
+  );
+  const services: SeededService[] = [];
+
+  for (const { categoryName, ...serviceData } of SERVICE_CATALOG) {
     const service = await prisma.service.create({
       data: {
         establishmentId,
         ...serviceData,
+        categoryId: categoryName
+          ? (categoryIdByName.get(categoryName) ?? null)
+          : null,
       },
     });
 
@@ -511,10 +558,6 @@ async function seedCustomers(establishmentId: string) {
 
   for (const [index, identity] of CUSTOMER_IDENTITIES.entries()) {
     const customerData: CustomerSeedData = {
-      profileImageUrl:
-        index % 3 === 0
-          ? `https://example.com/customers/customer-${index + 1}.png`
-          : null,
       cpfCnpj: index % 4 === 0 ? null : buildCpf(index + 1),
       fullName: identity.fullName,
       phone: buildPhone(index + 1),
@@ -534,6 +577,7 @@ async function seedCustomers(establishmentId: string) {
               ][index % 5],
               city: ["Socorro", "Braganca Paulista", "Serra Negra"][index % 3],
               state: "SP",
+              country: "Brasil",
               zipCode: `1396${String(index).padStart(4, "0")}`,
             },
       birthDate:
@@ -558,57 +602,106 @@ async function seedCustomers(establishmentId: string) {
   return customers;
 }
 
+type SeededCustomerVehicle = Awaited<
+  ReturnType<typeof prisma.customerVehicle.create>
+>;
+
+function resolveVehicleCountForCustomer(
+  customerIndex: number,
+  totalCustomers: number,
+) {
+  const multiVehicleCustomerCount = Math.floor(totalCustomers / 2) + 1;
+
+  if (customerIndex < multiVehicleCustomerCount) {
+    const vehicleRange = MULTI_VEHICLE_MAX_COUNT - MULTI_VEHICLE_MIN_COUNT + 1;
+
+    return MULTI_VEHICLE_MIN_COUNT + (customerIndex % vehicleRange);
+  }
+
+  return 1 + (customerIndex % 3);
+}
+
+function buildVehicleSeedData(
+  customerIndex: number,
+  vehicleIndex: number,
+  plateSequence: number,
+): CustomerVehicleSeedData {
+  const fleetIndex = (customerIndex * 3 + vehicleIndex) % VEHICLE_FLEET.length;
+  const baseVehicle = VEHICLE_FLEET[fleetIndex]!;
+  const globalVehicleIndex = plateSequence;
+
+  return {
+    imageUrl:
+      globalVehicleIndex % 4 === 0
+        ? `https://example.com/vehicles/vehicle-${globalVehicleIndex + 1}.png`
+        : null,
+    plate:
+      globalVehicleIndex % 11 === 0 ? null : buildPlate(globalVehicleIndex),
+    brand: baseVehicle.brand,
+    model:
+      vehicleIndex === 0
+        ? baseVehicle.model
+        : `${baseVehicle.model} ${vehicleIndex + 1}`,
+    color: globalVehicleIndex % 6 === 0 ? null : baseVehicle.color,
+    year:
+      globalVehicleIndex % 5 === 0 ? null : 2014 + (globalVehicleIndex % 11),
+    notes:
+      vehicleIndex % 3 === 0
+        ? "Cliente costuma pedir atencao extra nos detalhes internos."
+        : vehicleIndex % 4 === 0
+          ? "Verificar rodas, retrovisores e acabamento final."
+          : null,
+  };
+}
+
 async function seedVehicles(
   establishmentId: string,
   customers: Awaited<ReturnType<typeof prisma.customer.create>>[],
 ) {
-  const vehicles: Awaited<ReturnType<typeof prisma.customerVehicle.create>>[] =
-    [];
+  const vehicles: SeededCustomerVehicle[] = [];
+  const vehiclesByCustomerId = new Map<string, SeededCustomerVehicle[]>();
+  let plateSequence = 0;
 
-  for (const [index, customer] of customers.entries()) {
-    const baseVehicle = VEHICLE_FLEET[index % VEHICLE_FLEET.length]!;
-    const vehicleData: CustomerVehicleSeedData = {
-      imageUrl:
-        index % 4 === 0
-          ? `https://example.com/vehicles/vehicle-${index + 1}.png`
-          : null,
-      plate: index % 7 === 0 ? null : buildPlate(index),
-      brand: baseVehicle.brand,
-      model: baseVehicle.model,
-      color: index % 6 === 0 ? null : baseVehicle.color,
-      year: index % 5 === 0 ? null : 2014 + (index % 11),
-      notes:
-        index % 3 === 0
-          ? "Cliente costuma pedir atencao extra nos detalhes internos."
-          : index % 4 === 0
-            ? "Verificar rodas, retrovisores e acabamento final."
-            : null,
-    };
+  for (const [customerIndex, customer] of customers.entries()) {
+    const vehicleCount = resolveVehicleCountForCustomer(
+      customerIndex,
+      customers.length,
+    );
+    const customerVehicles: SeededCustomerVehicle[] = [];
 
-    const vehicle = await prisma.customerVehicle.create({
-      data: {
-        establishmentId,
-        customerId: customer.id,
-        ...vehicleData,
-      },
-    });
+    for (let vehicleIndex = 0; vehicleIndex < vehicleCount; vehicleIndex += 1) {
+      const vehicle = await prisma.customerVehicle.create({
+        data: {
+          establishmentId,
+          customerId: customer.id,
+          ...buildVehicleSeedData(customerIndex, vehicleIndex, plateSequence),
+        },
+      });
 
-    vehicles.push(vehicle);
+      plateSequence += 1;
+
+      customerVehicles.push(vehicle);
+      vehicles.push(vehicle);
+    }
+
+    vehiclesByCustomerId.set(customer.id, customerVehicles);
   }
 
-  return vehicles;
+  return { vehicles, vehiclesByCustomerId };
 }
 
 async function seedAppointments({
   establishmentId,
   customers,
-  vehicles,
+  vehiclesByCustomerId,
   services,
+  categoryNameById,
 }: {
   establishmentId: string;
   customers: Awaited<ReturnType<typeof prisma.customer.create>>[];
-  vehicles: Awaited<ReturnType<typeof prisma.customerVehicle.create>>[];
-  services: Awaited<ReturnType<typeof prisma.service.create>>[];
+  vehiclesByCustomerId: Map<string, SeededCustomerVehicle[]>;
+  services: SeededService[];
+  categoryNameById: Map<string, string>;
 }) {
   let createdAppointments = 0;
   let appointmentIndex = 0;
@@ -620,24 +713,37 @@ async function seedAppointments({
       const customerIndex =
         (appointmentIndex * 7 + slotIndex * 3) % customers.length;
       const customer = customers[customerIndex]!;
-      const vehicle = vehicles[customerIndex]!;
-      const service =
-        services[
-          SERVICE_SELECTION_SEQUENCE[
-            appointmentIndex % SERVICE_SELECTION_SEQUENCE.length
-          ]!
+      const customerVehicles = vehiclesByCustomerId.get(customer.id);
+
+      if (!customerVehicles?.length) {
+        throw new Error(
+          `Customer ${customer.id} has no seeded vehicles for appointments.`,
+        );
+      }
+
+      const vehicle =
+        customerVehicles[
+          (appointmentIndex + slotIndex) % customerVehicles.length
         ]!;
+      const bookedServices = selectAppointmentServices(
+        services,
+        appointmentIndex,
+      );
       const timeSlot =
         TIME_SLOTS[(appointmentIndex + slotIndex) % TIME_SLOTS.length]!;
       const startsAt = setTime(addDays(REFERENCE_DATE, dayOffset), timeSlot);
-      const durationInMinutes =
-        service.estimatedDurationMaxInMinutes ??
-        service.estimatedDurationMinInMinutes ??
-        60;
+      const durationInMinutes = bookedServices.reduce(
+        (total, service) => total + resolveServiceDurationForSchedule(service),
+        0,
+      );
+      const totalPriceInCents = bookedServices.reduce(
+        (total, service) => total + service.priceInCents,
+        0,
+      );
       const endsAt = addMinutes(startsAt, durationInMinutes);
       const status = resolveAppointmentStatus(dayOffset, appointmentIndex);
       const discountInCents = resolveDiscountInCents(
-        service.priceInCents,
+        totalPriceInCents,
         appointmentIndex,
       );
 
@@ -645,18 +751,21 @@ async function seedAppointments({
         data: {
           establishmentId,
           customerId: customer.id,
+          customerFullName: customer.fullName,
           vehicleId: appointmentIndex % 6 === 0 ? null : vehicle.id,
           bookedServices: {
-            create: [
-              {
-                serviceId: service.id,
-                serviceName: service.serviceName,
-                serviceCategory: service.category,
-                serviceDurationInMinutes: durationInMinutes,
-                servicePriceInCents: service.priceInCents,
-                position: 0,
-              },
-            ],
+            create: bookedServices.map((service, position) => ({
+              serviceId: service.id,
+              serviceName: service.serviceName,
+              serviceCategoryId: service.categoryId,
+              serviceCategoryName: service.categoryId
+                ? (categoryNameById.get(service.categoryId) ?? null)
+                : null,
+              serviceDurationInMinutes:
+                resolveBookedServiceDurationInMinutes(service),
+              servicePriceInCents: service.priceInCents,
+              position,
+            })),
           },
           vehiclePlate: appointmentIndex % 6 === 0 ? null : vehicle.plate,
           vehicleBrand: appointmentIndex % 6 === 0 ? null : vehicle.brand,
@@ -667,7 +776,7 @@ async function seedAppointments({
           endsAt,
           description: resolveAppointmentDescription(
             appointmentIndex,
-            service.serviceName,
+            formatAppointmentServiceNames(bookedServices),
           ),
           discountInCents,
           status,
@@ -685,6 +794,66 @@ async function seedAppointments({
   }
 
   return createdAppointments;
+}
+
+function selectAppointmentServices(
+  services: SeededService[],
+  appointmentIndex: number,
+) {
+  const selectedServiceIds = new Set<string>();
+  const preferredServiceIndex =
+    SERVICE_SELECTION_SEQUENCE[
+      appointmentIndex % SERVICE_SELECTION_SEQUENCE.length
+    ]!;
+  const serviceCount =
+    appointmentIndex % 9 === 0 ? 3 : appointmentIndex % 4 === 0 ? 2 : 1;
+
+  return Array.from({ length: serviceCount }, (_, index) => {
+    const service = findActiveService(
+      services,
+      preferredServiceIndex + index * 5,
+      selectedServiceIds,
+    );
+
+    selectedServiceIds.add(service.id);
+
+    return service;
+  });
+}
+
+function findActiveService(
+  services: SeededService[],
+  preferredServiceIndex: number,
+  selectedServiceIds: Set<string>,
+) {
+  for (let offset = 0; offset < services.length; offset += 1) {
+    const service =
+      services[(preferredServiceIndex + offset) % services.length]!;
+
+    if (service.isActive && !selectedServiceIds.has(service.id)) {
+      return service;
+    }
+  }
+
+  throw new Error(
+    "At least one active service is required to seed appointments.",
+  );
+}
+
+function resolveBookedServiceDurationInMinutes(service: SeededService) {
+  return (
+    service.estimatedDurationMaxInMinutes ??
+    service.estimatedDurationMinInMinutes ??
+    null
+  );
+}
+
+function resolveServiceDurationForSchedule(service: SeededService) {
+  return resolveBookedServiceDurationInMinutes(service) ?? 60;
+}
+
+function formatAppointmentServiceNames(services: SeededService[]) {
+  return services.map((service) => service.serviceName).join(", ");
 }
 
 function resolveAppointmentsForDay(dayOffset: number) {
@@ -778,16 +947,53 @@ function buildPhone(sequence: number) {
 }
 
 function buildCpf(sequence: number) {
-  return String(10000000000 + sequence).slice(-11);
+  const baseDigits = String(100000000 + sequence).slice(-9);
+  const firstCheckDigit = calculateCpfCheckDigit(
+    baseDigits,
+    [10, 9, 8, 7, 6, 5, 4, 3, 2],
+  );
+  const secondCheckDigit = calculateCpfCheckDigit(
+    `${baseDigits}${firstCheckDigit}`,
+    [11, 10, 9, 8, 7, 6, 5, 4, 3, 2],
+  );
+
+  return `${baseDigits}${firstCheckDigit}${secondCheckDigit}`;
 }
 
-function buildPlate(index: number) {
-  const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-  const first = letters[index % letters.length]!;
-  const second = letters[(index + 5) % letters.length]!;
-  const third = letters[(index + 11) % letters.length]!;
+function calculateCpfCheckDigit(value: string, weights: number[]) {
+  const total = value.split("").reduce((sum, digit, index) => {
+    const weight = weights[index];
 
-  return `${first}${second}${third}${index % 10}${letters[(index + 3) % letters.length]}${(index + 1) % 10}${(index + 2) % 10}`;
+    if (weight === undefined) {
+      throw new Error(`Missing CPF weight for index ${index}`);
+    }
+
+    return sum + Number(digit) * weight;
+  }, 0);
+  const remainder = total % 11;
+
+  return remainder < 2 ? 0 : 11 - remainder;
+}
+
+function buildPlate(sequence: number) {
+  const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  let remaining = sequence;
+
+  const digit1 = remaining % 10;
+  remaining = Math.floor(remaining / 10);
+  const letter4 = letters[remaining % 26]!;
+  remaining = Math.floor(remaining / 26);
+  const digit2 = remaining % 10;
+  remaining = Math.floor(remaining / 10);
+  const digit3 = remaining % 10;
+  remaining = Math.floor(remaining / 10);
+  const letter3 = letters[remaining % 26]!;
+  remaining = Math.floor(remaining / 26);
+  const letter2 = letters[remaining % 26]!;
+  remaining = Math.floor(remaining / 26);
+  const letter1 = letters[remaining % 26]!;
+
+  return `${letter1}${letter2}${letter3}${digit1}${letter4}${digit2}${digit3}`;
 }
 
 function slugify(value: string) {

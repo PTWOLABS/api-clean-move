@@ -15,12 +15,12 @@ You MUST inspect:
 
 - git branch --show-current
 - git status --short
-- git log --oneline main..HEAD
-- git diff --stat main...HEAD
-- git diff --name-only main...HEAD
-- git diff main...HEAD
+- git log --oneline staging..HEAD
+- git diff --stat staging...HEAD
+- git diff --name-only staging...HEAD
+- git diff staging...HEAD
 
-If the default branch is not main, detect it with:
+If the default branch is not staging, detect it with:
 git symbolic-ref refs/remotes/origin/HEAD
 
 Rules:

@@ -21,6 +21,7 @@ import {
 const authenticateWithGoogleResponseSchema = z.object({
   accessToken: z.string().min(1),
   userId: z.uuid(),
+  onboardingCompletedAt: z.string().nullable(),
 });
 
 const singleMessageResponseSchema = z.object({
@@ -83,13 +84,23 @@ describe("AuthenticateWithGoogleController (e2e)", () => {
       },
     ],
     [
-      "new-user-token",
+      "new-customer-token",
       {
         provider: "GOOGLE",
-        subjectId: "google-sub-new",
-        email: "new-user@example.com",
+        subjectId: "google-sub-customer-new",
+        email: "new-customer@example.com",
         emailVerified: true,
-        name: "New OAuth User",
+        name: "New OAuth Customer",
+      },
+    ],
+    [
+      "new-establishment-token",
+      {
+        provider: "GOOGLE",
+        subjectId: "google-sub-establishment-new",
+        email: "new-establishment@example.com",
+        emailVerified: true,
+        name: "New OAuth Establishment",
       },
     ],
   ]);
@@ -136,7 +147,7 @@ describe("AuthenticateWithGoogleController (e2e)", () => {
       .post("/auth/google")
       .set("User-Agent", "Mozilla/5.0 OAuth Browser")
       .set("X-Forwarded-For", "198.51.100.20, 203.0.113.20")
-      .send({ idToken: "linked-account-token" });
+      .send({ idToken: "linked-account-token", role: "CUSTOMER" });
 
     const responseBody = authenticateWithGoogleResponseSchema.parse(
       response.body,
@@ -151,6 +162,7 @@ describe("AuthenticateWithGoogleController (e2e)", () => {
     expect(response.status).toBe(200);
     expect(responseBody.userId).toBe(linkedUser.id);
     expect(responseBody.accessToken).toEqual(expect.any(String));
+    expect(responseBody.onboardingCompletedAt).toBeNull();
     expect("refreshToken" in responseBody).toBe(false);
     expect(refreshTokenCookie).toBeDefined();
     expect(refreshTokenCookie).toContain("HttpOnly");
@@ -168,6 +180,58 @@ describe("AuthenticateWithGoogleController (e2e)", () => {
     expect(linkedSession).not.toBeNull();
     expect(linkedSession?.userAgent).toBe("Mozilla/5.0 OAuth Browser");
     expect(linkedSession?.ipAddress).toBe("198.51.100.20");
+  });
+
+  it("should return onboarding completion timestamp for an establishment user", async () => {
+    const onboardingCompletedAt = new Date("2026-06-11T12:00:00.000Z");
+    const linkedUser = await prisma.user.create({
+      data: {
+        name: "OAuth Establishment",
+        email: "oauth-establishment@example.com",
+        hashedPassword: null,
+        role: "ESTABLISHMENT",
+        phone: null,
+        address: Prisma.JsonNull,
+        socialAccounts: {
+          create: {
+            provider: "GOOGLE",
+            subjectId: "google-sub-establishment-completed",
+          },
+        },
+        ownedEstablishment: {
+          create: {
+            tradeName: "OAuth Clean Move",
+            legalBusinessName: null,
+            cnpj: null,
+            onboardingCompletedAt,
+          },
+        },
+      },
+    });
+
+    mockedClaimsByToken.set("completed-establishment-token", {
+      provider: "GOOGLE",
+      subjectId: "google-sub-establishment-completed",
+      email: "oauth-establishment@example.com",
+      emailVerified: true,
+      name: "OAuth Establishment",
+    });
+
+    const response = await request(getHttpServer(app))
+      .post("/auth/google")
+      .send({
+        idToken: "completed-establishment-token",
+        role: "ESTABLISHMENT",
+      });
+    const responseBody = authenticateWithGoogleResponseSchema.parse(
+      response.body,
+    );
+
+    expect(response.status).toBe(200);
+    expect(responseBody.userId).toBe(linkedUser.id);
+    expect(responseBody.onboardingCompletedAt).toBe(
+      onboardingCompletedAt.toISOString(),
+    );
   });
 
   it("should refresh the session after Google authentication", async () => {
@@ -198,7 +262,7 @@ describe("AuthenticateWithGoogleController (e2e)", () => {
 
     const loginResponse = await request(getHttpServer(app))
       .post("/auth/google")
-      .send({ idToken: "refresh-after-google-token" });
+      .send({ idToken: "refresh-after-google-token", role: "CUSTOMER" });
 
     expect(loginResponse.status).toBe(200);
 
@@ -239,7 +303,7 @@ describe("AuthenticateWithGoogleController (e2e)", () => {
 
     const response = await request(getHttpServer(app))
       .post("/auth/google")
-      .send({ idToken: "link-by-email-token" });
+      .send({ idToken: "link-by-email-token", role: "CUSTOMER" });
 
     expect(response.status).toBe(200);
 
@@ -247,6 +311,7 @@ describe("AuthenticateWithGoogleController (e2e)", () => {
       response.body,
     );
     expect(responseBody.userId).toBe(existingUser.id);
+    expect(responseBody.onboardingCompletedAt).toBeNull();
 
     const linkedAccount = await prisma.socialAccount.findUnique({
       where: {
@@ -261,10 +326,10 @@ describe("AuthenticateWithGoogleController (e2e)", () => {
     expect(linkedAccount?.userId).toBe(existingUser.id);
   });
 
-  it("should create a new incomplete user when account does not exist", async () => {
+  it("should create a new customer without establishment when role is CUSTOMER", async () => {
     const response = await request(getHttpServer(app))
       .post("/auth/google")
-      .send({ idToken: "new-user-token" });
+      .send({ idToken: "new-customer-token", role: "CUSTOMER" });
 
     expect(response.status).toBe(200);
 
@@ -278,25 +343,66 @@ describe("AuthenticateWithGoogleController (e2e)", () => {
       },
       include: {
         socialAccounts: true,
+        ownedEstablishment: true,
       },
     });
 
     expect(createdUser).not.toBeNull();
-    expect(createdUser?.hashedPassword).toBeNull();
-    expect(createdUser?.phone).toBeNull();
-    expect(createdUser?.address).toBeNull();
+    expect(createdUser?.profileImageUrl).toBeNull();
+    expect(createdUser?.ownedEstablishment).toBeNull();
+    expect(responseBody.onboardingCompletedAt).toBeNull();
     expect(createdUser?.socialAccounts).toEqual([
       expect.objectContaining({
         provider: "GOOGLE",
-        subjectId: "google-sub-new",
+        subjectId: "google-sub-customer-new",
       }),
     ]);
+  });
+
+  it("should create establishment draft when role is ESTABLISHMENT", async () => {
+    const response = await request(getHttpServer(app))
+      .post("/auth/google")
+      .send({ idToken: "new-establishment-token", role: "ESTABLISHMENT" });
+
+    expect(response.status).toBe(200);
+
+    const responseBody = authenticateWithGoogleResponseSchema.parse(
+      response.body,
+    );
+
+    const createdUser = await prisma.user.findUnique({
+      where: {
+        id: responseBody.userId,
+      },
+      include: {
+        ownedEstablishment: true,
+      },
+    });
+
+    expect(createdUser?.ownedEstablishment).toEqual(
+      expect.objectContaining({
+        tradeName: null,
+        legalBusinessName: null,
+        slug: null,
+        cnpj: null,
+        onboardingCompletedAt: null,
+      }),
+    );
+    expect(responseBody.onboardingCompletedAt).toBeNull();
+  });
+
+  it("should return 400 when role is omitted", async () => {
+    const response = await request(getHttpServer(app))
+      .post("/auth/google")
+      .send({ idToken: "new-customer-token" });
+
+    expect(response.status).toBe(400);
   });
 
   it("should return 400 when OAuth email is not verified", async () => {
     const response = await request(getHttpServer(app))
       .post("/auth/google")
-      .send({ idToken: "unverified-email-token" });
+      .send({ idToken: "unverified-email-token", role: "CUSTOMER" });
 
     expect(response.status).toBe(400);
 
@@ -304,10 +410,117 @@ describe("AuthenticateWithGoogleController (e2e)", () => {
     expect(responseBody.message).toBe("OAuth email is not verified.");
   });
 
+  it("should return 401 when OAuth email does not match the account email", async () => {
+    await prisma.user.create({
+      data: {
+        name: "Email Updated User",
+        email: "new-email@example.com",
+        hashedPassword: null,
+        role: "CUSTOMER",
+        phone: null,
+        address: Prisma.JsonNull,
+        socialAccounts: {
+          create: {
+            provider: "GOOGLE",
+            subjectId: "google-sub-email-updated",
+          },
+        },
+      },
+    });
+
+    mockedClaimsByToken.set("old-email-after-update-token", {
+      provider: "GOOGLE",
+      subjectId: "google-sub-email-updated",
+      email: "old-email@example.com",
+      emailVerified: true,
+      name: "Email Updated User",
+    });
+
+    const response = await request(getHttpServer(app))
+      .post("/auth/google")
+      .send({ idToken: "old-email-after-update-token", role: "CUSTOMER" });
+
+    expect(response.status).toBe(401);
+
+    const responseBody = singleMessageResponseSchema.parse(response.body);
+    expect(responseBody.message).toBe(
+      "OAuth email does not match the account email.",
+    );
+  });
+
+  it("should allow OAuth login after email update when Google email matches", async () => {
+    const linkedUser = await prisma.user.create({
+      data: {
+        name: "Email Updated User",
+        email: "old-email@example.com",
+        hashedPassword: null,
+        role: "CUSTOMER",
+        phone: null,
+        address: Prisma.JsonNull,
+        socialAccounts: {
+          create: {
+            provider: "GOOGLE",
+            subjectId: "google-sub-email-update-flow",
+          },
+        },
+      },
+    });
+
+    mockedClaimsByToken.set("email-update-flow-old-token", {
+      provider: "GOOGLE",
+      subjectId: "google-sub-email-update-flow",
+      email: "old-email@example.com",
+      emailVerified: true,
+      name: "Email Updated User",
+    });
+
+    mockedClaimsByToken.set("email-update-flow-new-token", {
+      provider: "GOOGLE",
+      subjectId: "google-sub-email-update-flow",
+      email: "new-email@example.com",
+      emailVerified: true,
+      name: "Email Updated User",
+    });
+
+    const loginResponse = await request(getHttpServer(app))
+      .post("/auth/google")
+      .send({ idToken: "email-update-flow-old-token", role: "CUSTOMER" });
+
+    const loginBody = authenticateWithGoogleResponseSchema.parse(
+      loginResponse.body,
+    );
+
+    expect(loginResponse.status).toBe(200);
+
+    const updateResponse = await request(getHttpServer(app))
+      .patch("/user/me")
+      .set("Authorization", `Bearer ${loginBody.accessToken}`)
+      .send({ email: "new-email@example.com" });
+
+    expect(updateResponse.status).toBe(200);
+
+    const oldEmailLoginResponse = await request(getHttpServer(app))
+      .post("/auth/google")
+      .send({ idToken: "email-update-flow-old-token", role: "CUSTOMER" });
+
+    expect(oldEmailLoginResponse.status).toBe(401);
+
+    const newEmailLoginResponse = await request(getHttpServer(app))
+      .post("/auth/google")
+      .send({ idToken: "email-update-flow-new-token", role: "CUSTOMER" });
+
+    const newEmailLoginBody = authenticateWithGoogleResponseSchema.parse(
+      newEmailLoginResponse.body,
+    );
+
+    expect(newEmailLoginResponse.status).toBe(200);
+    expect(newEmailLoginBody.userId).toBe(linkedUser.id);
+  });
+
   it("should return 401 when OAuth token is invalid", async () => {
     const response = await request(getHttpServer(app))
       .post("/auth/google")
-      .send({ idToken: "invalid-token" });
+      .send({ idToken: "invalid-token", role: "CUSTOMER" });
 
     expect(response.status).toBe(401);
 

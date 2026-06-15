@@ -54,7 +54,7 @@ export class DeleteCustomerUseCase {
       await this.unitOfWork.execute(async () => {
         const referenceDate = new Date();
         const vehicles =
-          await this.customerVehiclesRepository.findManyByCustomerIdAndEstablishmentId(
+          await this.customerVehiclesRepository.findAllActiveByCustomerIdAndEstablishmentId(
             customer.id.toString(),
             establishment.id.toString(),
           );

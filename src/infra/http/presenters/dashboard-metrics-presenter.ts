@@ -54,10 +54,15 @@ type DashboardRevenueSummary = {
 };
 
 type DashboardAppointmentMetrics = {
-  appointmentsCount: number;
-  cancellationRate: {
-    currentPercent: number;
-    comparisonPercentPoints: number | null;
+  total: number;
+  byStatus: {
+    scheduled: number;
+    done: number;
+    cancelled: number;
+  };
+  rates: {
+    completion: number;
+    cancellation: number;
   };
 };
 
@@ -66,6 +71,14 @@ type DashboardPopularService = {
   name: string;
   completedCount: number;
   percent: number;
+};
+
+type DashboardTopCustomer = {
+  position: number;
+  customerId: string;
+  customerName: string;
+  completedAppointmentsCount: number;
+  totalSpentInCents: number;
 };
 
 export class DashboardMetricsPresenter {
@@ -96,6 +109,16 @@ export class DashboardMetricsPresenter {
     return {
       popularServices,
       totalServices,
+    };
+  }
+
+  static toTopCustomers(
+    customers: DashboardTopCustomer[],
+    totalCustomers: number,
+  ) {
+    return {
+      customers,
+      totalCustomers,
     };
   }
 }

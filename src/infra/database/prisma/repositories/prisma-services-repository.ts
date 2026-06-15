@@ -4,6 +4,8 @@ import { Prisma } from "../../../../generated/prisma/client";
 import {
   type PaginatedServices,
   type ServiceFilters,
+  type ServiceOption,
+  type ServiceOptionsFilters,
   ServicesRepository,
 } from "../../../../modules/application/repositories/services-repository";
 import { Service } from "../../../../modules/catalog/domain/entities/services";
@@ -24,7 +26,7 @@ function buildServiceWhereWithoutEstablishment(
   return {
     deletedAt: null,
     ...(nameClause ? { serviceName: nameClause } : {}),
-    ...(filters?.category ? { category: filters.category } : {}),
+    ...(filters?.categoryId ? { categoryId: filters.categoryId } : {}),
     ...(filters?.isActive !== undefined ? { isActive: filters.isActive } : {}),
     ...(filters?.minPrice !== undefined || filters?.maxPrice !== undefined
       ? {
@@ -76,6 +78,7 @@ export class PrismaServicesRepository implements ServicesRepository {
         client.service.count({ where }),
         client.service.findMany({
           where,
+          include: { category: true },
           orderBy: {
             createdAt: "asc",
           },
@@ -93,6 +96,49 @@ export class PrismaServicesRepository implements ServicesRepository {
     }
   }
 
+  async findOptionsByEstablishmentId(
+    establishmentId: string,
+    filters?: ServiceOptionsFilters,
+  ): Promise<ServiceOption[]> {
+    const limit = filters?.limit ?? 20;
+    const search = filters?.search?.trim();
+
+    try {
+      const services = await PrismaUnitOfWork.getClient(
+        this.prisma,
+      ).service.findMany({
+        select: {
+          id: true,
+          serviceName: true,
+        },
+        where: {
+          establishmentId,
+          deletedAt: null,
+          isActive: true,
+          ...(search
+            ? {
+                serviceName: {
+                  contains: search,
+                  mode: "insensitive",
+                },
+              }
+            : {}),
+        },
+        orderBy: {
+          serviceName: "asc",
+        },
+        take: limit,
+      });
+
+      return services.map((service) => ({
+        id: service.id,
+        label: service.serviceName,
+      }));
+    } catch (error) {
+      rethrowPrismaRepositoryError(error);
+    }
+  }
+
   async findById(id: string): Promise<Service | null> {
     try {
       const service = await PrismaUnitOfWork.getClient(
@@ -102,6 +148,7 @@ export class PrismaServicesRepository implements ServicesRepository {
           id,
           deletedAt: null,
         },
+        include: { category: true },
       });
 
       if (!service) {
@@ -122,6 +169,7 @@ export class PrismaServicesRepository implements ServicesRepository {
         where: {
           id,
         },
+        include: { category: true },
       });
 
       if (!service) {
@@ -146,6 +194,7 @@ export class PrismaServicesRepository implements ServicesRepository {
           id: serviceId,
           establishmentId,
         },
+        include: { category: true },
       });
 
       if (!service) {
@@ -183,6 +232,7 @@ export class PrismaServicesRepository implements ServicesRepository {
           client.service.count({ where: notDeleted }),
           client.service.findMany({
             where: notDeleted,
+            include: { category: true },
             orderBy: {
               createdAt: "asc",
             },
@@ -203,6 +253,7 @@ export class PrismaServicesRepository implements ServicesRepository {
         client.service.count({ where }),
         client.service.findMany({
           where,
+          include: { category: true },
           orderBy: {
             createdAt: "asc",
           },
@@ -215,6 +266,21 @@ export class PrismaServicesRepository implements ServicesRepository {
         items: rows.map((service) => PrismaServiceMapper.toDomain(service)),
         totalItems,
       };
+    } catch (error) {
+      rethrowPrismaRepositoryError(error);
+    }
+  }
+
+  async clearCategoryFromServices(categoryId: string): Promise<number> {
+    try {
+      const result = await PrismaUnitOfWork.getClient(
+        this.prisma,
+      ).service.updateMany({
+        where: { categoryId },
+        data: { categoryId: null },
+      });
+
+      return result.count;
     } catch (error) {
       rethrowPrismaRepositoryError(error);
     }

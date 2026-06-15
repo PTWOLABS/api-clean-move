@@ -29,6 +29,16 @@ export class InMemoryUsersRepository implements UsersRepository {
     return user;
   }
 
+  async findManyByIds(userIds: string[]): Promise<User[]> {
+    if (userIds.length === 0) {
+      return [];
+    }
+
+    const idSet = new Set(userIds);
+
+    return this.items.filter((item) => idSet.has(item.id.toString()));
+  }
+
   async findByProviderAndSubject(
     provider: OAuthProvider,
     subjectId: string,

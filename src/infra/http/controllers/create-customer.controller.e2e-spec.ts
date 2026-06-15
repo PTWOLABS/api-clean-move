@@ -24,7 +24,7 @@ const customerResponseSchema = z.object({
     documentType: z.enum(["CPF", "CNPJ"]).nullable(),
     fullName: z.string(),
     phone: z.string(),
-    email: z.email(),
+    email: z.email().nullable(),
     address: z
       .object({
         street: z.string(),
@@ -148,6 +148,28 @@ describe("Customer controllers (e2e)", () => {
     });
 
     expect(deletedCustomer?.deletedAt).toBeInstanceOf(Date);
+  });
+
+  it("should create a customer without email", async () => {
+    const { accessToken } = await makeEstablishmentAccessToken({
+      app,
+      prisma,
+      userFactory,
+      establishmentFactory,
+      envService,
+    });
+
+    const payload = validCustomerPayload("111.444.777-35");
+    delete (payload as Partial<typeof payload>).email;
+
+    const response = await request(getHttpServer(app))
+      .post("/customers")
+      .set("Authorization", `Bearer ${accessToken}`)
+      .send(payload);
+    const body = customerResponseSchema.parse(response.body);
+
+    expect(response.status).toBe(201);
+    expect(body.customer.email).toBeNull();
   });
 
   it("should enforce authentication and establishment role on all customer endpoints", async () => {

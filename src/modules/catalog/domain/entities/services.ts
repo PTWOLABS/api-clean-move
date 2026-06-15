@@ -5,14 +5,14 @@ import { ServiceAlreadyDeletedError } from "../errors/service-already-deleted-er
 import { InvalidEstimatedDurationTransitionError } from "../errors/invalid-estimated-duration-transition-error";
 import { EstimatedDuration } from "../value-objects/estimated-duration";
 import { Money } from "../value-objects/money";
-import { ServiceCategory } from "../value-objects/service-category";
+import { ServiceCategoryRef } from "../value-objects/service-category-ref";
 import { ServiceName } from "../value-objects/service-name";
 
 export type ServiceProps = {
   establishmentId: UniqueEntityId;
   serviceName: ServiceName;
   description: string | undefined;
-  category: ServiceCategory | undefined;
+  category: ServiceCategoryRef | undefined;
   estimatedDuration: EstimatedDuration | undefined;
   price: Money;
   isActive: boolean;
@@ -36,6 +36,10 @@ export class Service extends AggregateRoot<ServiceProps> {
 
   get category() {
     return this.props.category;
+  }
+
+  get categoryId() {
+    return this.props.category?.id;
   }
 
   get estimatedDuration() {
@@ -78,7 +82,8 @@ export class Service extends AggregateRoot<ServiceProps> {
   update(data: {
     serviceName?: string;
     description?: string;
-    category?: ServiceCategory;
+    categoryId?: string | null;
+    categoryName?: string;
     estimatedDuration?: {
       minInMinutes: number;
       maxInMinutes?: number | null | undefined;
@@ -119,8 +124,15 @@ export class Service extends AggregateRoot<ServiceProps> {
       this.changeDescription(data.description);
     }
 
-    if (data.category !== undefined) {
-      this.changeCategory(data.category);
+    if (data.categoryId !== undefined) {
+      if (data.categoryId === null) {
+        this.clearCategory();
+      } else if (data.categoryName) {
+        this.changeCategory({
+          id: new UniqueEntityId(data.categoryId),
+          name: data.categoryName,
+        });
+      }
     }
 
     if (data.isActive !== undefined) {
@@ -144,10 +156,22 @@ export class Service extends AggregateRoot<ServiceProps> {
     this.touch();
   }
 
-  changeCategory(category: ServiceCategory) {
-    if (this.category === category) return;
+  changeCategory(category: ServiceCategoryRef) {
+    if (
+      this.category?.id.equals(category.id) &&
+      this.category.name === category.name
+    ) {
+      return;
+    }
 
     this.props.category = category;
+    this.touch();
+  }
+
+  clearCategory() {
+    if (!this.category) return;
+
+    this.props.category = undefined;
     this.touch();
   }
 

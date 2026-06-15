@@ -14,10 +14,10 @@ export class PrismaEstablishmentMapper {
         ownerId: new UniqueEntityId(raw.ownerId),
         tradeName: raw.tradeName,
         legalBusinessName: raw.legalBusinessName,
-        cnpj: Cnpj.create(raw.cnpj),
-        slug: Slug.create(raw.slug),
-        profileImageUrl: raw.profileImageUrl,
+        cnpj: raw.cnpj !== null ? Cnpj.create(raw.cnpj) : null,
+        slug: raw.slug !== null ? Slug.create(raw.slug) : null,
         bannerImageUrl: raw.bannerImageUrl,
+        onboardingCompletedAt: raw.onboardingCompletedAt,
       },
       new UniqueEntityId(raw.id),
     );
@@ -31,10 +31,10 @@ export class PrismaEstablishmentMapper {
       ownerId: raw.ownerId.toString(),
       tradeName: raw.tradeName,
       legalBusinessName: raw.legalBusinessName,
-      cnpj: raw.cnpj.value,
-      slug: raw.slug.value,
-      profileImageUrl: raw.profileImageUrl,
+      cnpj: raw.cnpj?.value ?? null,
+      slug: raw.slug?.value ?? null,
       bannerImageUrl: raw.bannerImageUrl,
+      onboardingCompletedAt: raw.onboardingCompletedAt,
     };
   }
 
@@ -44,10 +44,10 @@ export class PrismaEstablishmentMapper {
     return {
       tradeName: raw.tradeName,
       legalBusinessName: raw.legalBusinessName,
-      cnpj: raw.cnpj.value,
-      slug: raw.slug.value,
-      profileImageUrl: raw.profileImageUrl,
+      cnpj: raw.cnpj?.value ?? null,
+      slug: raw.slug?.value ?? null,
       bannerImageUrl: raw.bannerImageUrl,
+      onboardingCompletedAt: raw.onboardingCompletedAt,
     };
   }
 }

@@ -20,13 +20,6 @@ import { EnvService } from "../../env/env.service";
 
 const uploadResponseSchema = z.object({
   url: z.url(),
-  objectKey: z.string().min(1),
-});
-
-const employeeResponseSchema = z.object({
-  employee: z.object({
-    id: z.uuid(),
-  }),
 });
 
 const vehicleResponseSchema = z.object({
@@ -71,45 +64,6 @@ describe("UploadDomainImageController (e2e)", () => {
 
   afterAll(async () => {
     await app.close();
-  });
-
-  it("should upload employee profile image", async () => {
-    const { accessToken } = await makeEstablishmentAccessToken({
-      app,
-      prisma,
-      userFactory,
-      establishmentFactory,
-      envService,
-    });
-
-    const registerResponse = await request(getHttpServer(app))
-      .post("/employees")
-      .set("Authorization", `Bearer ${accessToken}`)
-      .send({
-        name: "Photo Employee",
-        email: "photo-employee-upload@example.com",
-        password: "StrongPass1!",
-      });
-
-    expect(registerResponse.status).toBe(201);
-    const registerBody = employeeResponseSchema.parse(registerResponse.body);
-    const employeeId = registerBody.employee.id;
-
-    const uploadResponse = await request(getHttpServer(app))
-      .post(`/employees/${employeeId}/profile-image`)
-      .set("Authorization", `Bearer ${accessToken}`)
-      .attach("file", tinyPng, "avatar.png");
-
-    expect(uploadResponse.status).toBe(201);
-    const body = uploadResponseSchema.parse(uploadResponse.body);
-    expect(body.url).toContain("employee-profile");
-    expect(fakeObjectStorage.puts).toHaveLength(1);
-    expect(fakeObjectStorage.puts[0]?.contentType).toBe("image/png");
-
-    const row = await prisma.employee.findUnique({
-      where: { id: employeeId },
-    });
-    expect(row?.profileImageUrl).toBe(body.url);
   });
 
   it("should upload establishment banner when entity id matches", async () => {
@@ -226,33 +180,5 @@ describe("UploadDomainImageController (e2e)", () => {
       where: { id: vehicleId },
     });
     expect(row?.imageUrl).toBeNull();
-  });
-
-  it("should upload customer profile image", async () => {
-    const { accessToken, establishment } = await makeEstablishmentAccessToken({
-      app,
-      prisma,
-      userFactory,
-      establishmentFactory,
-      envService,
-    });
-
-    const customer = await customerFactory.makePrismaCustomer({
-      establishmentId: establishment.id,
-      cpfCnpj: null,
-    });
-
-    const uploadResponse = await request(getHttpServer(app))
-      .post(`/customers/${customer.id.toString()}/profile-image`)
-      .set("Authorization", `Bearer ${accessToken}`)
-      .attach("file", tinyPng, "customer.png");
-
-    expect(uploadResponse.status).toBe(201);
-    const body = uploadResponseSchema.parse(uploadResponse.body);
-
-    const row = await prisma.customer.findUnique({
-      where: { id: customer.id.toString() },
-    });
-    expect(row?.profileImageUrl).toBe(body.url);
   });
 });

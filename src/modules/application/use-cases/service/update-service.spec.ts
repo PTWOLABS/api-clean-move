@@ -4,8 +4,12 @@ import { ResourceNotFoundError } from "../../../../shared/errors/resource-not-fo
 import { makeCustomer } from "../../../../../tests/factories/customer-factory";
 import { makeEstablishment } from "../../../../../tests/factories/establishment-factory";
 import { makeService } from "../../../../../tests/factories/service-factory";
+import { makeServiceCategoryRef } from "../../../../../tests/helpers/service-category-ref";
 import { InMemoryEstablishmentsRepository } from "../../../../../tests/repositories/in-memory-establishment-repository";
+import { InMemoryServiceCategoriesRepository } from "../../../../../tests/repositories/in-memory-service-categories-repository";
 import { InMemoryServicesRepository } from "../../../../../tests/repositories/in-memory-services-repository";
+import { ServiceCategory } from "../../../catalog/domain/entities/service-category";
+import { CategoryName } from "../../../catalog/domain/value-objects/category-name";
 import { EstimatedDuration } from "../../../catalog/domain/value-objects/estimated-duration";
 import { Money } from "../../../catalog/domain/value-objects/money";
 import { ServiceName } from "../../../catalog/domain/value-objects/service-name";
@@ -14,8 +18,17 @@ import {
   UpdateServiceUseCase,
 } from "./update-service";
 
+const washCategoryId = new UniqueEntityId("wash-category");
+const protectionCategoryId = new UniqueEntityId("protection-category");
+const washCategory = makeServiceCategoryRef("Lavagem", washCategoryId);
+const protectionCategory = makeServiceCategoryRef(
+  "Proteção",
+  protectionCategoryId,
+);
+
 let inMemoryServicesRepository: InMemoryServicesRepository;
 let inMemoryEstablishmentsRepository: InMemoryEstablishmentsRepository;
+let inMemoryServiceCategoriesRepository: InMemoryServiceCategoriesRepository;
 
 let sut: UpdateServiceUseCase;
 
@@ -25,17 +38,45 @@ describe("Update a service", () => {
     inMemoryEstablishmentsRepository = new InMemoryEstablishmentsRepository(
       inMemoryServicesRepository,
     );
+    inMemoryServiceCategoriesRepository =
+      new InMemoryServiceCategoriesRepository();
 
     sut = new UpdateServiceUseCase(
       inMemoryServicesRepository,
       inMemoryEstablishmentsRepository,
+      inMemoryServiceCategoriesRepository,
     );
   });
+
+  async function seedProtectionCategory(establishmentId: UniqueEntityId) {
+    await inMemoryServiceCategoriesRepository.create(
+      ServiceCategory.create(
+        {
+          establishmentId,
+          name: CategoryName.create("Proteção"),
+        },
+        protectionCategoryId,
+      ),
+    );
+  }
+
+  async function seedWashCategory(establishmentId: UniqueEntityId) {
+    await inMemoryServiceCategoriesRepository.create(
+      ServiceCategory.create(
+        {
+          establishmentId,
+          name: CategoryName.create("Lavagem"),
+        },
+        washCategoryId,
+      ),
+    );
+  }
 
   it("should be able to update a service with a valid establishment and valid data", async () => {
     const establishment = makeEstablishment();
 
     await inMemoryEstablishmentsRepository.create(establishment);
+    await seedProtectionCategory(establishment.id);
 
     const service = makeService({
       establishmentId: establishment.id,
@@ -52,7 +93,7 @@ describe("Update a service", () => {
       data: {
         serviceName: "Service updated",
         price: 50000,
-        category: "PROTECTION",
+        categoryId: protectionCategoryId.toString(),
         description: "Service updated description",
         estimatedDuration: {
           minInMinutes: 50,
@@ -77,7 +118,7 @@ describe("Update a service", () => {
     );
     expect(resultService.serviceName.toString()).toBe("Service updated");
     expect(resultService.price.amountInCents).toBe(50000);
-    expect(resultService.category).toBe("PROTECTION");
+    expect(resultService.category).toEqual(protectionCategory);
     expect(resultService.description).toBe("Service updated description");
     expect(resultService.estimatedDuration?.minInMinutes).toBe(50);
     expect(resultService.estimatedDuration?.maxInMinutes).toBe(100);
@@ -87,6 +128,7 @@ describe("Update a service", () => {
     const establishment = makeEstablishment();
 
     await inMemoryEstablishmentsRepository.create(establishment);
+    await seedProtectionCategory(establishment.id);
 
     const service = makeService({
       establishmentId: establishment.id,
@@ -107,7 +149,7 @@ describe("Update a service", () => {
       data: {
         serviceName: "Service updated",
         price: 1,
-        category: "PROTECTION",
+        categoryId: protectionCategoryId.toString(),
         description: "Service updated description",
         estimatedDuration: {
           minInMinutes: 35,
@@ -146,7 +188,7 @@ describe("Update a service", () => {
       data: {
         serviceName: "Service updated",
         price: 50000,
-        category: "PROTECTION",
+        categoryId: protectionCategoryId.toString(),
         description: "Service updated description",
         estimatedDuration: {
           minInMinutes: 50,
@@ -199,6 +241,7 @@ describe("Update a service", () => {
 
     const anotherEstablishment = makeEstablishment();
     await inMemoryEstablishmentsRepository.create(anotherEstablishment);
+    await seedProtectionCategory(anotherEstablishment.id);
 
     const originalUpdatedAt = service.updatedAt?.getTime();
 
@@ -208,7 +251,7 @@ describe("Update a service", () => {
       data: {
         serviceName: "Service updated",
         price: 50000,
-        category: "PROTECTION",
+        categoryId: protectionCategoryId.toString(),
         description: "Service updated description",
         estimatedDuration: {
           minInMinutes: 50,
@@ -231,11 +274,12 @@ describe("Update a service", () => {
     const establishment = makeEstablishment();
 
     await inMemoryEstablishmentsRepository.create(establishment);
+    await seedWashCategory(establishment.id);
 
     const service = makeService({
       establishmentId: establishment.id,
       serviceName: ServiceName.create("Service to update with same name"),
-      category: "WASH",
+      category: washCategory,
       description: "Same description",
       estimatedDuration: EstimatedDuration.create({
         minInMinutes: 10,
@@ -253,7 +297,7 @@ describe("Update a service", () => {
       serviceId: service.id.toString(),
       data: {
         serviceName: "Service to update with same name",
-        category: "WASH",
+        categoryId: washCategoryId.toString(),
         description: "Same description",
         estimatedDuration: {
           minInMinutes: 10,
@@ -280,7 +324,7 @@ describe("Update a service", () => {
     const service = makeService({
       establishmentId: customer.id,
       serviceName: ServiceName.create("Service to update by a customer"),
-      category: "WASH",
+      category: washCategory,
       description: "Service description to update",
       estimatedDuration: EstimatedDuration.create({
         minInMinutes: 10,
@@ -296,7 +340,7 @@ describe("Update a service", () => {
       serviceId: service.id.toString(),
       data: {
         serviceName: "Updated service by a customer",
-        category: "WASH",
+        categoryId: washCategoryId.toString(),
         description: "Updated service description",
         estimatedDuration: {
           minInMinutes: 10,

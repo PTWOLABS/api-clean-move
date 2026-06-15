@@ -1,6 +1,8 @@
 import {
   CustomerFilters,
+  CustomerOptionsFilters,
   CustomersRepository,
+  PaginatedCustomers,
 } from "../../src/modules/application/repositories/customers-repository";
 import { Customer } from "../../src/modules/customer/domain/entities/customer";
 import { CustomerDocument } from "../../src/modules/customer/domain/value-objects/customer-document";
@@ -56,7 +58,7 @@ export class InMemoryCustomersRepository implements CustomersRepository {
   async findManyByEstablishmentId(
     establishmentId: string,
     filters?: CustomerFilters,
-  ): Promise<Customer[]> {
+  ): Promise<PaginatedCustomers> {
     const page = filters?.page ?? 1;
     const size = filters?.size ?? 20;
     const search = filters?.search?.trim().toLowerCase();
@@ -74,7 +76,7 @@ export class InMemoryCustomersRepository implements CustomersRepository {
 
         const fullName = item.fullName.toLowerCase();
         const phone = item.phone.toString();
-        const email = item.email.toString().toLowerCase();
+        const email = item.email?.toString().toLowerCase() ?? "";
         const cpfCnpj = item.cpfCnpj?.toString() ?? "";
 
         return (
@@ -85,10 +87,43 @@ export class InMemoryCustomersRepository implements CustomersRepository {
         );
       });
 
+    const totalItems = filteredCustomers.length;
     const start = (page - 1) * size;
     const end = start + size;
 
-    return filteredCustomers.slice(start, end);
+    return {
+      customers: filteredCustomers.slice(start, end),
+      totalItems,
+    };
+  }
+
+  async findOptionsByEstablishmentId(
+    establishmentId: string,
+    filters?: CustomerOptionsFilters,
+  ) {
+    const limit = filters?.limit ?? 20;
+    const search = filters?.search?.trim().toLowerCase();
+
+    return this.items
+      .slice()
+      .filter((item) => item.establishmentId.toString() === establishmentId)
+      .filter((item) => !item.isDeleted())
+      .filter((item) => {
+        if (!search) {
+          return true;
+        }
+
+        return (
+          item.fullName.toLowerCase().includes(search) ||
+          (item.nickname?.toLowerCase().includes(search) ?? false)
+        );
+      })
+      .sort((a, b) => compareStrings(a.fullName, b.fullName))
+      .slice(0, limit)
+      .map((customer) => ({
+        id: customer.id.toString(),
+        label: customer.fullName,
+      }));
   }
 
   async save(customer: Customer): Promise<void> {
@@ -103,4 +138,16 @@ export class InMemoryCustomersRepository implements CustomersRepository {
 
     this.items[customerIndex] = customer;
   }
+}
+
+function compareStrings(a: string, b: string) {
+  if (a < b) {
+    return -1;
+  }
+
+  if (a > b) {
+    return 1;
+  }
+
+  return 0;
 }

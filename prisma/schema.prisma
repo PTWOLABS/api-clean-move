@@ -19,14 +19,6 @@ enum OAuthProvider {
   GOOGLE
 }
 
-enum ServiceCategory {
-  WASH
-  SANITIZATION
-  AUTOMATIVE_DETAILING
-  PROTECTION
-  UPHOLSTERY
-}
-
 enum AppointmentStatus {
   SCHEDULED
   DONE
@@ -49,7 +41,6 @@ model Employee {
   id              String    @id @default(uuid()) @db.Uuid
   establishmentId String    @map("establishment_id") @db.Uuid
   userId          String    @unique @map("user_id") @db.Uuid
-  profileImageUrl String?   @map("profile_image_url")
   name            String?
   cpf             String?   @db.VarChar(11)
   birthDate       DateTime? @map("birth_date")
@@ -71,9 +62,10 @@ model User {
   name           String
   email          String   @unique
   hashedPassword String?  @map("hashed_password")
-  role           UserRole
-  phone          String?  @db.VarChar(11)
-  address        Json?
+  role            UserRole
+  profileImageUrl String?  @map("profile_image_url")
+  phone           String?  @db.VarChar(11)
+  address         Json?
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @default(now()) @updatedAt @map("updated_at")
 
@@ -135,11 +127,10 @@ model PasswordResetToken {
 model Customer {
   id              String    @id @default(uuid()) @db.Uuid
   establishmentId String    @map("establishment_id") @db.Uuid
-  profileImageUrl String?   @map("profile_image_url")
   cpfCnpj         String?   @map("cpf_cnpj") @db.VarChar(14)
   fullName        String    @map("full_name")
   phone           String    @db.VarChar(11)
-  email           String
+  email           String?
   address         Json?
   birthDate       DateTime? @map("birth_date")
   nickname        String?
@@ -188,18 +179,19 @@ model CustomerVehicle {
 }
 
 model Establishment {
-  id                String  @id @default(uuid()) @db.Uuid
-  ownerId           String  @unique @map("owner_id") @db.Uuid
-  profileImageUrl   String? @map("profile_image_url")
-  bannerImageUrl    String? @map("banner_image_url")
-  tradeName         String
-  legalBusinessName String
-  slug              String  @unique
-  cnpj              String  @unique @db.VarChar(14)
+  id                    String    @id @default(uuid()) @db.Uuid
+  ownerId               String    @unique @map("owner_id") @db.Uuid
+  bannerImageUrl        String?   @map("banner_image_url")
+  tradeName             String?
+  legalBusinessName     String?
+  slug                  String?   @unique
+  cnpj                  String?   @unique @db.VarChar(14)
+  onboardingCompletedAt DateTime? @map("onboarding_completed_at")
 
-  owner        User              @relation("EstablishmentOwner", fields: [ownerId], references: [id], onDelete: Restrict)
-  services     Service[]
-  customers    Customer[]
+  owner             User              @relation("EstablishmentOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+  services          Service[]
+  serviceCategories ServiceCategory[]
+  customers         Customer[]
   vehicles     CustomerVehicle[]
   appointments Appointment[]     @relation("EstablishmentAppointments")
   employees    Employee[]
@@ -209,51 +201,69 @@ model Establishment {
   @@map("establishments")
 }
 
+model ServiceCategory {
+  id              String    @id @default(uuid()) @db.Uuid
+  establishmentId String    @map("establishment_id") @db.Uuid
+  name            String    @db.VarChar(48)
+  deletedAt       DateTime? @map("deleted_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  establishment Establishment @relation(fields: [establishmentId], references: [id], onDelete: Restrict)
+  services      Service[]
+
+  @@unique([establishmentId, name])
+  @@index([establishmentId, deletedAt])
+  @@map("service_categories")
+}
+
 model Service {
-  id                            String           @id @default(uuid()) @db.Uuid
-  establishmentId               String           @map("establishment_id") @db.Uuid
-  serviceName                   String           @map("service_name") @db.VarChar(72)
-  description                   String?          @db.Text
-  category                      ServiceCategory?
-  estimatedDurationMinInMinutes Int?             @map("estimated_duration_min_in_minutes")
-  estimatedDurationMaxInMinutes Int?             @map("estimated_duration_max_in_minutes")
-  priceInCents                  Int              @map("price_in_cents")
-  isActive                      Boolean          @default(true) @map("is_active")
-  createdAt                     DateTime         @default(now()) @map("created_at")
-  updatedAt                     DateTime         @default(now()) @updatedAt @map("updated_at")
-  deletedAt                     DateTime?        @map("deleted_at")
+  id                            String    @id @default(uuid()) @db.Uuid
+  establishmentId               String    @map("establishment_id") @db.Uuid
+  serviceName                   String    @map("service_name") @db.VarChar(72)
+  description                   String?   @db.Text
+  categoryId                    String?   @map("category_id") @db.Uuid
+  estimatedDurationMinInMinutes Int?      @map("estimated_duration_min_in_minutes")
+  estimatedDurationMaxInMinutes Int?      @map("estimated_duration_max_in_minutes")
+  priceInCents                  Int       @map("price_in_cents")
+  isActive                      Boolean   @default(true) @map("is_active")
+  createdAt                     DateTime  @default(now()) @map("created_at")
+  updatedAt                     DateTime  @default(now()) @updatedAt @map("updated_at")
+  deletedAt                     DateTime? @map("deleted_at")
 
   establishment       Establishment              @relation(fields: [establishmentId], references: [id], onDelete: Restrict)
+  category            ServiceCategory?           @relation(fields: [categoryId], references: [id], onDelete: Restrict)
   appointmentBookings AppointmentBookedService[]
   quoteServices       QuoteService[]
 
   @@index([establishmentId])
   @@index([establishmentId, deletedAt])
   @@index([establishmentId, serviceName])
-  @@index([establishmentId, category])
+  @@index([establishmentId, categoryId])
   @@index([establishmentId, priceInCents])
   @@map("services")
 }
 
 model Appointment {
-  id              String            @id @default(uuid()) @db.Uuid
-  establishmentId String            @map("establishment_id") @db.Uuid
-  customerId      String            @map("customer_id") @db.Uuid
-  vehicleId       String?           @map("vehicle_id") @db.Uuid
-  vehiclePlate    String?           @map("vehicle_plate") @db.VarChar(12)
-  vehicleBrand    String?           @map("vehicle_brand")
-  vehicleModel    String?           @map("vehicle_model")
-  vehicleColor    String?           @map("vehicle_color")
-  vehicleYear     Int?              @map("vehicle_year")
-  startsAt        DateTime          @map("starts_at")
-  endsAt          DateTime?         @map("ends_at")
-  description     String?           @db.Text
-  discountInCents Int?              @map("discount_in_cents")
-  status          AppointmentStatus @default(SCHEDULED)
-  createdAt       DateTime          @default(now()) @map("created_at")
-  updatedAt       DateTime          @default(now()) @updatedAt @map("updated_at")
-  doneAt          DateTime?         @map("done_at")
-  cancelledAt     DateTime?         @map("cancelled_at")
+  id               String            @id @default(uuid()) @db.Uuid
+  establishmentId  String            @map("establishment_id") @db.Uuid
+  customerId       String            @map("customer_id") @db.Uuid
+  customerFullName String            @map("customer_full_name")
+  vehicleId        String?           @map("vehicle_id") @db.Uuid
+  vehiclePlate     String?           @map("vehicle_plate") @db.VarChar(12)
+  vehicleBrand     String?           @map("vehicle_brand")
+  vehicleModel     String?           @map("vehicle_model")
+  vehicleColor     String?           @map("vehicle_color")
+  vehicleYear      Int?              @map("vehicle_year")
+  startsAt         DateTime          @map("starts_at")
+  endsAt           DateTime?         @map("ends_at")
+  description      String?           @db.Text
+  discountInCents  Int?              @map("discount_in_cents")
+  status           AppointmentStatus @default(SCHEDULED)
+  createdAt        DateTime          @default(now()) @map("created_at")
+  updatedAt        DateTime          @default(now()) @updatedAt @map("updated_at")
+  doneAt           DateTime?         @map("done_at")
+  cancelledAt      DateTime?         @map("cancelled_at")
 
   establishment      Establishment              @relation("EstablishmentAppointments", fields: [establishmentId], references: [id], onDelete: Restrict)
   customer           Customer                   @relation(fields: [customerId], references: [id], onDelete: Restrict)
@@ -272,14 +282,15 @@ model Appointment {
 }
 
 model AppointmentBookedService {
-  id                       String           @id @default(uuid()) @db.Uuid
-  appointmentId            String           @map("appointment_id") @db.Uuid
-  serviceId                String           @map("service_id") @db.Uuid
-  serviceName              String           @map("service_name") @db.VarChar(72)
-  serviceCategory          ServiceCategory? @map("service_category")
-  serviceDurationInMinutes Int?             @map("service_duration_in_minutes")
-  servicePriceInCents      Int              @map("service_price_in_cents")
-  position                 Int              @default(0)
+  id                       String  @id @default(uuid()) @db.Uuid
+  appointmentId            String  @map("appointment_id") @db.Uuid
+  serviceId                String  @map("service_id") @db.Uuid
+  serviceName              String  @map("service_name") @db.VarChar(72)
+  serviceCategoryId        String? @map("service_category_id") @db.Uuid
+  serviceCategoryName      String? @map("service_category_name") @db.VarChar(48)
+  serviceDurationInMinutes Int?    @map("service_duration_in_minutes")
+  servicePriceInCents      Int     @map("service_price_in_cents")
+  position                 Int     @default(0)
 
   appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
   service     Service     @relation(fields: [serviceId], references: [id], onDelete: Restrict)
@@ -335,15 +346,16 @@ model Quote {
 }
 
 model QuoteService {
-  id                       String           @id @default(uuid()) @db.Uuid
-  quoteId                  String           @map("quote_id") @db.Uuid
-  serviceId                String           @map("service_id") @db.Uuid
-  serviceName              String           @map("service_name") @db.VarChar(72)
-  serviceCategory          ServiceCategory? @map("service_category")
-  serviceDurationInMinutes Int?             @map("service_duration_in_minutes")
-  servicePriceInCents      Int              @map("service_price_in_cents")
-  isCourtesy               Boolean          @default(false) @map("is_courtesy")
-  position                 Int              @default(0)
+  id                       String  @id @default(uuid()) @db.Uuid
+  quoteId                  String  @map("quote_id") @db.Uuid
+  serviceId                String  @map("service_id") @db.Uuid
+  serviceName              String  @map("service_name") @db.VarChar(72)
+  serviceCategoryId        String? @map("service_category_id") @db.Uuid
+  serviceCategoryName      String? @map("service_category_name") @db.VarChar(48)
+  serviceDurationInMinutes Int?    @map("service_duration_in_minutes")
+  servicePriceInCents      Int     @map("service_price_in_cents")
+  isCourtesy               Boolean @default(false) @map("is_courtesy")
+  position                 Int     @default(0)
 
   quote   Quote   @relation(fields: [quoteId], references: [id], onDelete: Cascade)
   service Service @relation(fields: [serviceId], references: [id], onDelete: Restrict)

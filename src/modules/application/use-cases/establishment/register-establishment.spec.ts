@@ -3,6 +3,7 @@ import { makeEstablishment } from "../../../../../tests/factories/establishment-
 import { makeUser } from "../../../../../tests/factories/user-factory";
 import { FakeHashGenerator } from "../../../../../tests/repositories/fake-hash-generator";
 import { InMemoryEstablishmentsRepository } from "../../../../../tests/repositories/in-memory-establishment-repository";
+import { InMemoryServiceCategoriesRepository } from "../../../../../tests/repositories/in-memory-service-categories-repository";
 import { InMemoryServicesRepository } from "../../../../../tests/repositories/in-memory-services-repository";
 import { InMemoryUnitOfWork } from "../../../../../tests/repositories/in-memory-unit-of-work";
 import { InMemoryUsersRepository } from "../../../../../tests/repositories/in-memory-users-repository";
@@ -13,6 +14,7 @@ import { RegisterEstablishmentUseCase } from "./register-establishment";
 
 let inMemoryUsersRepository: InMemoryUsersRepository;
 let inMemoryEstablishmentsRepository: InMemoryEstablishmentsRepository;
+let inMemoryServiceCategoriesRepository: InMemoryServiceCategoriesRepository;
 let fakeHashGenerator: FakeHashGenerator;
 let inMemoryUnitOfWork: InMemoryUnitOfWork;
 
@@ -24,12 +26,15 @@ describe("Register an establishment", () => {
     inMemoryEstablishmentsRepository = new InMemoryEstablishmentsRepository(
       new InMemoryServicesRepository(),
     );
+    inMemoryServiceCategoriesRepository =
+      new InMemoryServiceCategoriesRepository();
     fakeHashGenerator = new FakeHashGenerator();
     inMemoryUnitOfWork = new InMemoryUnitOfWork();
 
     sut = new RegisterEstablishmentUseCase(
       inMemoryUsersRepository,
       inMemoryEstablishmentsRepository,
+      inMemoryServiceCategoriesRepository,
       fakeHashGenerator,
       inMemoryUnitOfWork,
     );
@@ -68,9 +73,9 @@ describe("Register an establishment", () => {
     expect(inMemoryUsersRepository.items[0]?.hashedPassword).toBe(
       "jondoe@123-hashed",
     );
-    expect(result.value.establishment.slug.value).toEqual(
-      "valid-establishment",
-    );
+    const slug = result.value.establishment.slug;
+    expect(slug).not.toBeNull();
+    expect(slug!.value).toEqual("valid-establishment");
   });
 
   it("not should be able to register an establishment with duplicated email", async () => {
@@ -130,9 +135,9 @@ describe("Register an establishment", () => {
       throw result.value;
     }
 
-    expect(result.value.establishment.slug.value).toBe(
-      "custom-establishment-slug",
-    );
+    const slug = result.value.establishment.slug;
+    expect(slug).not.toBeNull();
+    expect(slug!.value).toBe("custom-establishment-slug");
   });
 
   it("not should be able to register an establishment with duplicated cnpj", async () => {

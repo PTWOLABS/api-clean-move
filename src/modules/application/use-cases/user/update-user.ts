@@ -1,3 +1,4 @@
+import { Injectable } from "@nestjs/common";
 import { User } from "../../../accounts/domain/entities/user";
 import {
   AddressCreateInput,
@@ -7,6 +8,7 @@ import { Either, left, right } from "../../../../shared/either";
 import { ResourceAlreadyExistsError } from "../../../../shared/errors/resource-already-exists-error";
 import { ResourceNotFoundError } from "../../../../shared/errors/resource-not-found-error";
 import { UsersRepository } from "../../repositories/users-repository";
+import { UserEstablishmentResolver } from "../../services/user-establishment-resolver";
 import { InvalidEmailError } from "../../../accounts/domain/value-objects/email";
 import { InvalidPhoneError } from "../../../accounts/domain/value-objects/phone";
 import { InvalidServiceUpdateInputError } from "../service/update-service";
@@ -33,11 +35,16 @@ type UpdateUserUseCaseResponse = Either<
   | InvalidServiceUpdateInputError,
   {
     user: User;
+    establishmentId: string | null;
   }
 >;
 
+@Injectable()
 export class UpdateUserUseCase {
-  constructor(private usersRepository: UsersRepository) {}
+  constructor(
+    private usersRepository: UsersRepository,
+    private userEstablishmentResolver: UserEstablishmentResolver,
+  ) {}
 
   async execute({
     userId,
@@ -85,8 +92,12 @@ export class UpdateUserUseCase {
 
     await this.usersRepository.save(existingUser);
 
+    const establishmentId =
+      await this.userEstablishmentResolver.resolveEstablishmentId(existingUser);
+
     return right({
       user: existingUser,
+      establishmentId,
     });
   }
 }

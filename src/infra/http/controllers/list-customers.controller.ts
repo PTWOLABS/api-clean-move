@@ -117,9 +117,10 @@ export class ListCustomersController {
     }
 
     return {
-      customers: result.value.customers.map((customer) =>
-        CustomerPresenter.toHTTP(customer),
+      customers: result.value.customers.map(({ customer, vehicles }) =>
+        CustomerPresenter.toHTTPListItem(customer, vehicles),
       ),
+      totalItems: result.value.totalItems,
     };
   }
 }

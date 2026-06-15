@@ -2,9 +2,12 @@ import { Injectable } from "@nestjs/common";
 
 import {
   AppointmentFilters,
+  AppointmentListResult,
   AppointmentsRepository,
   CalendarAppointmentFilters,
   PopularServiceUsageMetrics,
+  TopCustomerMetrics,
+  TopCustomersFilters,
 } from "../../../../modules/application/repositories/appointments-repository";
 import { Appointment } from "../../../../modules/scheduling/domain/entities/appointment";
 import { Prisma } from "../../../../generated/prisma/client";
@@ -42,6 +45,48 @@ export class PrismaAppointmentsRepository implements AppointmentsRepository {
       contains: value,
       mode: "insensitive" as const,
     };
+  }
+
+  private static buildVehicleDisplaySearchWhere(
+    search: string,
+  ): Prisma.AppointmentWhereInput {
+    const terms = search
+      .split(/\s+/)
+      .map((term) => term.trim())
+      .filter((term) => term.length > 0);
+
+    if (terms.length === 0) {
+      return {};
+    }
+
+    return {
+      AND: terms.map((term) => ({
+        OR: [
+          {
+            vehicleBrand:
+              PrismaAppointmentsRepository.containsInsensitive(term),
+          },
+          {
+            vehicleModel:
+              PrismaAppointmentsRepository.containsInsensitive(term),
+          },
+          ...(Number.isInteger(Number(term))
+            ? [
+                {
+                  vehicleYear: Number(term),
+                },
+              ]
+            : []),
+        ],
+      })),
+    };
+  }
+
+  private static getNetRevenueInCents(appointment: Appointment) {
+    const gross = Appointment.totalServicesPriceInCents(appointment.services);
+    const discountInCents = appointment.discountInCents?.amountInCents ?? 0;
+
+    return Math.max(gross - discountInCents, 0);
   }
 
   private static buildStatusWhere(status?: AppointmentFilters["status"]) {
@@ -135,6 +180,8 @@ export class PrismaAppointmentsRepository implements AppointmentsRepository {
     }
 
     if (search) {
+      const vehicleDisplayWhere =
+        PrismaAppointmentsRepository.buildVehicleDisplaySearchWhere(search);
       const searchOr: Prisma.AppointmentWhereInput[] = [
         {
           bookedServices: {
@@ -152,6 +199,9 @@ export class PrismaAppointmentsRepository implements AppointmentsRepository {
           vehicleModel:
             PrismaAppointmentsRepository.containsInsensitive(search),
         },
+        ...(Object.keys(vehicleDisplayWhere).length > 0
+          ? [vehicleDisplayWhere]
+          : []),
         {
           customer: {
             fullName: PrismaAppointmentsRepository.containsInsensitive(search),
@@ -198,11 +248,11 @@ export class PrismaAppointmentsRepository implements AppointmentsRepository {
           }
         : {}),
       ...PrismaAppointmentsRepository.buildStatusWhere(filters?.status),
-      ...(filters?.categories?.length
+      ...(filters?.categoryIds?.length
         ? {
             bookedServices: {
               some: {
-                serviceCategory: { in: filters.categories },
+                serviceCategoryId: { in: filters.categoryIds },
               },
             },
           }
@@ -319,24 +369,31 @@ export class PrismaAppointmentsRepository implements AppointmentsRepository {
   async findManyByEstablishmentIdInCalendarRange(
     establishmentId: string,
     filters: CalendarAppointmentFilters,
-  ): Promise<Appointment[]> {
-    try {
-      const appointments = await PrismaUnitOfWork.getClient(
-        this.prisma,
-      ).appointment.findMany({
-        where: PrismaAppointmentsRepository.buildCalendarWhere(
-          establishmentId,
-          filters,
-        ),
-        include: bookedServicesInclude,
-        orderBy: {
-          startsAt: "asc",
-        },
-      });
+  ): Promise<AppointmentListResult> {
+    const where = PrismaAppointmentsRepository.buildCalendarWhere(
+      establishmentId,
+      filters,
+    );
 
-      return appointments.map((appointment) =>
-        PrismaAppointmentMapper.toDomain(appointment),
-      );
+    try {
+      const client = PrismaUnitOfWork.getClient(this.prisma);
+      const [totalItems, appointments] = await Promise.all([
+        client.appointment.count({ where }),
+        client.appointment.findMany({
+          where,
+          include: bookedServicesInclude,
+          orderBy: {
+            startsAt: "asc",
+          },
+        }),
+      ]);
+
+      return {
+        appointments: appointments.map((appointment) =>
+          PrismaAppointmentMapper.toDomain(appointment),
+        ),
+        totalItems,
+      };
     } catch (error) {
       rethrowPrismaRepositoryError(error);
     }
@@ -345,29 +402,35 @@ export class PrismaAppointmentsRepository implements AppointmentsRepository {
   async findManyByEstablishmentId(
     establishmentId: string,
     filters?: AppointmentFilters,
-  ): Promise<Appointment[]> {
+  ): Promise<AppointmentListResult> {
     const page = filters?.page ?? 1;
     const size = filters?.size ?? 20;
+    const where = PrismaAppointmentsRepository.buildWhere(
+      establishmentId,
+      filters,
+    );
 
     try {
-      const appointments = await PrismaUnitOfWork.getClient(
-        this.prisma,
-      ).appointment.findMany({
-        where: PrismaAppointmentsRepository.buildWhere(
-          establishmentId,
-          filters,
-        ),
-        include: bookedServicesInclude,
-        orderBy: {
-          startsAt: "asc",
-        },
-        skip: (page - 1) * size,
-        take: size,
-      });
+      const client = PrismaUnitOfWork.getClient(this.prisma);
+      const [totalItems, appointments] = await Promise.all([
+        client.appointment.count({ where }),
+        client.appointment.findMany({
+          where,
+          include: bookedServicesInclude,
+          orderBy: {
+            startsAt: "asc",
+          },
+          skip: (page - 1) * size,
+          take: size,
+        }),
+      ]);
 
-      return appointments.map((appointment) =>
-        PrismaAppointmentMapper.toDomain(appointment),
-      );
+      return {
+        appointments: appointments.map((appointment) =>
+          PrismaAppointmentMapper.toDomain(appointment),
+        ),
+        totalItems,
+      };
     } catch (error) {
       rethrowPrismaRepositoryError(error);
     }
@@ -420,6 +483,94 @@ export class PrismaAppointmentsRepository implements AppointmentsRepository {
           usageCount: service._count._all,
         })),
         totalUsages,
+      };
+    } catch (error) {
+      rethrowPrismaRepositoryError(error);
+    }
+  }
+
+  async findTopCustomersByEstablishmentId(
+    establishmentId: string,
+    filters?: TopCustomersFilters,
+  ): Promise<TopCustomerMetrics> {
+    const page = filters?.page ?? 1;
+    const size = filters?.size ?? 5;
+
+    try {
+      const appointments = await PrismaUnitOfWork.getClient(
+        this.prisma,
+      ).appointment.findMany({
+        where: PrismaAppointmentsRepository.buildWhere(establishmentId, {
+          ...(filters?.startsAt ? { startsAt: filters.startsAt } : {}),
+          ...(filters?.endsAt ? { endsAt: filters.endsAt } : {}),
+          status: "DONE",
+        }),
+        include: bookedServicesInclude,
+        orderBy: {
+          startsAt: "asc",
+        },
+      });
+      const groupedByCustomer = new Map<
+        string,
+        {
+          customerId: string;
+          customerName: string;
+          completedAppointmentsCount: number;
+          totalSpentInCents: number;
+        }
+      >();
+
+      for (const appointmentRecord of appointments) {
+        const appointment = PrismaAppointmentMapper.toDomain(appointmentRecord);
+        const customerId = appointment.customerId.toString();
+        const current = groupedByCustomer.get(customerId);
+
+        if (!current) {
+          groupedByCustomer.set(customerId, {
+            customerId,
+            customerName: appointment.customer.fullName,
+            completedAppointmentsCount: 1,
+            totalSpentInCents:
+              PrismaAppointmentsRepository.getNetRevenueInCents(appointment),
+          });
+
+          continue;
+        }
+
+        groupedByCustomer.set(customerId, {
+          ...current,
+          completedAppointmentsCount: current.completedAppointmentsCount + 1,
+          totalSpentInCents:
+            current.totalSpentInCents +
+            PrismaAppointmentsRepository.getNetRevenueInCents(appointment),
+        });
+      }
+
+      const rankedCustomers = Array.from(groupedByCustomer.values()).sort(
+        (a, b) => {
+          if (b.completedAppointmentsCount !== a.completedAppointmentsCount) {
+            return b.completedAppointmentsCount - a.completedAppointmentsCount;
+          }
+
+          if (b.totalSpentInCents !== a.totalSpentInCents) {
+            return b.totalSpentInCents - a.totalSpentInCents;
+          }
+
+          const nameComparison = a.customerName.localeCompare(b.customerName);
+
+          if (nameComparison !== 0) {
+            return nameComparison;
+          }
+
+          return a.customerId.localeCompare(b.customerId);
+        },
+      );
+      const start = (page - 1) * size;
+      const end = start + size;
+
+      return {
+        items: rankedCustomers.slice(start, end),
+        totalCustomers: rankedCustomers.length,
       };
     } catch (error) {
       rethrowPrismaRepositoryError(error);

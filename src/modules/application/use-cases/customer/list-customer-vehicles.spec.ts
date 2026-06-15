@@ -70,6 +70,43 @@ describe("List customer vehicles", () => {
     }
 
     expect(result.value.vehicles).toEqual([firstVehicle, secondVehicle]);
+    expect(result.value.totalItems).toBe(2);
+  });
+
+  it("should return totalItems across all pages when paginating", async () => {
+    const establishment = makeEstablishment();
+    const customer = makeCustomer({ establishmentId: establishment.id });
+    const firstVehicle = makeCustomerVehicle({
+      establishmentId: establishment.id,
+      customerId: customer.id,
+      plate: "ABC1D23",
+    });
+    const secondVehicle = makeCustomerVehicle({
+      establishmentId: establishment.id,
+      customerId: customer.id,
+      plate: "XYZ9A87",
+    });
+
+    await inMemoryEstablishmentsRepository.create(establishment);
+    await inMemoryCustomersRepository.create(customer);
+    await inMemoryCustomerVehiclesRepository.create(firstVehicle);
+    await inMemoryCustomerVehiclesRepository.create(secondVehicle);
+
+    const result = await sut.execute({
+      establishmentOwnerId: establishment.ownerId.toString(),
+      customerId: customer.id.toString(),
+      page: 1,
+      size: 1,
+    });
+
+    expect(result.isRight()).toBe(true);
+
+    if (result.isLeft()) {
+      throw result.value;
+    }
+
+    expect(result.value.vehicles).toHaveLength(1);
+    expect(result.value.totalItems).toBe(2);
   });
 
   it("should reject customers outside the establishment", async () => {

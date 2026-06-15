@@ -1,4 +1,9 @@
+import { UniqueEntityId } from "../../../../shared/entities/unique-entity-id";
 import { Money } from "../../../catalog/domain/value-objects/money";
+import { makeServiceCategoryRef } from "../../../../../tests/helpers/service-category-ref";
+
+const washCategoryId = new UniqueEntityId("wash-category");
+const protectionCategoryId = new UniqueEntityId("protection-category");
 import { ResourceNotFoundError } from "../../../../shared/errors/resource-not-found-error";
 import { makeEstablishment } from "../../../../../tests/factories/establishment-factory";
 import { makeService } from "../../../../../tests/factories/service-factory";
@@ -117,7 +122,7 @@ describe("Get services", () => {
     await inMemoryServicesRepository.create(
       makeService({
         serviceName: ServiceName.create("service-0"),
-        category: "WASH",
+        category: makeServiceCategoryRef("Lavagem", washCategoryId),
         price: Money.create(15000),
         establishmentId: establishment.id,
       }),
@@ -126,7 +131,7 @@ describe("Get services", () => {
     await inMemoryServicesRepository.create(
       makeService({
         serviceName: ServiceName.create("WashUniqueAlphaX"),
-        category: "WASH",
+        category: makeServiceCategoryRef("Lavagem", washCategoryId),
         price: Money.create(25000),
         establishmentId: establishment.id,
       }),
@@ -135,7 +140,7 @@ describe("Get services", () => {
     await inMemoryServicesRepository.create(
       makeService({
         serviceName: ServiceName.create("service-2"),
-        category: "PROTECTION",
+        category: makeServiceCategoryRef("Proteção", protectionCategoryId),
         price: Money.create(35000),
         establishmentId: establishment.id,
       }),
@@ -145,7 +150,7 @@ describe("Get services", () => {
       await inMemoryServicesRepository.create(
         makeService({
           serviceName: ServiceName.create(`service-${i}`),
-          category: "WASH",
+          category: makeServiceCategoryRef("Lavagem", washCategoryId),
           price: Money.create(30000),
           establishmentId: establishment.id,
         }),
@@ -155,7 +160,7 @@ describe("Get services", () => {
     const result = await sut.execute({
       establishmentId: establishment.id.toString(),
       filters: {
-        category: "WASH",
+        categoryId: washCategoryId.toString(),
         minPrice: 20000,
         serviceName: "AlphaX",
       },
@@ -176,7 +181,7 @@ describe("Get services", () => {
     const result2 = await sut.execute({
       establishmentId: establishment.id.toString(),
       filters: {
-        category: "WASH",
+        categoryId: washCategoryId.toString(),
         minPrice: 20000,
       },
     });

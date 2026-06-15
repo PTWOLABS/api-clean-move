@@ -6,18 +6,30 @@ import { Slug } from "../value-objects/slug";
 
 export type EstablishmentProps = {
   ownerId: UniqueEntityId;
-  tradeName: string;
-  legalBusinessName: string;
-  slug: Slug;
-  cnpj: Cnpj;
-  profileImageUrl: string | null;
+  tradeName: string | null;
+  legalBusinessName: string | null;
+  slug: Slug | null;
+  cnpj: Cnpj | null;
   bannerImageUrl: string | null;
+  onboardingCompletedAt: Date | null;
 };
 
 export type EstablishmentCreateProps = Optional<
   EstablishmentProps,
-  "slug" | "profileImageUrl" | "bannerImageUrl"
+  | "tradeName"
+  | "legalBusinessName"
+  | "slug"
+  | "cnpj"
+  | "bannerImageUrl"
+  | "onboardingCompletedAt"
 >;
+
+export type EstablishmentCommercialProfileUpdate = {
+  tradeName?: string;
+  legalBusinessName?: string;
+  cnpj?: string;
+  slug?: string;
+};
 
 export class Establishment extends AggregateRoot<EstablishmentProps> {
   get ownerId() {
@@ -40,24 +52,12 @@ export class Establishment extends AggregateRoot<EstablishmentProps> {
     return this.props.slug;
   }
 
-  get profileImageUrl() {
-    return this.props.profileImageUrl;
-  }
-
   get bannerImageUrl() {
     return this.props.bannerImageUrl;
   }
 
-  set tradeName(name: string) {
-    this.props.tradeName = name;
-  }
-
-  setProfileImageUrl(url: string) {
-    const normalized = Establishment.normalizeOptionalUrl(url);
-    if (normalized === null) {
-      throw new Error("profile image URL cannot be empty.");
-    }
-    this.props.profileImageUrl = normalized;
+  get onboardingCompletedAt() {
+    return this.props.onboardingCompletedAt;
   }
 
   setBannerImageUrl(url: string) {
@@ -68,17 +68,85 @@ export class Establishment extends AggregateRoot<EstablishmentProps> {
     this.props.bannerImageUrl = normalized;
   }
 
+  clearBannerImageUrl() {
+    this.props.bannerImageUrl = null;
+  }
+
+  completeOnboarding(completedAt = new Date()) {
+    this.props.onboardingCompletedAt = completedAt;
+  }
+
+  updateCommercialProfile(data: EstablishmentCommercialProfileUpdate) {
+    if (data.tradeName !== undefined) {
+      const normalized = data.tradeName.trim();
+      if (!normalized) {
+        throw new Error("trade name cannot be empty.");
+      }
+      this.props.tradeName = normalized;
+    }
+
+    if (data.legalBusinessName !== undefined) {
+      const normalized = data.legalBusinessName.trim();
+      if (!normalized) {
+        throw new Error("legal business name cannot be empty.");
+      }
+      this.props.legalBusinessName = normalized;
+    }
+    if (data.cnpj !== undefined) {
+      this.props.cnpj = Cnpj.create(data.cnpj);
+    }
+
+    if (data.slug !== undefined) {
+      const normalized = data.slug.trim();
+      this.props.slug = normalized
+        ? Slug.create(normalized)
+        : Slug.createFromText(this.props.tradeName ?? "establishment");
+    }
+  }
+
+  hasCompanyData() {
+    return (
+      !!this.props.tradeName ||
+      !!this.props.cnpj ||
+      !!this.props.legalBusinessName
+    );
+  }
+
+  static createOAuthDraft(
+    props: { ownerId: UniqueEntityId },
+    id?: UniqueEntityId,
+  ) {
+    return Establishment.create(
+      {
+        ownerId: props.ownerId,
+        tradeName: null,
+        legalBusinessName: null,
+        slug: null,
+        cnpj: null,
+        bannerImageUrl: null,
+        onboardingCompletedAt: null,
+      },
+      id,
+    );
+  }
+
   static create(props: EstablishmentCreateProps, id?: UniqueEntityId) {
+    const tradeName = props.tradeName ?? null;
+    const slug =
+      props.slug ??
+      (tradeName !== null ? Slug.createFromText(tradeName) : null);
+
     const establishment = new Establishment(
       {
         ...props,
-        slug: props.slug ?? Slug.createFromText(props.tradeName),
-        profileImageUrl: Establishment.normalizeOptionalUrl(
-          props.profileImageUrl,
-        ),
+        tradeName,
+        legalBusinessName: props.legalBusinessName ?? null,
+        slug,
+        cnpj: props.cnpj ?? null,
         bannerImageUrl: Establishment.normalizeOptionalUrl(
           props.bannerImageUrl,
         ),
+        onboardingCompletedAt: props.onboardingCompletedAt ?? null,
       },
       id,
     );
@@ -89,9 +157,6 @@ export class Establishment extends AggregateRoot<EstablishmentProps> {
     return new Establishment(
       {
         ...props,
-        profileImageUrl: Establishment.normalizeOptionalUrl(
-          props.profileImageUrl,
-        ),
         bannerImageUrl: Establishment.normalizeOptionalUrl(
           props.bannerImageUrl,
         ),

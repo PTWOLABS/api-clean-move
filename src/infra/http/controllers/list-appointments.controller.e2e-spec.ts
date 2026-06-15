@@ -187,6 +187,10 @@ describe("ListAppointmentsController (e2e)", () => {
       .get("/appointments")
       .set("Authorization", `Bearer ${accessToken}`)
       .query({ vehicleModel: "cor" });
+    const vehicleDisplayNameResponse = await request(getHttpServer(app))
+      .get("/appointments")
+      .set("Authorization", `Bearer ${accessToken}`)
+      .query({ search: "Toyota Corolla" });
     const searchResponse = await request(getHttpServer(app))
       .get("/appointments")
       .set("Authorization", `Bearer ${accessToken}`)
@@ -223,6 +227,9 @@ describe("ListAppointmentsController (e2e)", () => {
     const vehicleModelBody = listAppointmentsResponseSchema.parse(
       vehicleModelResponse.body,
     );
+    const vehicleDisplayNameBody = listAppointmentsResponseSchema.parse(
+      vehicleDisplayNameResponse.body,
+    );
     const searchBody = listAppointmentsResponseSchema.parse(
       searchResponse.body,
     );
@@ -231,6 +238,7 @@ describe("ListAppointmentsController (e2e)", () => {
     expect(doneBody.appointments.map((appointment) => appointment.id)).toEqual([
       firstAppointment.id,
     ]);
+    expect(doneBody.totalItems).toBe(1);
     expect(customerResponse.status).toBe(200);
     expect(
       customerBody.appointments.map((appointment) => appointment.id),
@@ -238,6 +246,13 @@ describe("ListAppointmentsController (e2e)", () => {
       expect.arrayContaining([firstAppointment.id, secondAppointment.id]),
     );
     expect(customerBody.appointments).toHaveLength(2);
+    expect(customerBody.totalItems).toBe(2);
+    expect(
+      customerBody.appointments.map((appointment) => appointment.customer),
+    ).toEqual([
+      { fullName: "Ana Maria Souza" },
+      { fullName: "Ana Maria Souza" },
+    ]);
     expect(serviceResponse.status).toBe(200);
     expect(
       serviceBody.appointments.map((appointment) => appointment.id),
@@ -245,10 +260,12 @@ describe("ListAppointmentsController (e2e)", () => {
       expect.arrayContaining([firstAppointment.id, thirdAppointment.id]),
     );
     expect(serviceBody.appointments).toHaveLength(2);
+    expect(serviceBody.totalItems).toBe(2);
     expect(vehicleResponse.status).toBe(200);
     expect(
       vehicleBody.appointments.map((appointment) => appointment.id),
     ).toEqual([firstAppointment.id]);
+    expect(vehicleBody.totalItems).toBe(1);
     expect(dateRangeResponse.status).toBe(200);
     expect(
       dateRangeBody.appointments.map((appointment) => appointment.id),
@@ -256,6 +273,7 @@ describe("ListAppointmentsController (e2e)", () => {
       expect.arrayContaining([firstAppointment.id, secondAppointment.id]),
     );
     expect(dateRangeBody.appointments).toHaveLength(2);
+    expect(dateRangeBody.totalItems).toBe(2);
     expect(customerNameResponse.status).toBe(200);
     expect(
       customerNameBody.appointments.map((appointment) => appointment.id),
@@ -289,6 +307,13 @@ describe("ListAppointmentsController (e2e)", () => {
     expect(
       vehicleModelBody.appointments.map((appointment) => appointment.id),
     ).toEqual([firstAppointment.id]);
+    expect(vehicleDisplayNameResponse.status).toBe(200);
+    expect(
+      vehicleDisplayNameBody.appointments.map((appointment) => appointment.id),
+    ).toEqual([firstAppointment.id]);
+    expect(vehicleDisplayNameBody.appointments[0]?.vehicle?.displayName).toBe(
+      "Toyota Corolla",
+    );
     expect(searchResponse.status).toBe(200);
     expect(
       searchBody.appointments.map((appointment) => appointment.id),
@@ -296,6 +321,59 @@ describe("ListAppointmentsController (e2e)", () => {
       expect.arrayContaining([firstAppointment.id, secondAppointment.id]),
     );
     expect(searchBody.appointments).toHaveLength(2);
+  });
+
+  it("should return the persisted customer snapshot", async () => {
+    const { accessToken, establishment } = await makeEstablishmentAuth({
+      app,
+      prisma,
+      userFactory,
+      establishmentFactory,
+      envService,
+    });
+    const customer = await customerFactory.makePrismaCustomer({
+      establishmentId: establishment.id,
+      cpfCnpj: null,
+      fullName: "Nome Original",
+    });
+    const service = await serviceFactory.makePrismaService({
+      establishmentId: establishment.id,
+    });
+    const createResponse = await request(getHttpServer(app))
+      .post("/appointments")
+      .set("Authorization", `Bearer ${accessToken}`)
+      .send(
+        appointmentPayload({
+          customerId: customer.id.toString(),
+          serviceIds: [service.id.toString()],
+        }),
+      );
+    const appointment = appointmentResponseSchema.parse(
+      createResponse.body,
+    ).appointment;
+
+    await prisma.customer.update({
+      where: {
+        id: customer.id.toString(),
+      },
+      data: {
+        fullName: "Nome Atualizado",
+      },
+    });
+
+    const response = await request(getHttpServer(app))
+      .get("/appointments")
+      .set("Authorization", `Bearer ${accessToken}`)
+      .query({ customerId: customer.id.toString() });
+    const body = listAppointmentsResponseSchema.parse(response.body);
+
+    expect(response.status).toBe(200);
+    expect(body.appointments).toHaveLength(1);
+    expect(body.totalItems).toBe(1);
+    expect(body.appointments[0]?.id).toBe(appointment.id);
+    expect(body.appointments[0]?.customer).toEqual({
+      fullName: "Nome Original",
+    });
   });
 
   it("should enforce authentication and establishment role", async () => {
@@ -417,6 +495,7 @@ describe("ListAppointmentsController (e2e)", () => {
 
     expect(response.status).toBe(200);
     expect(body.appointments).toHaveLength(0);
+    expect(body.totalItems).toBe(0);
   });
 
   it("should allow employee with read appointments feature", async () => {
@@ -459,5 +538,6 @@ describe("ListAppointmentsController (e2e)", () => {
 
     expect(response.status).toBe(200);
     expect(body.appointments).toHaveLength(1);
+    expect(body.totalItems).toBe(1);
   });
 });

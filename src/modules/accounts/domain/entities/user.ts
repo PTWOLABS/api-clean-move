@@ -18,6 +18,7 @@ export type UserProps = {
   email: Email;
   hashedPassword: string | null;
   role: UserRole;
+  profileImageUrl: string | null;
   phone: Phone | null;
   address: Address | null;
   socialAccounts: SocialAccountLink[];
@@ -43,6 +44,10 @@ export class User extends AggregateRoot<UserProps> {
   }
   get address() {
     return this.props.address;
+  }
+
+  get profileImageUrl() {
+    return this.props.profileImageUrl;
   }
 
   get socialAccounts(): SocialAccountLink[] {
@@ -130,6 +135,7 @@ export class User extends AggregateRoot<UserProps> {
     email?: string | undefined;
     phone?: string | undefined;
     address?: AddressCreateInput | undefined;
+    profileImageUrl?: string | null | undefined;
   }) {
     const newEmail = data.email ? new Email(data.email) : undefined;
 
@@ -152,15 +158,26 @@ export class User extends AggregateRoot<UserProps> {
     if (newAddress) {
       this.changeAddress(newAddress);
     }
+
+    if (data.profileImageUrl !== undefined) {
+      this.props.profileImageUrl = User.normalizeOptionalText(
+        data.profileImageUrl,
+      );
+      this.touch();
+    }
   }
 
   static create(
-    props: Optional<UserProps, "createdAt" | "updatedAt" | "socialAccounts">,
+    props: Optional<
+      UserProps,
+      "createdAt" | "updatedAt" | "socialAccounts" | "profileImageUrl"
+    >,
     id?: UniqueEntityId,
   ) {
     const user = new User(
       {
         ...props,
+        profileImageUrl: User.normalizeOptionalText(props.profileImageUrl),
         socialAccounts: props.socialAccounts ?? [],
         createdAt: props.createdAt ?? new Date(),
         updatedAt: props.updatedAt ?? new Date(),
@@ -169,5 +186,14 @@ export class User extends AggregateRoot<UserProps> {
     );
 
     return user;
+  }
+
+  private static normalizeOptionalText(value: string | null | undefined) {
+    if (value === null || value === undefined) {
+      return null;
+    }
+
+    const normalized = value.trim();
+    return normalized || null;
   }
 }

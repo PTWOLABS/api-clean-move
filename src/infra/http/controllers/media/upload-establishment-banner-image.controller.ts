@@ -12,6 +12,7 @@ import { FileInterceptor } from "@nestjs/platform-express";
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
+  ApiBody,
   ApiConsumes,
   ApiCreatedResponse,
   ApiForbiddenResponse,
@@ -29,6 +30,10 @@ import { AuthenticatedUser } from "../../../auth/authenticated-user";
 import { CurrentUser } from "../../../auth/current-user";
 import { Roles } from "../../../auth/roles";
 import {
+  UploadImageFileBodyDto,
+  UploadImageResponseDto,
+} from "../../docs/upload-swagger.dto";
+import {
   ensureUploadedFile,
   throwUploadError,
   UploadedImageHttpFile,
@@ -36,7 +41,7 @@ import {
 
 const establishmentIdParamSchema = z.uuid();
 
-@ApiTags("media")
+@ApiTags("establishment")
 @ApiBearerAuth("access-token")
 @Controller("/establishments/:establishmentId/banner-image")
 @Roles(["ESTABLISHMENT"])
@@ -49,17 +54,12 @@ export class UploadEstablishmentBannerImageController {
     FileInterceptor("file", { limits: { fileSize: 5 * 1024 * 1024 } }),
   )
   @ApiConsumes("multipart/form-data")
+  @ApiBody({ type: UploadImageFileBodyDto })
   @ApiOperation({ summary: "Upload banner image for an establishment." })
   @ApiParam({ name: "establishmentId", format: "uuid" })
   @ApiCreatedResponse({
     description: "Image uploaded successfully.",
-    schema: {
-      type: "object",
-      properties: {
-        url: { type: "string" },
-        objectKey: { type: "string" },
-      },
-    },
+    type: UploadImageResponseDto,
   })
   @ApiBadRequestResponse({
     description: "Invalid establishment id or image file.",

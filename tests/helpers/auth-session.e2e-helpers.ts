@@ -191,6 +191,10 @@ export async function makeEstablishmentUserWithoutProfileAuth({
     role: "ESTABLISHMENT",
     plainPassword: "strong-password",
   });
+  const establishmentFactory = new EstablishmentFactory(prisma);
+  await establishmentFactory.makePrismaOAuthDraftEstablishment({
+    ownerId: user.id,
+  });
   const login = await loginUser({
     app,
     prisma,

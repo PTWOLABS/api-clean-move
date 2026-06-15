@@ -188,6 +188,41 @@ describe("List appointments", () => {
     }
 
     expect(result.value.appointments).toEqual([matchingAppointment]);
+    expect(result.value.totalItems).toBe(1);
+  });
+
+  it("should return totalItems across all pages when paginating", async () => {
+    const establishment = makeEstablishment();
+    const firstAppointment = makeAppointment({
+      establishmentId: establishment.id,
+      startsAt: new Date("2026-04-27T10:00:00.000Z"),
+      endsAt: new Date("2026-04-27T11:00:00.000Z"),
+    });
+    const secondAppointment = makeAppointment({
+      establishmentId: establishment.id,
+      startsAt: new Date("2026-04-27T11:00:00.000Z"),
+      endsAt: new Date("2026-04-27T12:00:00.000Z"),
+    });
+
+    await inMemoryEstablishmentsRepository.create(establishment);
+    await inMemoryAppointmentsRepository.create(firstAppointment);
+    await inMemoryAppointmentsRepository.create(secondAppointment);
+
+    const result = await sut.execute({
+      actor: {
+        userId: establishment.ownerId.toString(),
+        role: "ESTABLISHMENT",
+      },
+      filters: {
+        page: 2,
+        size: 1,
+      },
+    });
+
+    expect(result.isRight()).toBe(true);
+    if (result.isLeft()) throw result.value;
+    expect(result.value.appointments).toEqual([secondAppointment]);
+    expect(result.value.totalItems).toBe(2);
   });
 
   it("should reject a missing establishment", async () => {
@@ -221,6 +256,7 @@ describe("List appointments", () => {
     expect(result.isRight()).toBe(true);
     if (result.isLeft()) throw result.value;
     expect(result.value.appointments).toEqual([appointment]);
+    expect(result.value.totalItems).toBe(1);
   });
 
   it("should list appointments for an employee without enforcing feature permissions", async () => {
@@ -228,7 +264,6 @@ describe("List appointments", () => {
     const employee = Employee.restore({
       establishmentId: new UniqueEntityId(),
       userId: user.id,
-      profileImageUrl: null,
       name: user.name,
       cpf: null,
       birthDate: null,
@@ -258,5 +293,6 @@ describe("List appointments", () => {
     expect(result.isRight()).toBe(true);
     if (result.isLeft()) throw result.value;
     expect(result.value.appointments).toEqual([]);
+    expect(result.value.totalItems).toBe(0);
   });
 });
