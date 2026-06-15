@@ -51,6 +51,30 @@ describe("envSchema", () => {
     }
   });
 
+  it("should parse a Railway-style database configuration with only DATABASE_URL", () => {
+    const result = envSchema.safeParse(
+      baseEnv({
+        CORS_ALLOWED_ORIGINS: undefined,
+        POSTGRES_HOST: undefined,
+        POSTGRES_DB: undefined,
+        POSTGRES_USER: undefined,
+        POSTGRES_PASSWORD: undefined,
+      }),
+    );
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.DATABASE_URL).toBe(
+        "postgresql://postgres:postgres@localhost:5432/clean_move",
+      );
+      expect(result.data.CORS_ALLOWED_ORIGINS).toBe(result.data.FRONTEND_URL);
+      expect(result.data.POSTGRES_HOST).toBeUndefined();
+      expect(result.data.POSTGRES_DB).toBeUndefined();
+      expect(result.data.POSTGRES_USER).toBeUndefined();
+      expect(result.data.POSTGRES_PASSWORD).toBeUndefined();
+    }
+  });
+
   it("should parse when both AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY are set", () => {
     const result = envSchema.safeParse(
       baseEnv({
