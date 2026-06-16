@@ -37,6 +37,21 @@ const serviceResponseSchema = z.object({
     })
     .nullable(),
   priceInCents: z.number().int().nonnegative(),
+  priceSpecification: z.discriminatedUnion("type", [
+    z.object({
+      type: z.literal("FIXED"),
+      fixedPriceInCents: z.number().int().nonnegative(),
+    }),
+    z.object({
+      type: z.literal("STARTING_AT"),
+      minPriceInCents: z.number().int().nonnegative(),
+    }),
+    z.object({
+      type: z.literal("RANGE"),
+      minPriceInCents: z.number().int().nonnegative(),
+      maxPriceInCents: z.number().int().nonnegative(),
+    }),
+  ]),
   isActive: z.boolean(),
   createdAt: z.string().min(1).nullable(),
   updatedAt: z.string().min(1).nullable(),
@@ -61,22 +76,44 @@ const validationErrorResponseSchema = z.object({
   target: z.literal("body"),
 });
 
+type ServicePriceSpecificationPayload =
+  | {
+      type: "FIXED";
+      fixedPriceInCents: number;
+    }
+  | {
+      type: "STARTING_AT";
+      minPriceInCents: number;
+    }
+  | {
+      type: "RANGE";
+      minPriceInCents: number;
+      maxPriceInCents: number;
+    };
+
+type CreateServicePayload = {
+  serviceName?: string | undefined;
+  description?: string | undefined;
+  categoryId?: string | null | undefined;
+  estimatedDuration?:
+    | {
+        minInMinutes: number;
+        maxInMinutes?: number | null;
+      }
+    | undefined;
+  price?: number | undefined;
+  priceSpecification?: ServicePriceSpecificationPayload | undefined;
+  isActive?: boolean | undefined;
+  establishmentId?: string | undefined;
+};
+
+type CreateServicePayloadOverride = {
+  [Key in keyof CreateServicePayload]?: CreateServicePayload[Key] | undefined;
+};
+
 function makeCreateServicePayload(
-  override?: Partial<{
-    serviceName: string;
-    description: string | undefined;
-    categoryId: string | null | undefined;
-    estimatedDuration:
-      | {
-          minInMinutes: number;
-          maxInMinutes?: number | null | undefined;
-        }
-      | undefined;
-    price: number;
-    isActive: boolean | undefined;
-    establishmentId: string | undefined;
-  }>,
-) {
+  override?: CreateServicePayloadOverride,
+): CreateServicePayload {
   return {
     serviceName: "Lavagem premium",
     description: "Lavagem externa com acabamento e brilho.",
@@ -240,6 +277,10 @@ describe("CreateServiceController (e2e)", () => {
       maxInMinutes: 60,
     });
     expect(responseBody.service.priceInCents).toBe(3000);
+    expect(responseBody.service.priceSpecification).toEqual({
+      type: "FIXED",
+      fixedPriceInCents: 3000,
+    });
     expect(responseBody.service.isActive).toBe(true);
 
     const createdService = await prisma.service.findUnique({
@@ -258,7 +299,89 @@ describe("CreateServiceController (e2e)", () => {
     expect(createdService?.estimatedDurationMinInMinutes).toBe(30);
     expect(createdService?.estimatedDurationMaxInMinutes).toBe(60);
     expect(createdService?.priceInCents).toBe(3000);
+    expect(createdService?.priceSpecificationType).toBe("FIXED");
+    expect(createdService?.priceRangeMaxInCents).toBeNull();
     expect(createdService?.isActive).toBe(true);
+  });
+
+  it("should create a service with range price specification", async () => {
+    const { user, plainPassword } = await userFactory.makePrismaUser({
+      role: "ESTABLISHMENT",
+      plainPassword: "strong-password",
+    });
+    await establishmentFactory.makePrismaEstablishment({
+      ownerId: user.id,
+    });
+    const establishmentLogin = await loginUser({
+      app,
+      prisma,
+      userId: user.id.toString(),
+      email: user.email.toString(),
+      password: plainPassword ?? "",
+    });
+
+    const response = await request(getHttpServer(app))
+      .post("/services")
+      .set(
+        "Authorization",
+        `Bearer ${establishmentLogin.loginBody.accessToken}`,
+      )
+      .send({
+        serviceName: "Higienizacao interna",
+        priceSpecification: {
+          type: "RANGE",
+          minPriceInCents: 30000,
+          maxPriceInCents: 60000,
+        },
+      });
+    const responseBody = createServiceResponseSchema.parse(response.body);
+
+    expect(response.status).toBe(201);
+    expect(responseBody.service).toEqual(
+      expect.objectContaining({
+        name: "Higienizacao interna",
+        priceInCents: 30000,
+        priceSpecification: {
+          type: "RANGE",
+          minPriceInCents: 30000,
+          maxPriceInCents: 60000,
+        },
+      }),
+    );
+  });
+
+  it("should reject a service request with both legacy price and priceSpecification", async () => {
+    const { user, plainPassword } = await userFactory.makePrismaUser({
+      role: "ESTABLISHMENT",
+      plainPassword: "strong-password",
+    });
+    await establishmentFactory.makePrismaEstablishment({
+      ownerId: user.id,
+    });
+    const establishmentLogin = await loginUser({
+      app,
+      prisma,
+      userId: user.id.toString(),
+      email: user.email.toString(),
+      password: plainPassword ?? "",
+    });
+
+    const response = await request(getHttpServer(app))
+      .post("/services")
+      .set(
+        "Authorization",
+        `Bearer ${establishmentLogin.loginBody.accessToken}`,
+      )
+      .send({
+        serviceName: "Polimento",
+        price: 25000,
+        priceSpecification: {
+          type: "STARTING_AT",
+          minPriceInCents: 25000,
+        },
+      });
+
+    expect(response.status).toBe(400);
   });
 
   it("should ignore a forged establishmentId in the payload and create the service for the authenticated establishment", async () => {

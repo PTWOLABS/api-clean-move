@@ -962,6 +962,20 @@ export class CreateServiceEstimatedDurationBodyDto {
   maxInMinutes?: number;
 }
 
+export class ServicePriceSpecificationDto {
+  @ApiProperty({ enum: ["FIXED", "STARTING_AT", "RANGE"] })
+  type!: "FIXED" | "STARTING_AT" | "RANGE";
+
+  @ApiPropertyOptional({ type: Number, minimum: 0 })
+  fixedPriceInCents?: number;
+
+  @ApiPropertyOptional({ type: Number, minimum: 0 })
+  minPriceInCents?: number;
+
+  @ApiPropertyOptional({ type: Number, minimum: 0 })
+  maxPriceInCents?: number;
+}
+
 export class CreateServiceBodyDto {
   @ApiProperty({
     example: "Lavagem premium",
@@ -989,11 +1003,19 @@ export class CreateServiceBodyDto {
   })
   estimatedDuration?: CreateServiceEstimatedDurationBodyDto;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     example: 3000,
-    description: "Service price in cents.",
+    description:
+      "Legacy service price in cents. Provide either price or priceSpecification.",
   })
-  price!: number;
+  price?: number;
+
+  @ApiPropertyOptional({
+    type: ServicePriceSpecificationDto,
+    description:
+      "Service price policy. Provide either price or priceSpecification.",
+  })
+  priceSpecification?: ServicePriceSpecificationDto;
 
   @ApiPropertyOptional({
     example: true,
@@ -1044,6 +1066,9 @@ export class ServiceDto {
 
   @ApiProperty({ example: 3000 })
   priceInCents!: number;
+
+  @ApiProperty({ type: ServicePriceSpecificationDto })
+  priceSpecification!: ServicePriceSpecificationDto;
 
   @ApiProperty({ example: true })
   isActive!: boolean;
@@ -1363,9 +1388,17 @@ export class UpdateServiceBodyDto {
 
   @ApiPropertyOptional({
     example: 3000,
-    description: "Service price in cents.",
+    description:
+      "Legacy service price in cents. Provide either price or priceSpecification.",
   })
   price?: number;
+
+  @ApiPropertyOptional({
+    type: ServicePriceSpecificationDto,
+    description:
+      "Service price policy. Provide either price or priceSpecification.",
+  })
+  priceSpecification?: ServicePriceSpecificationDto;
 
   @ApiPropertyOptional({
     example: false,
