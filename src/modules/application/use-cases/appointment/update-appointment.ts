@@ -20,12 +20,17 @@ import { AppointmentsRepository } from "../../repositories/appointments-reposito
 import { CustomerVehiclesRepository } from "../../repositories/customer-vehicles-repository";
 import { CustomersRepository } from "../../repositories/customers-repository";
 import { ServicesRepository } from "../../repositories/services-repository";
+import {
+  AppointmentServiceItemInput,
+  normalizeAppointmentServiceItems,
+} from "./helpers/appointment-service-items";
 
 type UpdateAppointmentUseCaseRequest = {
   actor: EstablishmentScopeActor;
   appointmentId: string;
   customerId?: string;
   serviceIds?: string[];
+  services?: AppointmentServiceItemInput[];
   vehicleId?: string | null;
   startsAt?: Date;
   endsAt?: Date | null;
@@ -74,6 +79,7 @@ export class UpdateAppointmentUseCase {
     appointmentId,
     customerId,
     serviceIds,
+    services,
     vehicleId,
     startsAt,
     endsAt,
@@ -110,8 +116,8 @@ export class UpdateAppointmentUseCase {
     }
 
     const servicesResult: ResolveServicesResponse =
-      serviceIds !== undefined
-        ? await this.resolveServices(serviceIds, establishmentId)
+      serviceIds !== undefined || services !== undefined
+        ? await this.resolveServices(serviceIds, services, establishmentId)
         : right({ services: appointment.services });
 
     if (servicesResult.isLeft()) {
@@ -138,7 +144,7 @@ export class UpdateAppointmentUseCase {
     try {
       appointment.update({
         ...(customerId !== undefined ? { customerId: customer.id } : {}),
-        ...(serviceIds !== undefined
+        ...(serviceIds !== undefined || services !== undefined
           ? { services: servicesResult.value.services }
           : {}),
         ...(vehicleId !== undefined || customerChanged
@@ -169,23 +175,25 @@ export class UpdateAppointmentUseCase {
   }
 
   private async resolveServices(
-    serviceIds: string[],
+    serviceIds: string[] | undefined,
+    serviceItems: AppointmentServiceItemInput[] | undefined,
     establishmentId: string,
   ): Promise<ResolveServicesResponse> {
-    if (new Set(serviceIds).size !== serviceIds.length) {
-      return left(
-        new InvalidAppointmentInputError(
-          "Duplicate services are not allowed in the same appointment.",
-        ),
-      );
+    const normalizedResult = normalizeAppointmentServiceItems(
+      serviceIds,
+      serviceItems,
+    );
+
+    if (normalizedResult.isLeft()) {
+      return left(normalizedResult.value);
     }
 
     const services: AppointmentServiceSnapshot[] = [];
 
-    for (const serviceId of serviceIds) {
+    for (const item of normalizedResult.value) {
       const service =
         await this.servicesRepository.findByServiceIdAndEstablishmentId(
-          serviceId,
+          item.serviceId,
           establishmentId,
         );
 
@@ -197,12 +205,26 @@ export class UpdateAppointmentUseCase {
         return left(new InactiveServiceError(service.serviceName.value));
       }
 
+      const priceInCents =
+        item.priceInCents ??
+        service.priceSpecification.defaultChargePriceInCents;
+
+      try {
+        service.priceSpecification.assertCanCharge(priceInCents);
+      } catch (error) {
+        return left(
+          new InvalidAppointmentInputError(
+            error instanceof Error ? error.message : "Invalid service price.",
+          ),
+        );
+      }
+
       services.push({
         serviceId: service.id,
         serviceName: service.serviceName.value,
         category: service.category,
         durationInMinutes: service.estimatedDuration?.upperBoundInMinutes,
-        priceInCents: service.price.amountInCents,
+        priceInCents,
       });
     }
 
