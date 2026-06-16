@@ -77,6 +77,30 @@ describe("Create a service", () => {
     expect(result.value.service.price.value).toBe(30);
   });
 
+  it("should create a service with a starting-at price specification", async () => {
+    const establishment = makeEstablishment();
+
+    await inMemoryEstablishmentsRepository.create(establishment);
+
+    const result = await sut.execute({
+      establishmentOwnerId: establishment.ownerId.toString(),
+      serviceName: "Polimento",
+      priceSpecification: {
+        type: "STARTING_AT",
+        minPriceInCents: 25000,
+      },
+    });
+
+    expect(result.isRight()).toBe(true);
+    if (result.isRight()) {
+      expect(result.value.service.priceSpecification.toValue()).toEqual({
+        type: "STARTING_AT",
+        minPriceInCents: 25000,
+      });
+      expect(result.value.service.price.amountInCents).toBe(25000);
+    }
+  });
+
   it("should not be able to create a service for a non-existent establishment", async () => {
     const result = await sut.execute({
       establishmentOwnerId: "non-existent-establishment",

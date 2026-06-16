@@ -6,15 +6,22 @@ import { UniqueEntityId } from "../../src/shared/entities/unique-entity-id";
 import { EstimatedDuration } from "../../src/modules/catalog/domain/value-objects/estimated-duration";
 import { Money } from "../../src/modules/catalog/domain/value-objects/money";
 import { ServiceName } from "../../src/modules/catalog/domain/value-objects/service-name";
+import { ServicePriceSpecification } from "../../src/modules/catalog/domain/value-objects/service-price-specification";
 import { makeProductDescription, makeProductName } from "./random-data";
 import { PrismaService } from "../../src/infra/database/prisma/prisma.service";
 import { PrismaServiceMapper } from "../../src/infra/database/prisma/mappers/prisma-service-mapper";
 import { makeServiceCategoryRef } from "../helpers/service-category-ref";
 
+type MakeServiceOverride = Partial<ServiceProps> & {
+  price?: Money;
+};
+
 export function makeService(
-  override?: Partial<ServiceProps>,
+  override?: MakeServiceOverride,
   id?: UniqueEntityId,
 ) {
+  const { price, ...serviceOverride } = override ?? {};
+
   const service = Service.create(
     {
       establishmentId: new UniqueEntityId(),
@@ -25,8 +32,17 @@ export function makeService(
         minInMinutes: 30,
         maxInMinutes: 60,
       }),
-      price: Money.create(30000),
-      ...override,
+      priceSpecification:
+        price !== undefined
+          ? ServicePriceSpecification.create({
+              type: "FIXED",
+              fixedPriceInCents: price.amountInCents,
+            })
+          : ServicePriceSpecification.create({
+              type: "FIXED",
+              fixedPriceInCents: 30000,
+            }),
+      ...serviceOverride,
     },
     id,
   );

@@ -7,6 +7,10 @@ import { EstimatedDuration } from "../value-objects/estimated-duration";
 import { Money } from "../value-objects/money";
 import { ServiceCategoryRef } from "../value-objects/service-category-ref";
 import { ServiceName } from "../value-objects/service-name";
+import {
+  ServicePriceSpecification,
+  ServicePriceSpecificationValue,
+} from "../value-objects/service-price-specification";
 
 export type ServiceProps = {
   establishmentId: UniqueEntityId;
@@ -14,11 +18,25 @@ export type ServiceProps = {
   description: string | undefined;
   category: ServiceCategoryRef | undefined;
   estimatedDuration: EstimatedDuration | undefined;
-  price: Money;
+  priceSpecification: ServicePriceSpecification;
   isActive: boolean;
   deletedAt: Date | null;
   createdAt: Date | null;
   updatedAt: Date | null;
+};
+
+type ServiceCreateProps = Optional<
+  ServiceProps,
+  | "createdAt"
+  | "updatedAt"
+  | "isActive"
+  | "description"
+  | "category"
+  | "estimatedDuration"
+  | "deletedAt"
+  | "priceSpecification"
+> & {
+  price?: Money;
 };
 
 export class Service extends AggregateRoot<ServiceProps> {
@@ -46,8 +64,12 @@ export class Service extends AggregateRoot<ServiceProps> {
     return this.props.estimatedDuration;
   }
 
+  get priceSpecification() {
+    return this.props.priceSpecification;
+  }
+
   get price() {
-    return this.props.price;
+    return Money.create(this.props.priceSpecification.defaultChargePriceInCents);
   }
 
   get isActive() {
@@ -89,6 +111,7 @@ export class Service extends AggregateRoot<ServiceProps> {
       maxInMinutes?: number | null | undefined;
     };
     price?: number;
+    priceSpecification?: ServicePriceSpecificationValue;
     isActive?: boolean;
   }) {
     if (this.isDeleted()) {
@@ -105,8 +128,15 @@ export class Service extends AggregateRoot<ServiceProps> {
         ? ServiceName.create(data.serviceName)
         : undefined;
 
-    const newPrice =
-      data.price !== undefined ? Money.create(data.price) : undefined;
+    const newPriceSpecification =
+      data.priceSpecification !== undefined
+        ? ServicePriceSpecification.create(data.priceSpecification)
+        : data.price !== undefined
+          ? ServicePriceSpecification.create({
+              type: "FIXED",
+              fixedPriceInCents: data.price,
+            })
+          : undefined;
 
     if (newEstimatedDuration) {
       this.changeEstimatedDuration(newEstimatedDuration);
@@ -116,8 +146,8 @@ export class Service extends AggregateRoot<ServiceProps> {
       this.changeServiceName(newServiceName);
     }
 
-    if (newPrice) {
-      this.changePrice(newPrice);
+    if (newPriceSpecification) {
+      this.changePriceSpecification(newPriceSpecification);
     }
 
     if (data.description !== undefined) {
@@ -190,10 +220,10 @@ export class Service extends AggregateRoot<ServiceProps> {
     this.touch();
   }
 
-  changePrice(price: Money) {
-    if (this.price.equalsValue(price)) return;
+  changePriceSpecification(priceSpecification: ServicePriceSpecification) {
+    if (this.priceSpecification.equals(priceSpecification)) return;
 
-    this.props.price = price;
+    this.props.priceSpecification = priceSpecification;
     this.touch();
   }
 
@@ -208,29 +238,26 @@ export class Service extends AggregateRoot<ServiceProps> {
     this.props.updatedAt = new Date();
   }
 
-  static create(
-    props: Optional<
-      ServiceProps,
-      | "createdAt"
-      | "updatedAt"
-      | "isActive"
-      | "description"
-      | "category"
-      | "estimatedDuration"
-      | "deletedAt"
-    >,
-    id?: UniqueEntityId,
-  ) {
+  static create(props: ServiceCreateProps, id?: UniqueEntityId) {
+    const { price, ...serviceProps } = props;
+    const priceSpecification =
+      serviceProps.priceSpecification ??
+      ServicePriceSpecification.create({
+        type: "FIXED",
+        fixedPriceInCents: price?.amountInCents ?? 0,
+      });
+
     const service = new Service(
       {
-        ...props,
-        description: props.description,
-        category: props.category,
-        estimatedDuration: props.estimatedDuration,
-        isActive: props.isActive ?? true,
-        deletedAt: props.deletedAt ?? null,
-        createdAt: props.createdAt ?? new Date(),
-        updatedAt: props.updatedAt ?? new Date(),
+        ...serviceProps,
+        description: serviceProps.description,
+        category: serviceProps.category,
+        estimatedDuration: serviceProps.estimatedDuration,
+        priceSpecification,
+        isActive: serviceProps.isActive ?? true,
+        deletedAt: serviceProps.deletedAt ?? null,
+        createdAt: serviceProps.createdAt ?? new Date(),
+        updatedAt: serviceProps.updatedAt ?? new Date(),
       },
       id,
     );
