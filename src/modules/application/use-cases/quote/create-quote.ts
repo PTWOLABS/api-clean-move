@@ -291,7 +291,7 @@ export class CreateQuoteUseCase {
         serviceName: service.serviceName.value,
         category: service.category,
         durationInMinutes: service.estimatedDuration?.upperBoundInMinutes,
-        priceInCents: service.price.amountInCents,
+        priceInCents: service.priceSpecification.defaultChargePriceInCents,
         isCourtesy: item.isCourtesy ?? false,
       });
     }
