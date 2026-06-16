@@ -110,6 +110,9 @@ export class PrismaServicesRepository implements ServicesRepository {
         select: {
           id: true,
           serviceName: true,
+          priceInCents: true,
+          priceSpecificationType: true,
+          priceRangeMaxInCents: true,
         },
         where: {
           establishmentId,
@@ -130,10 +133,7 @@ export class PrismaServicesRepository implements ServicesRepository {
         take: limit,
       });
 
-      return services.map((service) => ({
-        id: service.id,
-        label: service.serviceName,
-      }));
+      return services.map((service) => PrismaServiceMapper.toOption(service));
     } catch (error) {
       rethrowPrismaRepositoryError(error);
     }
