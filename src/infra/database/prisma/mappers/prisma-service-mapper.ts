@@ -5,13 +5,65 @@ import {
 } from "../../../../generated/prisma/client";
 import { Service } from "../../../../modules/catalog/domain/entities/services";
 import { EstimatedDuration } from "../../../../modules/catalog/domain/value-objects/estimated-duration";
-import { Money } from "../../../../modules/catalog/domain/value-objects/money";
+import { ServicePriceSpecification } from "../../../../modules/catalog/domain/value-objects/service-price-specification";
 import { ServiceName } from "../../../../modules/catalog/domain/value-objects/service-name";
 import { UniqueEntityId } from "../../../../shared/entities/unique-entity-id";
 
 type PrismaServiceWithCategory = PrismaServiceRecord & {
   category?: PrismaServiceCategoryRecord | null;
 };
+
+type PrismaServicePriceFields = Pick<
+  PrismaServiceRecord,
+  "priceInCents" | "priceRangeMaxInCents" | "priceSpecificationType"
+>;
+
+type PrismaServicePricePersistence = Pick<
+  Prisma.ServiceUncheckedCreateInput,
+  "priceInCents" | "priceRangeMaxInCents" | "priceSpecificationType"
+>;
+
+function mapPriceSpecificationFromPrisma(
+  raw: PrismaServicePriceFields,
+): ServicePriceSpecification {
+  switch (raw.priceSpecificationType) {
+    case "FIXED":
+      return ServicePriceSpecification.create({
+        type: "FIXED",
+        fixedPriceInCents: raw.priceInCents,
+      });
+    case "STARTING_AT":
+      return ServicePriceSpecification.create({
+        type: "STARTING_AT",
+        minPriceInCents: raw.priceInCents,
+      });
+    case "RANGE": {
+      const maxPriceInCents = raw.priceRangeMaxInCents;
+
+      if (maxPriceInCents === null) {
+        throw new Error(
+          "Invalid service record: priceRangeMaxInCents is required for range pricing.",
+        );
+      }
+
+      return ServicePriceSpecification.create({
+        type: "RANGE",
+        minPriceInCents: raw.priceInCents,
+        maxPriceInCents,
+      });
+    }
+  }
+}
+
+function mapPriceSpecificationToPrisma(
+  priceSpecification: ServicePriceSpecification,
+): PrismaServicePricePersistence {
+  return {
+    priceInCents: priceSpecification.defaultChargePriceInCents,
+    priceSpecificationType: priceSpecification.type,
+    priceRangeMaxInCents: priceSpecification.maxPriceInCents ?? null,
+  };
+}
 
 export class PrismaServiceMapper {
   static toDomain(raw: PrismaServiceWithCategory): Service {
@@ -46,7 +98,7 @@ export class PrismaServiceMapper {
               maxInMinutes: raw.estimatedDurationMaxInMinutes,
             })
           : undefined,
-        price: Money.create(raw.priceInCents),
+        priceSpecification: mapPriceSpecificationFromPrisma(raw),
         isActive: raw.isActive,
         deletedAt: raw.deletedAt ?? null,
         createdAt: raw.createdAt,
@@ -67,7 +119,7 @@ export class PrismaServiceMapper {
         raw.estimatedDuration?.minInMinutes ?? null,
       estimatedDurationMaxInMinutes:
         raw.estimatedDuration?.maxInMinutes ?? null,
-      priceInCents: raw.price.amountInCents,
+      ...mapPriceSpecificationToPrisma(raw.priceSpecification),
       isActive: raw.isActive,
       deletedAt: raw.deletedAt,
       ...(raw.createdAt ? { createdAt: raw.createdAt } : {}),
@@ -84,7 +136,7 @@ export class PrismaServiceMapper {
         raw.estimatedDuration?.minInMinutes ?? null,
       estimatedDurationMaxInMinutes:
         raw.estimatedDuration?.maxInMinutes ?? null,
-      priceInCents: raw.price.amountInCents,
+      ...mapPriceSpecificationToPrisma(raw.priceSpecification),
       isActive: raw.isActive,
       deletedAt: raw.deletedAt,
       ...(raw.updatedAt ? { updatedAt: raw.updatedAt } : {}),
