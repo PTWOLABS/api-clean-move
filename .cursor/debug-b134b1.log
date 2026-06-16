@@ -1,0 +1,2 @@
+{"sessionId":"b134b1","runId":"post-fix","hypothesisId":"H1","location":"diag:package.json","message":"post-fix scripts validation","data":{"nestedInScripts":[],"prismaInScripts":false,"prismaTopLevel":true,"seed":"tsx prisma/seed.ts"},"timestamp":1781571331292}
+{"sessionId":"b134b1","runId":"post-fix","hypothesisId":"H2","location":"diag:package.json","message":"prisma binary check","data":{"prismaBin":true},"timestamp":1781571331294}
