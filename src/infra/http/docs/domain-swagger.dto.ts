@@ -615,6 +615,14 @@ export class CustomerVehicleOptionsResponseDto {
   vehicles!: OptionItemDto[];
 }
 
+export class AppointmentServiceInputDto {
+  @ApiProperty({ format: "uuid" })
+  serviceId!: string;
+
+  @ApiPropertyOptional({ type: Number, minimum: 0 })
+  priceInCents?: number;
+}
+
 export class CreateAppointmentBodyDto {
   @ApiProperty({
     example: "5f588c8b-ef0f-4193-aec0-2926e77c1d09",
@@ -624,13 +632,20 @@ export class CreateAppointmentBodyDto {
   })
   customerId!: string;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     type: [String],
     example: ["11cf3860-d512-47db-b9d1-c9044be6250d"],
     description:
-      "One or more active service identifiers owned by the authenticated establishment.",
+      "Legacy service identifiers. Provide either serviceIds or services, not both.",
   })
-  serviceIds!: string[];
+  serviceIds?: string[];
+
+  @ApiPropertyOptional({
+    type: [AppointmentServiceInputDto],
+    description:
+      "Service items with optional charged prices. Provide either serviceIds or services, not both.",
+  })
+  services?: AppointmentServiceInputDto[];
 
   @ApiPropertyOptional({
     type: String,
@@ -690,9 +705,16 @@ export class UpdateAppointmentBodyDto {
     type: [String],
     example: ["11cf3860-d512-47db-b9d1-c9044be6250d"],
     description:
-      "One or more active service identifiers owned by the authenticated establishment.",
+      "Legacy service identifiers. Provide either serviceIds or services, not both.",
   })
   serviceIds?: string[];
+
+  @ApiPropertyOptional({
+    type: [AppointmentServiceInputDto],
+    description:
+      "Service items with optional charged prices. Provide either serviceIds or services, not both.",
+  })
+  services?: AppointmentServiceInputDto[];
 
   @ApiPropertyOptional({
     type: String,

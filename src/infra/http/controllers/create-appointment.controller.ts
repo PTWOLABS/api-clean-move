@@ -38,15 +38,28 @@ import {
 import { AppointmentPresenter } from "../presenters/appointment-presenter";
 import { ZodValidationPipe } from "../pipes/zod-validation.pipe";
 
-const createAppointmentBodySchema = z.object({
-  customerId: z.uuid(),
-  serviceIds: z.array(z.uuid()).min(1),
-  vehicleId: z.uuid().optional().nullable(),
-  startsAt: z.coerce.date(),
-  endsAt: z.coerce.date().optional().nullable(),
-  description: z.string().trim().optional().nullable(),
-  discountInCents: z.number().int().nonnegative().optional().nullable(),
+const appointmentServiceItemSchema = z.object({
+  serviceId: z.uuid(),
+  priceInCents: z.number().int().nonnegative().optional(),
 });
+
+const createAppointmentBodySchema = z
+  .object({
+    customerId: z.uuid(),
+    serviceIds: z.array(z.uuid()).min(1).optional(),
+    services: z.array(appointmentServiceItemSchema).min(1).optional(),
+    vehicleId: z.uuid().optional().nullable(),
+    startsAt: z.coerce.date(),
+    endsAt: z.coerce.date().optional().nullable(),
+    description: z.string().trim().optional().nullable(),
+    discountInCents: z.number().int().nonnegative().optional().nullable(),
+  })
+  .refine(
+    (value) =>
+      (value.serviceIds !== undefined || value.services !== undefined) &&
+      !(value.serviceIds !== undefined && value.services !== undefined),
+    "Provide either serviceIds or services.",
+  );
 
 type CreateAppointmentBodySchema = z.infer<typeof createAppointmentBodySchema>;
 
@@ -98,7 +111,8 @@ export class CreateAppointmentController {
         role: user.role,
       },
       customerId: body.customerId,
-      serviceIds: body.serviceIds,
+      ...(body.serviceIds !== undefined ? { serviceIds: body.serviceIds } : {}),
+      ...(body.services !== undefined ? { services: body.services } : {}),
       startsAt: body.startsAt,
       ...(body.vehicleId !== undefined ? { vehicleId: body.vehicleId } : {}),
       ...(body.endsAt !== undefined ? { endsAt: body.endsAt } : {}),

@@ -3,7 +3,7 @@ import { InvalidAppointmentInputError } from "../../../../scheduling/domain/erro
 
 export type AppointmentServiceItemInput = {
   serviceId: string;
-  priceInCents?: number;
+  priceInCents?: number | undefined;
 };
 
 export function normalizeAppointmentServiceItems(

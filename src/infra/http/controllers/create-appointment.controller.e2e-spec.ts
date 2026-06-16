@@ -16,6 +16,7 @@ import {
   makeEstablishmentAccessToken,
 } from "../../../../tests/helpers/auth-session.e2e-helpers";
 import { HashGenerator } from "../../../modules/application/repositories/hash-generator";
+import { ServicePriceSpecification } from "../../../modules/catalog/domain/value-objects/service-price-specification";
 import { AppModule } from "../../app.module";
 import { PrismaService } from "../../database/prisma/prisma.service";
 import { EnvService } from "../../env/env.service";
@@ -168,6 +169,79 @@ describe("Appointment controllers (e2e)", () => {
     );
     expect(responseBody.appointment.endsAt).toBeNull();
     expect(responseBody.appointment.status).toBe("SCHEDULED");
+  });
+
+  it("should create an appointment using service items with explicit price", async () => {
+    const { accessToken, establishment } = await makeEstablishmentAccessToken({
+      app,
+      prisma,
+      userFactory,
+      establishmentFactory,
+      envService,
+    });
+    const customer = await customerFactory.makePrismaCustomer({
+      establishmentId: establishment.id,
+      cpfCnpj: null,
+    });
+    const service = await serviceFactory.makePrismaService({
+      establishmentId: establishment.id,
+      priceSpecification: ServicePriceSpecification.create({
+        type: "STARTING_AT",
+        minPriceInCents: 25000,
+      }),
+    });
+
+    const response = await request(getHttpServer(app))
+      .post("/appointments")
+      .set("Authorization", `Bearer ${accessToken}`)
+      .send({
+        customerId: customer.id.toString(),
+        services: [
+          {
+            serviceId: service.id.toString(),
+            priceInCents: 35000,
+          },
+        ],
+        startsAt: "2026-06-16T12:00:00.000Z",
+      });
+    const responseBody = appointmentResponseSchema.parse(response.body);
+
+    expect(response.status).toBe(201);
+    expect(responseBody.appointment.services[0]).toEqual(
+      expect.objectContaining({
+        id: service.id.toString(),
+        priceInCents: 35000,
+      }),
+    );
+  });
+
+  it("should reject appointment payload with both serviceIds and services", async () => {
+    const { accessToken, establishment } = await makeEstablishmentAccessToken({
+      app,
+      prisma,
+      userFactory,
+      establishmentFactory,
+      envService,
+    });
+    const customer = await customerFactory.makePrismaCustomer({
+      establishmentId: establishment.id,
+      cpfCnpj: null,
+    });
+    const service = await serviceFactory.makePrismaService({
+      establishmentId: establishment.id,
+    });
+
+    const response = await request(getHttpServer(app))
+      .post("/appointments")
+      .set("Authorization", `Bearer ${accessToken}`)
+      .send({
+        customerId: customer.id.toString(),
+        serviceIds: [service.id.toString()],
+        services: [{ serviceId: service.id.toString() }],
+        startsAt: "2026-06-16T12:00:00.000Z",
+      });
+
+    expect(response.status).toBe(400);
   });
 
   it("should create an appointment with vehicleId and vehicle snapshot", async () => {
