@@ -136,6 +136,8 @@ export class InMemoryServicesRepository implements ServicesRepository {
       .map((service) => ({
         id: service.id.toString(),
         label: service.serviceName.value,
+        priceInCents: service.priceSpecification.defaultChargePriceInCents,
+        priceSpecification: service.priceSpecification.toValue(),
       }));
   }
 

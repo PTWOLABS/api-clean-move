@@ -66,6 +66,31 @@ export const optionItemSchema = z
   })
   .strict();
 
+export const servicePriceSpecificationSchema = z.discriminatedUnion("type", [
+  z.object({
+    type: z.literal("FIXED"),
+    fixedPriceInCents: z.number().int().nonnegative(),
+  }),
+  z.object({
+    type: z.literal("STARTING_AT"),
+    minPriceInCents: z.number().int().nonnegative(),
+  }),
+  z.object({
+    type: z.literal("RANGE"),
+    minPriceInCents: z.number().int().nonnegative(),
+    maxPriceInCents: z.number().int().nonnegative(),
+  }),
+]);
+
+export const serviceOptionItemSchema = z
+  .object({
+    id: z.uuid(),
+    label: z.string(),
+    priceInCents: z.number().int().nonnegative(),
+    priceSpecification: servicePriceSpecificationSchema,
+  })
+  .strict();
+
 export const customerOptionsResponseSchema = z
   .object({
     customers: z.array(optionItemSchema),
@@ -85,7 +110,7 @@ export const vehicleOptionsResponseSchema = z
 
 export const serviceOptionsResponseSchema = z
   .object({
-    services: z.array(optionItemSchema),
+    services: z.array(serviceOptionItemSchema),
   })
   .strict();
 

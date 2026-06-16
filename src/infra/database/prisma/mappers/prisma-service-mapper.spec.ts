@@ -24,4 +24,25 @@ describe("PrismaServiceMapper", () => {
       }),
     );
   });
+
+  it("should map a prisma service row to a service option", () => {
+    expect(
+      PrismaServiceMapper.toOption({
+        id: "service-id",
+        serviceName: "Polimento Premium",
+        priceInCents: 30000,
+        priceSpecificationType: "RANGE",
+        priceRangeMaxInCents: 60000,
+      }),
+    ).toEqual({
+      id: "service-id",
+      label: "Polimento Premium",
+      priceInCents: 30000,
+      priceSpecification: {
+        type: "RANGE",
+        minPriceInCents: 30000,
+        maxPriceInCents: 60000,
+      },
+    });
+  });
 });

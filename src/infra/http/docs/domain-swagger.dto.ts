@@ -998,6 +998,23 @@ export class ServicePriceSpecificationDto {
   maxPriceInCents?: number;
 }
 
+export class ServiceOptionItemDto {
+  @ApiProperty({ example: "5f588c8b-ef0f-4193-aec0-2926e77c1d09" })
+  id!: string;
+
+  @ApiProperty({ example: "Lavagem Completa" })
+  label!: string;
+
+  @ApiProperty({
+    example: 3000,
+    description: "Default charge price in cents for the service.",
+  })
+  priceInCents!: number;
+
+  @ApiProperty({ type: ServicePriceSpecificationDto })
+  priceSpecification!: ServicePriceSpecificationDto;
+}
+
 export class CreateServiceBodyDto {
   @ApiProperty({
     example: "Lavagem premium",
@@ -1447,8 +1464,8 @@ export class ListServicesResponseDto {
 }
 
 export class ServiceOptionsResponseDto {
-  @ApiProperty({ type: OptionItemDto, isArray: true })
-  services!: OptionItemDto[];
+  @ApiProperty({ type: ServiceOptionItemDto, isArray: true })
+  services!: ServiceOptionItemDto[];
 }
 
 export class DashboardMetricsOverviewPointDto {

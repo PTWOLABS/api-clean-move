@@ -3,6 +3,7 @@ import {
   Service as PrismaServiceRecord,
   ServiceCategory as PrismaServiceCategoryRecord,
 } from "../../../../generated/prisma/client";
+import { ServiceOption } from "../../../../modules/application/repositories/services-repository";
 import { Service } from "../../../../modules/catalog/domain/entities/services";
 import { EstimatedDuration } from "../../../../modules/catalog/domain/value-objects/estimated-duration";
 import { ServicePriceSpecification } from "../../../../modules/catalog/domain/value-objects/service-price-specification";
@@ -17,6 +18,12 @@ type PrismaServicePriceFields = Pick<
   PrismaServiceRecord,
   "priceInCents" | "priceRangeMaxInCents" | "priceSpecificationType"
 >;
+
+type PrismaServiceOptionRecord = Pick<
+  PrismaServiceRecord,
+  "id" | "serviceName"
+> &
+  PrismaServicePriceFields;
 
 type PrismaServicePricePersistence = Pick<
   Prisma.ServiceUncheckedCreateInput,
@@ -66,6 +73,17 @@ function mapPriceSpecificationToPrisma(
 }
 
 export class PrismaServiceMapper {
+  static toOption(raw: PrismaServiceOptionRecord): ServiceOption {
+    const priceSpecification = mapPriceSpecificationFromPrisma(raw);
+
+    return {
+      id: raw.id,
+      label: raw.serviceName,
+      priceInCents: priceSpecification.defaultChargePriceInCents,
+      priceSpecification: priceSpecification.toValue(),
+    };
+  }
+
   static toDomain(raw: PrismaServiceWithCategory): Service {
     const hasEstimatedDuration =
       raw.estimatedDurationMinInMinutes !== null ||
