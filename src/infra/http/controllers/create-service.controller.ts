@@ -34,19 +34,53 @@ import {
   CreateServiceResponseDto,
 } from "../docs/domain-swagger.dto";
 
-const createServiceBodySchema = z.object({
-  serviceName: z.string().trim().min(1),
-  description: z.string().trim().optional(),
-  categoryId: z.uuid().optional().nullable(),
-  estimatedDuration: z
+const priceSpecificationSchema = z.discriminatedUnion("type", [
+  z
     .object({
-      minInMinutes: z.coerce.number().int().positive(),
-      maxInMinutes: z.coerce.number().int().positive().optional(),
+      type: z.literal("FIXED"),
+      fixedPriceInCents: z.number().int().nonnegative(),
     })
-    .optional(),
-  price: z.number().positive(),
-  isActive: z.boolean().optional().default(true),
-});
+    .strict(),
+  z
+    .object({
+      type: z.literal("STARTING_AT"),
+      minPriceInCents: z.number().int().nonnegative(),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("RANGE"),
+      minPriceInCents: z.number().int().nonnegative(),
+      maxPriceInCents: z.number().int().nonnegative(),
+    })
+    .strict()
+    .refine(
+      (value) => value.maxPriceInCents >= value.minPriceInCents,
+      "maxPriceInCents must be greater than or equal to minPriceInCents.",
+    ),
+]);
+
+const createServiceBodySchema = z
+  .object({
+    serviceName: z.string().trim().min(1),
+    description: z.string().trim().optional(),
+    categoryId: z.uuid().optional().nullable(),
+    estimatedDuration: z
+      .object({
+        minInMinutes: z.coerce.number().int().positive(),
+        maxInMinutes: z.coerce.number().int().positive().optional(),
+      })
+      .optional(),
+    price: z.number().int().nonnegative().optional(),
+    priceSpecification: priceSpecificationSchema.optional(),
+    isActive: z.boolean().optional().default(true),
+  })
+  .refine(
+    (value) =>
+      (value.price !== undefined || value.priceSpecification !== undefined) &&
+      !(value.price !== undefined && value.priceSpecification !== undefined),
+    "Provide either price or priceSpecification.",
+  );
 
 type CreateServiceBodySchema = z.infer<typeof createServiceBodySchema>;
 
@@ -95,6 +129,7 @@ export class CreateServiceController {
       categoryId,
       estimatedDuration,
       price,
+      priceSpecification,
       isActive,
     } = body;
 
@@ -104,7 +139,8 @@ export class CreateServiceController {
       description,
       ...(categoryId !== undefined ? { categoryId } : {}),
       estimatedDuration,
-      price,
+      ...(price !== undefined ? { price } : {}),
+      ...(priceSpecification !== undefined ? { priceSpecification } : {}),
       isActive,
     });
 

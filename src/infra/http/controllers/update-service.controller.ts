@@ -41,6 +41,32 @@ import {
 import { ZodValidationPipe } from "../pipes/zod-validation.pipe";
 import { ServicePresenter } from "../presenters/service-presenter";
 
+const priceSpecificationSchema = z.discriminatedUnion("type", [
+  z
+    .object({
+      type: z.literal("FIXED"),
+      fixedPriceInCents: z.number().int().nonnegative(),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("STARTING_AT"),
+      minPriceInCents: z.number().int().nonnegative(),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("RANGE"),
+      minPriceInCents: z.number().int().nonnegative(),
+      maxPriceInCents: z.number().int().nonnegative(),
+    })
+    .strict()
+    .refine(
+      (value) => value.maxPriceInCents >= value.minPriceInCents,
+      "maxPriceInCents must be greater than or equal to minPriceInCents.",
+    ),
+]);
+
 const updateServiceBodySchema = z
   .object({
     serviceName: z.string().trim().min(1).optional(),
@@ -52,9 +78,15 @@ const updateServiceBodySchema = z
         maxInMinutes: z.coerce.number().int().positive().optional(),
       })
       .optional(),
-    price: z.number().positive().optional(),
+    price: z.number().int().nonnegative().optional(),
+    priceSpecification: priceSpecificationSchema.optional(),
     isActive: z.boolean().optional(),
   })
+  .refine(
+    (value) =>
+      !(value.price !== undefined && value.priceSpecification !== undefined),
+    "Provide either price or priceSpecification.",
+  )
   .refine(
     (value) => Object.keys(value).length > 0,
     "At least one field must be provided.",
@@ -129,6 +161,9 @@ export class UpdateServiceController {
           ? { estimatedDuration: body.estimatedDuration }
           : {}),
         ...(body.price !== undefined ? { price: body.price } : {}),
+        ...(body.priceSpecification !== undefined
+          ? { priceSpecification: body.priceSpecification }
+          : {}),
         ...(body.isActive !== undefined ? { isActive: body.isActive } : {}),
       },
     });

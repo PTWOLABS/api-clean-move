@@ -7,6 +7,7 @@ import { InMemoryServicesRepository } from "../../../../../tests/repositories/in
 import { ServiceCategory } from "../../../catalog/domain/entities/service-category";
 import { CategoryName } from "../../../catalog/domain/value-objects/category-name";
 import { CreateServiceUseCase } from "./create-service";
+import { InvalidServiceUpdateInputError } from "./update-service";
 
 const washCategoryId = new UniqueEntityId("wash-category");
 
@@ -75,6 +76,88 @@ describe("Create a service", () => {
     expect(service.estimatedDuration?.maxInMinutes).toBe(60);
     expect(service.estimatedDuration?.formatted).toBe("30 - 60 min");
     expect(result.value.service.price.value).toBe(30);
+  });
+
+  it("should create a service with a starting-at price specification", async () => {
+    const establishment = makeEstablishment();
+
+    await inMemoryEstablishmentsRepository.create(establishment);
+
+    const result = await sut.execute({
+      establishmentOwnerId: establishment.ownerId.toString(),
+      serviceName: "Polimento",
+      priceSpecification: {
+        type: "STARTING_AT",
+        minPriceInCents: 25000,
+      },
+    });
+
+    expect(result.isRight()).toBe(true);
+    if (result.isRight()) {
+      expect(result.value.service.priceSpecification.toValue()).toEqual({
+        type: "STARTING_AT",
+        minPriceInCents: 25000,
+      });
+      expect(result.value.service.price.amountInCents).toBe(25000);
+    }
+  });
+
+  it("should reject a service with invalid price specification", async () => {
+    const establishment = makeEstablishment();
+
+    await inMemoryEstablishmentsRepository.create(establishment);
+
+    const result = await sut.execute({
+      establishmentOwnerId: establishment.ownerId.toString(),
+      serviceName: "Higienizacao",
+      priceSpecification: {
+        type: "RANGE",
+        minPriceInCents: 60000,
+        maxPriceInCents: 30000,
+      },
+    });
+
+    expect(result.isLeft()).toBe(true);
+    expect(result.value).toBeInstanceOf(InvalidServiceUpdateInputError);
+  });
+
+  it("should keep legacy price as fixed pricing", async () => {
+    const establishment = makeEstablishment();
+
+    await inMemoryEstablishmentsRepository.create(establishment);
+
+    const result = await sut.execute({
+      establishmentOwnerId: establishment.ownerId.toString(),
+      serviceName: "Lavagem",
+      price: 8000,
+    });
+
+    expect(result.isRight()).toBe(true);
+    if (result.isRight()) {
+      expect(result.value.service.priceSpecification.toValue()).toEqual({
+        type: "FIXED",
+        fixedPriceInCents: 8000,
+      });
+    }
+  });
+
+  it("should default missing price to a starting-at minimum price", async () => {
+    const establishment = makeEstablishment();
+
+    await inMemoryEstablishmentsRepository.create(establishment);
+
+    const result = await sut.execute({
+      establishmentOwnerId: establishment.ownerId.toString(),
+      serviceName: "Servico sem preco informado",
+    });
+
+    expect(result.isRight()).toBe(true);
+    if (result.isRight()) {
+      expect(result.value.service.priceSpecification.toValue()).toEqual({
+        type: "STARTING_AT",
+        minPriceInCents: 1,
+      });
+    }
   });
 
   it("should not be able to create a service for a non-existent establishment", async () => {

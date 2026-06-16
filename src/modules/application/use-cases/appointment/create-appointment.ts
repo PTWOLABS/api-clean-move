@@ -19,11 +19,16 @@ import { AppointmentsRepository } from "../../repositories/appointments-reposito
 import { CustomerVehiclesRepository } from "../../repositories/customer-vehicles-repository";
 import { CustomersRepository } from "../../repositories/customers-repository";
 import { ServicesRepository } from "../../repositories/services-repository";
+import {
+  AppointmentServiceItemInput,
+  normalizeAppointmentServiceItems,
+} from "./helpers/appointment-service-items";
 
 type CreateAppointmentUseCaseRequest = {
   actor: EstablishmentScopeActor;
   customerId: string;
-  serviceIds: string[];
+  serviceIds?: string[];
+  services?: AppointmentServiceItemInput[];
   vehicleId?: string | null;
   startsAt: Date;
   endsAt?: Date | null;
@@ -56,18 +61,20 @@ export class CreateAppointmentUseCase {
     actor,
     customerId,
     serviceIds,
+    services: serviceItems,
     vehicleId = null,
     startsAt,
     endsAt = null,
     description = null,
     discountInCents = null,
   }: CreateAppointmentUseCaseRequest): Promise<CreateAppointmentUseCaseResponse> {
-    if (new Set(serviceIds).size !== serviceIds.length) {
-      return left(
-        new InvalidAppointmentInputError(
-          "Duplicate services are not allowed in the same appointment.",
-        ),
-      );
+    const serviceItemsResult = normalizeAppointmentServiceItems(
+      serviceIds,
+      serviceItems,
+    );
+
+    if (serviceItemsResult.isLeft()) {
+      return left(serviceItemsResult.value);
     }
 
     const scopeResult = await this.establishmentScope.resolve(actor);
@@ -89,10 +96,10 @@ export class CreateAppointmentUseCase {
 
     const services: AppointmentServiceSnapshot[] = [];
 
-    for (const serviceId of serviceIds) {
+    for (const item of serviceItemsResult.value) {
       const service =
         await this.servicesRepository.findByServiceIdAndEstablishmentId(
-          serviceId,
+          item.serviceId,
           establishment.id.toString(),
         );
 
@@ -108,12 +115,26 @@ export class CreateAppointmentUseCase {
         return left(new InactiveServiceError(service.serviceName.value));
       }
 
+      const priceInCents =
+        item.priceInCents ??
+        service.priceSpecification.defaultChargePriceInCents;
+
+      try {
+        service.priceSpecification.assertCanCharge(priceInCents);
+      } catch (error) {
+        return left(
+          new InvalidAppointmentInputError(
+            error instanceof Error ? error.message : "Invalid service price.",
+          ),
+        );
+      }
+
       services.push({
         serviceId: service.id,
         serviceName: service.serviceName.value,
         category: service.category,
         durationInMinutes: service.estimatedDuration?.upperBoundInMinutes,
-        priceInCents: service.price.amountInCents,
+        priceInCents,
       });
     }
 

@@ -124,6 +124,64 @@ describe("Update a service", () => {
     expect(resultService.estimatedDuration?.maxInMinutes).toBe(100);
     expect(resultService.estimatedDuration?.formatted).toBe("50 - 100 min");
   });
+
+  it("should update the service price specification", async () => {
+    const establishment = makeEstablishment();
+
+    await inMemoryEstablishmentsRepository.create(establishment);
+
+    const service = makeService({
+      establishmentId: establishment.id,
+    });
+    await inMemoryServicesRepository.create(service);
+
+    const result = await sut.execute({
+      establishmentOwnerId: establishment.ownerId.toString(),
+      serviceId: service.id.toString(),
+      data: {
+        priceSpecification: {
+          type: "RANGE",
+          minPriceInCents: 30000,
+          maxPriceInCents: 60000,
+        },
+      },
+    });
+
+    expect(result.isRight()).toBe(true);
+    if (result.isRight()) {
+      expect(result.value.service.priceSpecification.toValue()).toEqual({
+        type: "RANGE",
+        minPriceInCents: 30000,
+        maxPriceInCents: 60000,
+      });
+      expect(result.value.service.price.amountInCents).toBe(30000);
+    }
+  });
+
+  it("should reject update with invalid price specification", async () => {
+    const establishment = makeEstablishment();
+
+    await inMemoryEstablishmentsRepository.create(establishment);
+
+    const service = makeService({ establishmentId: establishment.id });
+    await inMemoryServicesRepository.create(service);
+
+    const result = await sut.execute({
+      establishmentOwnerId: establishment.ownerId.toString(),
+      serviceId: service.id.toString(),
+      data: {
+        priceSpecification: {
+          type: "RANGE",
+          minPriceInCents: 60000,
+          maxPriceInCents: 30000,
+        },
+      },
+    });
+
+    expect(result.isLeft()).toBe(true);
+    expect(result.value).toBeInstanceOf(InvalidServiceUpdateInputError);
+  });
+
   it("should not be able to update a service with a valid establishment and invalid estimatedDuration", async () => {
     const establishment = makeEstablishment();
 
