@@ -615,6 +615,14 @@ export class CustomerVehicleOptionsResponseDto {
   vehicles!: OptionItemDto[];
 }
 
+export class AppointmentServiceInputDto {
+  @ApiProperty({ format: "uuid" })
+  serviceId!: string;
+
+  @ApiPropertyOptional({ type: Number, minimum: 0 })
+  priceInCents?: number;
+}
+
 export class CreateAppointmentBodyDto {
   @ApiProperty({
     example: "5f588c8b-ef0f-4193-aec0-2926e77c1d09",
@@ -624,13 +632,20 @@ export class CreateAppointmentBodyDto {
   })
   customerId!: string;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     type: [String],
     example: ["11cf3860-d512-47db-b9d1-c9044be6250d"],
     description:
-      "One or more active service identifiers owned by the authenticated establishment.",
+      "Legacy service identifiers. Provide either serviceIds or services, not both.",
   })
-  serviceIds!: string[];
+  serviceIds?: string[];
+
+  @ApiPropertyOptional({
+    type: [AppointmentServiceInputDto],
+    description:
+      "Service items with optional charged prices. Provide either serviceIds or services, not both.",
+  })
+  services?: AppointmentServiceInputDto[];
 
   @ApiPropertyOptional({
     type: String,
@@ -690,9 +705,16 @@ export class UpdateAppointmentBodyDto {
     type: [String],
     example: ["11cf3860-d512-47db-b9d1-c9044be6250d"],
     description:
-      "One or more active service identifiers owned by the authenticated establishment.",
+      "Legacy service identifiers. Provide either serviceIds or services, not both.",
   })
   serviceIds?: string[];
+
+  @ApiPropertyOptional({
+    type: [AppointmentServiceInputDto],
+    description:
+      "Service items with optional charged prices. Provide either serviceIds or services, not both.",
+  })
+  services?: AppointmentServiceInputDto[];
 
   @ApiPropertyOptional({
     type: String,
@@ -962,6 +984,37 @@ export class CreateServiceEstimatedDurationBodyDto {
   maxInMinutes?: number;
 }
 
+export class ServicePriceSpecificationDto {
+  @ApiProperty({ enum: ["FIXED", "STARTING_AT", "RANGE"] })
+  type!: "FIXED" | "STARTING_AT" | "RANGE";
+
+  @ApiPropertyOptional({ type: Number, minimum: 0 })
+  fixedPriceInCents?: number;
+
+  @ApiPropertyOptional({ type: Number, minimum: 0 })
+  minPriceInCents?: number;
+
+  @ApiPropertyOptional({ type: Number, minimum: 0 })
+  maxPriceInCents?: number;
+}
+
+export class ServiceOptionItemDto {
+  @ApiProperty({ example: "5f588c8b-ef0f-4193-aec0-2926e77c1d09" })
+  id!: string;
+
+  @ApiProperty({ example: "Lavagem Completa" })
+  label!: string;
+
+  @ApiProperty({
+    example: 3000,
+    description: "Default charge price in cents for the service.",
+  })
+  priceInCents!: number;
+
+  @ApiProperty({ type: ServicePriceSpecificationDto })
+  priceSpecification!: ServicePriceSpecificationDto;
+}
+
 export class CreateServiceBodyDto {
   @ApiProperty({
     example: "Lavagem premium",
@@ -989,11 +1042,19 @@ export class CreateServiceBodyDto {
   })
   estimatedDuration?: CreateServiceEstimatedDurationBodyDto;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     example: 3000,
-    description: "Service price in cents.",
+    description:
+      "Legacy service price in cents. Provide either price or priceSpecification.",
   })
-  price!: number;
+  price?: number;
+
+  @ApiPropertyOptional({
+    type: ServicePriceSpecificationDto,
+    description:
+      "Service price policy. Provide either price or priceSpecification.",
+  })
+  priceSpecification?: ServicePriceSpecificationDto;
 
   @ApiPropertyOptional({
     example: true,
@@ -1044,6 +1105,9 @@ export class ServiceDto {
 
   @ApiProperty({ example: 3000 })
   priceInCents!: number;
+
+  @ApiProperty({ type: ServicePriceSpecificationDto })
+  priceSpecification!: ServicePriceSpecificationDto;
 
   @ApiProperty({ example: true })
   isActive!: boolean;
@@ -1363,9 +1427,17 @@ export class UpdateServiceBodyDto {
 
   @ApiPropertyOptional({
     example: 3000,
-    description: "Service price in cents.",
+    description:
+      "Legacy service price in cents. Provide either price or priceSpecification.",
   })
   price?: number;
+
+  @ApiPropertyOptional({
+    type: ServicePriceSpecificationDto,
+    description:
+      "Service price policy. Provide either price or priceSpecification.",
+  })
+  priceSpecification?: ServicePriceSpecificationDto;
 
   @ApiPropertyOptional({
     example: false,
@@ -1392,8 +1464,8 @@ export class ListServicesResponseDto {
 }
 
 export class ServiceOptionsResponseDto {
-  @ApiProperty({ type: OptionItemDto, isArray: true })
-  services!: OptionItemDto[];
+  @ApiProperty({ type: ServiceOptionItemDto, isArray: true })
+  services!: ServiceOptionItemDto[];
 }
 
 export class DashboardMetricsOverviewPointDto {

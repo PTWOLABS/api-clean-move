@@ -39,6 +39,21 @@ const serviceResponseSchema = z.object({
     })
     .nullable(),
   priceInCents: z.number().int().nonnegative(),
+  priceSpecification: z.discriminatedUnion("type", [
+    z.object({
+      type: z.literal("FIXED"),
+      fixedPriceInCents: z.number().int().nonnegative(),
+    }),
+    z.object({
+      type: z.literal("STARTING_AT"),
+      minPriceInCents: z.number().int().nonnegative(),
+    }),
+    z.object({
+      type: z.literal("RANGE"),
+      minPriceInCents: z.number().int().nonnegative(),
+      maxPriceInCents: z.number().int().nonnegative(),
+    }),
+  ]),
   isActive: z.boolean(),
   createdAt: z.string().min(1).nullable(),
   updatedAt: z.string().min(1).nullable(),
@@ -222,6 +237,10 @@ describe("UpdateServiceController (e2e)", () => {
     expect(body.service.establishmentId).toBe(establishment.id.toString());
     expect(body.service.name).toBe("Lavagem express");
     expect(body.service.priceInCents).toBe(4500);
+    expect(body.service.priceSpecification).toEqual({
+      type: "FIXED",
+      fixedPriceInCents: 4500,
+    });
     expect(body.service.description).toBe(
       "Lavagem externa com acabamento e brilho.",
     );
@@ -239,6 +258,66 @@ describe("UpdateServiceController (e2e)", () => {
     const row = await prisma.service.findUnique({ where: { id: serviceId } });
     expect(row?.serviceName).toBe("Lavagem express");
     expect(row?.priceInCents).toBe(4500);
+  });
+
+  it("should update a service price specification", async () => {
+    const { user, plainPassword } = await userFactory.makePrismaUser({
+      role: "ESTABLISHMENT",
+      plainPassword: "strong-password",
+    });
+    const establishment = await establishmentFactory.makePrismaEstablishment({
+      ownerId: user.id,
+    });
+    const category = await seedLavagemCategory(
+      prisma,
+      establishment.id.toString(),
+    );
+    const establishmentLogin = await loginUser({
+      app,
+      prisma,
+      userId: user.id.toString(),
+      email: user.email.toString(),
+      password: plainPassword ?? "",
+    });
+
+    const createResponse = await request(getHttpServer(app))
+      .post("/services")
+      .set(
+        "Authorization",
+        `Bearer ${establishmentLogin.loginBody.accessToken}`,
+      )
+      .send(makeCreateServicePayload(category.id));
+    const created = updateServiceResponseSchema.parse(createResponse.body);
+
+    const patchResponse = await request(getHttpServer(app))
+      .patch(`/services/${created.service.id}`)
+      .set(
+        "Authorization",
+        `Bearer ${establishmentLogin.loginBody.accessToken}`,
+      )
+      .send({
+        priceSpecification: {
+          type: "RANGE",
+          minPriceInCents: 30000,
+          maxPriceInCents: 60000,
+        },
+      });
+    const body = updateServiceResponseSchema.parse(patchResponse.body);
+
+    expect(patchResponse.status).toBe(200);
+    expect(body.service.priceInCents).toBe(30000);
+    expect(body.service.priceSpecification).toEqual({
+      type: "RANGE",
+      minPriceInCents: 30000,
+      maxPriceInCents: 60000,
+    });
+
+    const row = await prisma.service.findUnique({
+      where: { id: created.service.id },
+    });
+    expect(row?.priceInCents).toBe(30000);
+    expect(row?.priceSpecificationType).toBe("RANGE");
+    expect(row?.priceRangeMaxInCents).toBe(60000);
   });
 
   it("should update only isActive and persist it", async () => {

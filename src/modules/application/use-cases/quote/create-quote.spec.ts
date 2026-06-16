@@ -14,6 +14,7 @@ import { InMemoryEstablishmentsRepository } from "../../../../../tests/repositor
 import { InMemoryQuotesRepository } from "../../../../../tests/repositories/in-memory-quotes-repository";
 import { InMemoryServicesRepository } from "../../../../../tests/repositories/in-memory-services-repository";
 import { InMemoryUsersRepository } from "../../../../../tests/repositories/in-memory-users-repository";
+import { ServicePriceSpecification } from "../../../catalog/domain/value-objects/service-price-specification";
 import { EstablishmentScopeService } from "../../services/establishment-scope";
 import { CreateQuoteUseCase } from "./create-quote";
 
@@ -135,6 +136,45 @@ describe("Create quote", () => {
       service.price.amountInCents,
     );
     expect(result.value.quote.services[0]?.isCourtesy).toBe(true);
+  });
+
+  it("should snapshot the service default charge price", async () => {
+    const owner = makeUser("ESTABLISHMENT");
+    const establishment = makeEstablishment({ ownerId: owner.id });
+    const service = makeService({
+      establishmentId: establishment.id,
+      priceSpecification: ServicePriceSpecification.create({
+        type: "RANGE",
+        minPriceInCents: 30000,
+        maxPriceInCents: 60000,
+      }),
+    });
+
+    await usersRepository.create(owner);
+    await establishmentsRepository.create(establishment);
+    await servicesRepository.create(service);
+
+    const result = await sut.execute({
+      actor: {
+        userId: establishment.ownerId.toString(),
+        role: "ESTABLISHMENT",
+      },
+      customer: {
+        name: "Cliente Orcamento",
+      },
+      serviceItems: [{ serviceId: service.id.toString() }],
+      paymentOptions: [
+        {
+          method: "PIX",
+          label: "Pix",
+        },
+      ],
+    });
+
+    expect(result.isRight()).toBe(true);
+    if (result.isRight()) {
+      expect(result.value.quote.services[0]?.priceInCents).toBe(30000);
+    }
   });
 
   it("should reject a missing prospect name", async () => {

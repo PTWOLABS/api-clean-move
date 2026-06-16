@@ -11,6 +11,8 @@ import { InMemoryCustomersRepository } from "../../../../../tests/repositories/i
 import { InMemoryEmployeesRepository } from "../../../../../tests/repositories/in-memory-employees-repository";
 import { InMemoryEstablishmentsRepository } from "../../../../../tests/repositories/in-memory-establishment-repository";
 import { InMemoryServicesRepository } from "../../../../../tests/repositories/in-memory-services-repository";
+import { ServicePriceSpecification } from "../../../catalog/domain/value-objects/service-price-specification";
+import { InvalidAppointmentInputError } from "../../../scheduling/domain/errors/invalid-appointment-input-error";
 import { EstablishmentScopeService } from "../../services/establishment-scope";
 import { CreateAppointmentUseCase } from "./create-appointment";
 
@@ -129,6 +131,77 @@ describe("Create appointment", () => {
       color: "Prata",
       year: 2022,
     });
+  });
+
+  it("should create an appointment with explicit service charged price", async () => {
+    const establishment = makeEstablishment();
+    const customer = makeCustomer({ establishmentId: establishment.id });
+    const service = makeService({
+      establishmentId: establishment.id,
+      priceSpecification: ServicePriceSpecification.create({
+        type: "STARTING_AT",
+        minPriceInCents: 25000,
+      }),
+    });
+
+    await inMemoryEstablishmentsRepository.create(establishment);
+    await inMemoryCustomersRepository.create(customer);
+    await inMemoryServicesRepository.create(service);
+
+    const result = await sut.execute({
+      actor: {
+        userId: establishment.ownerId.toString(),
+        role: "ESTABLISHMENT",
+      },
+      customerId: customer.id.toString(),
+      services: [
+        {
+          serviceId: service.id.toString(),
+          priceInCents: 35000,
+        },
+      ],
+      startsAt: new Date("2026-06-16T12:00:00.000Z"),
+    });
+
+    expect(result.isRight()).toBe(true);
+    if (result.isRight()) {
+      expect(result.value.appointment.services[0]?.priceInCents).toBe(35000);
+    }
+  });
+
+  it("should reject an appointment service price outside the catalog policy", async () => {
+    const establishment = makeEstablishment();
+    const customer = makeCustomer({ establishmentId: establishment.id });
+    const service = makeService({
+      establishmentId: establishment.id,
+      priceSpecification: ServicePriceSpecification.create({
+        type: "RANGE",
+        minPriceInCents: 30000,
+        maxPriceInCents: 60000,
+      }),
+    });
+
+    await inMemoryEstablishmentsRepository.create(establishment);
+    await inMemoryCustomersRepository.create(customer);
+    await inMemoryServicesRepository.create(service);
+
+    const result = await sut.execute({
+      actor: {
+        userId: establishment.ownerId.toString(),
+        role: "ESTABLISHMENT",
+      },
+      customerId: customer.id.toString(),
+      services: [
+        {
+          serviceId: service.id.toString(),
+          priceInCents: 60001,
+        },
+      ],
+      startsAt: new Date("2026-06-16T12:00:00.000Z"),
+    });
+
+    expect(result.isLeft()).toBe(true);
+    expect(result.value).toBeInstanceOf(InvalidAppointmentInputError);
   });
 
   it("should reject a deleted customer", async () => {

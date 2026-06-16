@@ -17,6 +17,7 @@ import {
 } from "../../../../tests/helpers/auth-session.e2e-helpers";
 import { HashGenerator } from "../../../modules/application/repositories/hash-generator";
 import { ServiceName } from "../../../modules/catalog/domain/value-objects/service-name";
+import { ServicePriceSpecification } from "../../../modules/catalog/domain/value-objects/service-price-specification";
 import { AppModule } from "../../app.module";
 import { PrismaService } from "../../database/prisma/prisma.service";
 import { EnvService } from "../../env/env.service";
@@ -114,10 +115,20 @@ describe("ListServiceOptionsController (e2e)", () => {
       {
         id: firstService.id.toString(),
         label: "Lavagem Completa",
+        priceInCents: 30000,
+        priceSpecification: {
+          type: "FIXED",
+          fixedPriceInCents: 30000,
+        },
       },
       {
         id: thirdService.id.toString(),
         label: "Lavagem Premium",
+        priceInCents: 30000,
+        priceSpecification: {
+          type: "FIXED",
+          fixedPriceInCents: 30000,
+        },
       },
     ]);
     expect(body.services.map((service) => service.id)).not.toContain(
@@ -164,6 +175,49 @@ describe("ListServiceOptionsController (e2e)", () => {
       {
         id: service.id.toString(),
         label: "Lavagem Simples",
+        priceInCents: 30000,
+        priceSpecification: {
+          type: "FIXED",
+          fixedPriceInCents: 30000,
+        },
+      },
+    ]);
+  });
+
+  it("should return range price specification for services with range pricing", async () => {
+    const owner = await makeEstablishmentAuth({
+      app,
+      prisma,
+      userFactory,
+      establishmentFactory,
+      envService,
+    });
+    const rangeService = await serviceFactory.makePrismaService({
+      establishmentId: owner.establishment.id,
+      serviceName: ServiceName.create("Polimento Premium"),
+      priceSpecification: ServicePriceSpecification.create({
+        type: "RANGE",
+        minPriceInCents: 30000,
+        maxPriceInCents: 60000,
+      }),
+    });
+
+    const response = await request(getHttpServer(app))
+      .get("/services/options")
+      .set("Authorization", `Bearer ${owner.accessToken}`);
+    const body = serviceOptionsResponseSchema.parse(response.body);
+
+    expect(response.status).toBe(200);
+    expect(body.services).toEqual([
+      {
+        id: rangeService.id.toString(),
+        label: "Polimento Premium",
+        priceInCents: 30000,
+        priceSpecification: {
+          type: "RANGE",
+          minPriceInCents: 30000,
+          maxPriceInCents: 60000,
+        },
       },
     ]);
   });

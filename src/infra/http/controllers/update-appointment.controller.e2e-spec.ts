@@ -18,6 +18,7 @@ import {
   makeEstablishmentAuth,
 } from "../../../../tests/helpers/establishment-operated-scheduling.e2e-helpers";
 import { HashGenerator } from "../../../modules/application/repositories/hash-generator";
+import { ServicePriceSpecification } from "../../../modules/catalog/domain/value-objects/service-price-specification";
 import { UniqueEntityId } from "../../../shared/entities/unique-entity-id";
 import { AppModule } from "../../app.module";
 import { PrismaService } from "../../database/prisma/prisma.service";
@@ -139,6 +140,45 @@ describe("UpdateAppointmentController (e2e)", () => {
     expect(body.appointment.description).toBe("Cliente prefere cera premium.");
     expect(body.appointment.discountInCents).toBe(1500);
     expect(body.appointment.status).toBe("SCHEDULED");
+  });
+
+  it("should update appointment services using explicit service item price", async () => {
+    const { accessToken, establishment } = await makeEstablishmentAuth({
+      app,
+      prisma,
+      userFactory,
+      establishmentFactory,
+      envService,
+    });
+    const appointment = await createAppointment(accessToken, establishment.id);
+    const service = await serviceFactory.makePrismaService({
+      establishmentId: establishment.id,
+      priceSpecification: ServicePriceSpecification.create({
+        type: "STARTING_AT",
+        minPriceInCents: 25000,
+      }),
+    });
+
+    const response = await request(getHttpServer(app))
+      .patch(`/appointments/${appointment.id}`)
+      .set("Authorization", `Bearer ${accessToken}`)
+      .send({
+        services: [
+          {
+            serviceId: service.id.toString(),
+            priceInCents: 35000,
+          },
+        ],
+      });
+    const body = appointmentResponseSchema.parse(response.body);
+
+    expect(response.status).toBe(200);
+    expect(body.appointment.services[0]).toEqual(
+      expect.objectContaining({
+        id: service.id.toString(),
+        priceInCents: 35000,
+      }),
+    );
   });
 
   it("should clear nullable appointment fields", async () => {

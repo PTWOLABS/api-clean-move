@@ -7,6 +7,7 @@ import { InMemoryEmployeesRepository } from "../../../../../tests/repositories/i
 import { InMemoryEstablishmentsRepository } from "../../../../../tests/repositories/in-memory-establishment-repository";
 import { InMemoryServicesRepository } from "../../../../../tests/repositories/in-memory-services-repository";
 import { ServiceName } from "../../../catalog/domain/value-objects/service-name";
+import { ServicePriceSpecification } from "../../../catalog/domain/value-objects/service-price-specification";
 import { EstablishmentScopeService } from "../../services/establishment-scope";
 import { ListServiceOptionsUseCase } from "./list-service-options";
 
@@ -94,10 +95,62 @@ describe("List service options", () => {
       {
         id: firstService.id.toString(),
         label: "Lavagem Completa",
+        priceInCents: 30000,
+        priceSpecification: {
+          type: "FIXED",
+          fixedPriceInCents: 30000,
+        },
       },
       {
         id: secondService.id.toString(),
         label: "Lavagem Simples",
+        priceInCents: 30000,
+        priceSpecification: {
+          type: "FIXED",
+          fixedPriceInCents: 30000,
+        },
+      },
+    ]);
+  });
+
+  it("should include price specification details for non-fixed services", async () => {
+    const establishment = makeEstablishment();
+    const rangeService = makeService({
+      establishmentId: establishment.id,
+      serviceName: ServiceName.create("Polimento Premium"),
+      priceSpecification: ServicePriceSpecification.create({
+        type: "RANGE",
+        minPriceInCents: 30000,
+        maxPriceInCents: 60000,
+      }),
+    });
+
+    await inMemoryEstablishmentsRepository.create(establishment);
+    await inMemoryServicesRepository.create(rangeService);
+
+    const result = await sut.execute({
+      actor: {
+        userId: establishment.ownerId.toString(),
+        role: "ESTABLISHMENT",
+      },
+    });
+
+    expect(result.isRight()).toBe(true);
+
+    if (result.isLeft()) {
+      throw result.value;
+    }
+
+    expect(result.value.services).toEqual([
+      {
+        id: rangeService.id.toString(),
+        label: "Polimento Premium",
+        priceInCents: 30000,
+        priceSpecification: {
+          type: "RANGE",
+          minPriceInCents: 30000,
+          maxPriceInCents: 60000,
+        },
       },
     ]);
   });
@@ -132,6 +185,11 @@ describe("List service options", () => {
       {
         id: service.id.toString(),
         label: "Lavagem Simples",
+        priceInCents: 30000,
+        priceSpecification: {
+          type: "FIXED",
+          fixedPriceInCents: 30000,
+        },
       },
     ]);
   });

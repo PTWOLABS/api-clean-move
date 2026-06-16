@@ -1,5 +1,6 @@
 import { PaginationParams } from "../../../shared/types/pagination-params";
 import { Service } from "../../catalog/domain/entities/services";
+import { ServicePriceSpecificationValue } from "../../catalog/domain/value-objects/service-price-specification";
 export type ServiceFilters = {
   serviceName?: string;
   categoryId?: string;
@@ -16,6 +17,8 @@ export type PaginatedServices = {
 export type ServiceOption = {
   id: string;
   label: string;
+  priceInCents: number;
+  priceSpecification: ServicePriceSpecificationValue;
 };
 
 export type ServiceOptionsFilters = {

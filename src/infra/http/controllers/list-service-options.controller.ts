@@ -51,7 +51,7 @@ export class ListServiceOptionsController {
   @ApiOperation({
     summary: "List service options for the authenticated establishment.",
     description:
-      "Returns active service options with only id and label. The optional search term is applied only to service name.",
+      "Returns active service options with id, label, and price information. The optional search term is applied only to service name.",
   })
   @ApiQuery({
     name: "search",
