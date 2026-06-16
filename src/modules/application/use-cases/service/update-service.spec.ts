@@ -158,6 +158,30 @@ describe("Update a service", () => {
     }
   });
 
+  it("should reject update with invalid price specification", async () => {
+    const establishment = makeEstablishment();
+
+    await inMemoryEstablishmentsRepository.create(establishment);
+
+    const service = makeService({ establishmentId: establishment.id });
+    await inMemoryServicesRepository.create(service);
+
+    const result = await sut.execute({
+      establishmentOwnerId: establishment.ownerId.toString(),
+      serviceId: service.id.toString(),
+      data: {
+        priceSpecification: {
+          type: "RANGE",
+          minPriceInCents: 60000,
+          maxPriceInCents: 30000,
+        },
+      },
+    });
+
+    expect(result.isLeft()).toBe(true);
+    expect(result.value).toBeInstanceOf(InvalidServiceUpdateInputError);
+  });
+
   it("should not be able to update a service with a valid establishment and invalid estimatedDuration", async () => {
     const establishment = makeEstablishment();
 

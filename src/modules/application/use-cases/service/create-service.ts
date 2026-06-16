@@ -10,13 +10,14 @@ import {
   InvalidEstimatedDurationError,
 } from "../../../catalog/domain/value-objects/estimated-duration";
 import {
-  InvalidMoneyError,
-  Money,
-} from "../../../catalog/domain/value-objects/money";
-import {
   InvalidServiceNameError,
   ServiceName,
 } from "../../../catalog/domain/value-objects/service-name";
+import {
+  InvalidServicePriceSpecificationError,
+  ServicePriceSpecification,
+  ServicePriceSpecificationValue,
+} from "../../../catalog/domain/value-objects/service-price-specification";
 import { ServiceCategoriesRepository } from "../../repositories/service-categories-repository";
 import { EstablishmentsRepository } from "../../repositories/establishment-repository";
 import { ServicesRepository } from "../../repositories/services-repository";
@@ -33,7 +34,8 @@ type CreateServiceUseCaseRequest = {
         maxInMinutes?: number | null | undefined;
       }
     | undefined;
-  price: number;
+  price?: number;
+  priceSpecification?: ServicePriceSpecificationValue;
   isActive?: boolean;
 };
 
@@ -61,6 +63,7 @@ export class CreateServiceUseCase {
     categoryId,
     estimatedDuration,
     price,
+    priceSpecification,
     isActive = true,
   }: CreateServiceUseCaseRequest): Promise<CreateServiceUseCaseResponse> {
     const establishment =
@@ -96,15 +99,28 @@ export class CreateServiceUseCase {
       };
     }
 
+    let resolvedPriceSpecification: ServicePriceSpecification;
     let service: Service;
 
     try {
+      resolvedPriceSpecification = priceSpecification
+        ? ServicePriceSpecification.create(priceSpecification)
+        : price !== undefined
+          ? ServicePriceSpecification.create({
+              type: "FIXED",
+              fixedPriceInCents: price,
+            })
+          : ServicePriceSpecification.create({
+              type: "STARTING_AT",
+              minPriceInCents: 1,
+            });
+
       service = Service.create({
         establishmentId: establishment.id,
         serviceName: ServiceName.create(serviceName),
         description,
         category,
-        price: Money.create(price),
+        priceSpecification: resolvedPriceSpecification,
         estimatedDuration: estimatedDuration
           ? EstimatedDuration.create(estimatedDuration)
           : undefined,
@@ -114,7 +130,7 @@ export class CreateServiceUseCase {
       if (
         error instanceof InvalidServiceNameError ||
         error instanceof InvalidEstimatedDurationError ||
-        error instanceof InvalidMoneyError ||
+        error instanceof InvalidServicePriceSpecificationError ||
         error instanceof InvalidEstimatedDurationTransitionError
       ) {
         return left(new InvalidServiceUpdateInputError(error.message));

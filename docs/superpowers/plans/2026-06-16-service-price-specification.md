@@ -90,9 +90,9 @@ describe("ServicePriceSpecification", () => {
   });
 
   it("should reject missing required fields", () => {
-    expect(() =>
-      ServicePriceSpecification.create({ type: "FIXED" }),
-    ).toThrow(InvalidServicePriceSpecificationError);
+    expect(() => ServicePriceSpecification.create({ type: "FIXED" })).toThrow(
+      InvalidServicePriceSpecificationError,
+    );
 
     expect(() =>
       ServicePriceSpecification.create({ type: "STARTING_AT" }),
@@ -129,7 +129,9 @@ describe("ServicePriceSpecification", () => {
         minPriceInCents: 60000,
         maxPriceInCents: 30000,
       }),
-    ).toThrow("maxPriceInCents must be greater than or equal to minPriceInCents.");
+    ).toThrow(
+      "maxPriceInCents must be greater than or equal to minPriceInCents.",
+    );
   });
 
   it("should validate charged prices", () => {
@@ -459,7 +461,7 @@ import {
 Change `ServiceProps` price field:
 
 ```ts
-  priceSpecification: ServicePriceSpecification;
+priceSpecification: ServicePriceSpecification;
 ```
 
 Replace the existing `price` getter with:
@@ -484,23 +486,23 @@ Change `update` input:
 Replace the `newPrice` block in `update` with:
 
 ```ts
-    const newPriceSpecification =
-      data.priceSpecification !== undefined
-        ? ServicePriceSpecification.create(data.priceSpecification)
-        : data.price !== undefined
-          ? ServicePriceSpecification.create({
-              type: "FIXED",
-              fixedPriceInCents: data.price,
-            })
-          : undefined;
+const newPriceSpecification =
+  data.priceSpecification !== undefined
+    ? ServicePriceSpecification.create(data.priceSpecification)
+    : data.price !== undefined
+      ? ServicePriceSpecification.create({
+          type: "FIXED",
+          fixedPriceInCents: data.price,
+        })
+      : undefined;
 ```
 
 Replace `if (newPrice) { this.changePrice(newPrice); }` with:
 
 ```ts
-    if (newPriceSpecification) {
-      this.changePriceSpecification(newPriceSpecification);
-    }
+if (newPriceSpecification) {
+  this.changePriceSpecification(newPriceSpecification);
+}
 ```
 
 Replace `changePrice` with:
@@ -536,19 +538,19 @@ Replace the factory default `price` property:
 In `tests/repositories/in-memory-services-repository.ts`, keep filter behavior but rely on the compatibility getter:
 
 ```ts
-      if (
-        filters?.minPrice !== undefined &&
-        item.price.amountInCents < filters.minPrice
-      ) {
-        return false;
-      }
+if (
+  filters?.minPrice !== undefined &&
+  item.price.amountInCents < filters.minPrice
+) {
+  return false;
+}
 
-      if (
-        filters?.maxPrice !== undefined &&
-        item.price.amountInCents > filters.maxPrice
-      ) {
-        return false;
-      }
+if (
+  filters?.maxPrice !== undefined &&
+  item.price.amountInCents > filters.maxPrice
+) {
+  return false;
+}
 ```
 
 No code change is needed if the compatibility getter exists. Run tests after the entity update.
@@ -682,22 +684,22 @@ Change request type:
 Before creating the service, build the specification:
 
 ```ts
-    let resolvedPriceSpecification: ServicePriceSpecification;
+let resolvedPriceSpecification: ServicePriceSpecification;
 
-    try {
-      resolvedPriceSpecification = priceSpecification
-        ? ServicePriceSpecification.create(priceSpecification)
-        : ServicePriceSpecification.create({
-            type: "FIXED",
-            fixedPriceInCents: price,
-          });
-    } catch (error) {
-      if (error instanceof InvalidServicePriceSpecificationError) {
-        return left(new InvalidServiceUpdateInputError(error.message));
-      }
+try {
+  resolvedPriceSpecification = priceSpecification
+    ? ServicePriceSpecification.create(priceSpecification)
+    : ServicePriceSpecification.create({
+        type: "FIXED",
+        fixedPriceInCents: price,
+      });
+} catch (error) {
+  if (error instanceof InvalidServicePriceSpecificationError) {
+    return left(new InvalidServiceUpdateInputError(error.message));
+  }
 
-      return left(new UnexpectedDomainError());
-    }
+  return left(new UnexpectedDomainError());
+}
 ```
 
 In `Service.create`, replace:
@@ -715,7 +717,7 @@ with:
 Remove `InvalidMoneyError` and `Money` imports if unused. Add `InvalidServicePriceSpecificationError` to the domain-error catch:
 
 ```ts
-        error instanceof InvalidServicePriceSpecificationError
+error instanceof InvalidServicePriceSpecificationError;
 ```
 
 - [ ] **Step 4: Update update service use case**
@@ -749,7 +751,7 @@ Add the payload mapping:
 Add `InvalidServicePriceSpecificationError` to the catch mapping:
 
 ```ts
-        error instanceof InvalidServicePriceSpecificationError
+error instanceof InvalidServicePriceSpecificationError;
 ```
 
 - [ ] **Step 5: Run focused tests**
@@ -1282,11 +1284,11 @@ Change request:
 At the start of `execute`, replace duplicate validation with:
 
 ```ts
-    const serviceItemsResult = this.normalizeServiceItems(serviceIds, services);
+const serviceItemsResult = this.normalizeServiceItems(serviceIds, services);
 
-    if (serviceItemsResult.isLeft()) {
-      return left(serviceItemsResult.value);
-    }
+if (serviceItemsResult.isLeft()) {
+  return left(serviceItemsResult.value);
+}
 ```
 
 Add private method:
@@ -1333,42 +1335,42 @@ Add private method:
 Replace the service loop:
 
 ```ts
-    for (const item of serviceItemsResult.value) {
-      const service =
-        await this.servicesRepository.findByServiceIdAndEstablishmentId(
-          item.serviceId,
-          establishment.id.toString(),
-        );
+for (const item of serviceItemsResult.value) {
+  const service =
+    await this.servicesRepository.findByServiceIdAndEstablishmentId(
+      item.serviceId,
+      establishment.id.toString(),
+    );
 
-      if (!service || service.isDeleted()) {
-        return left(new ResourceNotFoundError({ resource: "service" }));
-      }
+  if (!service || service.isDeleted()) {
+    return left(new ResourceNotFoundError({ resource: "service" }));
+  }
 
-      if (!service.isActive) {
-        return left(new InactiveServiceError(service.serviceName.value));
-      }
+  if (!service.isActive) {
+    return left(new InactiveServiceError(service.serviceName.value));
+  }
 
-      const priceInCents =
-        item.priceInCents ?? service.priceSpecification.defaultChargePriceInCents;
+  const priceInCents =
+    item.priceInCents ?? service.priceSpecification.defaultChargePriceInCents;
 
-      try {
-        service.priceSpecification.assertCanCharge(priceInCents);
-      } catch (error) {
-        return left(
-          new InvalidAppointmentInputError(
-            error instanceof Error ? error.message : "Invalid service price.",
-          ),
-        );
-      }
+  try {
+    service.priceSpecification.assertCanCharge(priceInCents);
+  } catch (error) {
+    return left(
+      new InvalidAppointmentInputError(
+        error instanceof Error ? error.message : "Invalid service price.",
+      ),
+    );
+  }
 
-      services.push({
-        serviceId: service.id,
-        serviceName: service.serviceName.value,
-        category: service.category,
-        durationInMinutes: service.estimatedDuration?.upperBoundInMinutes,
-        priceInCents,
-      });
-    }
+  services.push({
+    serviceId: service.id,
+    serviceName: service.serviceName.value,
+    category: service.category,
+    durationInMinutes: service.estimatedDuration?.upperBoundInMinutes,
+    priceInCents,
+  });
+}
 ```
 
 - [ ] **Step 4: Update update appointment request and resolver**
@@ -1378,10 +1380,10 @@ Apply the same `AppointmentServiceItemInput`, `serviceIds?: string[]`, `services
 Change the resolver branch:
 
 ```ts
-    const servicesResult: ResolveServicesResponse =
-      serviceIds !== undefined || services !== undefined
-        ? await this.resolveServices(serviceIds, services, establishmentId)
-        : right({ services: appointment.services });
+const servicesResult: ResolveServicesResponse =
+  serviceIds !== undefined || services !== undefined
+    ? await this.resolveServices(serviceIds, services, establishmentId)
+    : right({ services: appointment.services });
 ```
 
 Change `resolveServices` signature:
@@ -1397,11 +1399,11 @@ Change `resolveServices` signature:
 At the top of `resolveServices`, call:
 
 ```ts
-    const normalizedResult = this.normalizeServiceItems(serviceIds, serviceItems);
+const normalizedResult = this.normalizeServiceItems(serviceIds, serviceItems);
 
-    if (normalizedResult.isLeft()) {
-      return left(normalizedResult.value);
-    }
+if (normalizedResult.isLeft()) {
+  return left(normalizedResult.value);
+}
 ```
 
 Then loop through `normalizedResult.value` with the same validation from create.

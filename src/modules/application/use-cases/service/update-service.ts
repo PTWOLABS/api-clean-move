@@ -10,9 +10,12 @@ import { ServicesRepository } from "../../repositories/services-repository";
 import { NoUpdateFieldsProvidedError } from "../../../../shared/errors/no-update-field-provided-error";
 import { InvalidServiceNameError } from "../../../catalog/domain/value-objects/service-name";
 import { InvalidEstimatedDurationError } from "../../../catalog/domain/value-objects/estimated-duration";
-import { InvalidMoneyError } from "../../../catalog/domain/value-objects/money";
 import { InvalidEstimatedDurationTransitionError } from "../../../catalog/domain/errors/invalid-estimated-duration-transition-error";
 import { UnexpectedDomainError } from "../../../../shared/errors/unexpected-domain-error";
+import {
+  InvalidServicePriceSpecificationError,
+  ServicePriceSpecificationValue,
+} from "../../../catalog/domain/value-objects/service-price-specification";
 
 type UpdateServiceUseCaseRequest = {
   establishmentOwnerId: string;
@@ -26,6 +29,7 @@ type UpdateServiceUseCaseRequest = {
       maxInMinutes?: number | null | undefined;
     };
     price?: number;
+    priceSpecification?: ServicePriceSpecificationValue;
     isActive?: boolean;
   };
 };
@@ -101,7 +105,11 @@ export class UpdateServiceUseCase {
       ...(data.estimatedDuration !== undefined
         ? { estimatedDuration: data.estimatedDuration }
         : {}),
-      ...(data.price !== undefined ? { price: data.price } : {}),
+      ...(data.priceSpecification !== undefined
+        ? { priceSpecification: data.priceSpecification }
+        : data.price !== undefined
+          ? { price: data.price }
+          : {}),
       ...(data.isActive !== undefined ? { isActive: data.isActive } : {}),
     };
 
@@ -132,7 +140,7 @@ export class UpdateServiceUseCase {
       if (
         error instanceof InvalidServiceNameError ||
         error instanceof InvalidEstimatedDurationError ||
-        error instanceof InvalidMoneyError ||
+        error instanceof InvalidServicePriceSpecificationError ||
         error instanceof InvalidEstimatedDurationTransitionError
       ) {
         return left(new InvalidServiceUpdateInputError(error.message));

@@ -69,7 +69,9 @@ export class Service extends AggregateRoot<ServiceProps> {
   }
 
   get price() {
-    return Money.create(this.props.priceSpecification.defaultChargePriceInCents);
+    return Money.create(
+      this.props.priceSpecification.defaultChargePriceInCents,
+    );
   }
 
   get isActive() {
