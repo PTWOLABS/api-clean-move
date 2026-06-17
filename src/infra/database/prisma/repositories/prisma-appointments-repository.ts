@@ -236,6 +236,7 @@ export class PrismaAppointmentsRepository implements AppointmentsRepository {
   ): Prisma.AppointmentWhereInput {
     return {
       establishmentId,
+      deletedAt: null,
       ...(filters?.customerId ? { customerId: filters.customerId } : {}),
       ...(filters?.vehicleId ? { vehicleId: filters.vehicleId } : {}),
       ...(filters?.serviceId
@@ -297,9 +298,10 @@ export class PrismaAppointmentsRepository implements AppointmentsRepository {
     try {
       const appointment = await PrismaUnitOfWork.getClient(
         this.prisma,
-      ).appointment.findUnique({
+      ).appointment.findFirst({
         where: {
           id,
+          deletedAt: null,
         },
         include: bookedServicesInclude,
       });
@@ -325,6 +327,7 @@ export class PrismaAppointmentsRepository implements AppointmentsRepository {
         where: {
           id,
           establishmentId,
+          deletedAt: null,
         },
         include: bookedServicesInclude,
       });
@@ -345,6 +348,7 @@ export class PrismaAppointmentsRepository implements AppointmentsRepository {
   ): Prisma.AppointmentWhereInput {
     return {
       establishmentId,
+      deletedAt: null,
       startsAt: {
         lt: filters.endsAt,
       },

@@ -272,6 +272,7 @@ model Appointment {
   updatedAt        DateTime          @default(now()) @updatedAt @map("updated_at")
   doneAt           DateTime?         @map("done_at")
   cancelledAt      DateTime?         @map("cancelled_at")
+  deletedAt        DateTime?         @map("deleted_at")
 
   establishment      Establishment              @relation("EstablishmentAppointments", fields: [establishmentId], references: [id], onDelete: Restrict)
   customer           Customer                   @relation(fields: [customerId], references: [id], onDelete: Restrict)
@@ -286,6 +287,7 @@ model Appointment {
   @@index([establishmentId, status])
   @@index([establishmentId, customerId])
   @@index([establishmentId, vehicleId])
+  @@index([establishmentId, deletedAt])
   @@map("appointments")
 }
 
