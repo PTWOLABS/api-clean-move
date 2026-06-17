@@ -3,6 +3,8 @@ import { Money } from "../../../catalog/domain/value-objects/money";
 import { AggregateRoot } from "../../../../shared/entities/aggregate-root";
 import { UniqueEntityId } from "../../../../shared/entities/unique-entity-id";
 import { Optional } from "../../../../shared/types/optional";
+import { AppointmentAlreadyDeletedError } from "../errors/appointment-already-deleted-error";
+import { DoneAppointmentCannotBeDeletedError } from "../errors/done-appointment-cannot-be-deleted-error";
 import { InvalidAppointmentInputError } from "../errors/invalid-appointment-input-error";
 import { BookedServiceSnapshot } from "../value-objects/booked-service-snapshot";
 
@@ -44,11 +46,12 @@ export type AppointmentProps = {
   updatedAt: Date;
   doneAt: Date | null;
   cancelledAt: Date | null;
+  deletedAt: Date | null;
 };
 
 type AppointmentCreateProps = Optional<
   AppointmentProps,
-  "status" | "createdAt" | "updatedAt" | "doneAt" | "cancelledAt"
+  "status" | "createdAt" | "updatedAt" | "doneAt" | "cancelledAt" | "deletedAt"
 >;
 
 type AppointmentUpdateProps = Partial<
@@ -126,6 +129,10 @@ export class Appointment extends AggregateRoot<AppointmentProps> {
     return this.props.cancelledAt;
   }
 
+  get deletedAt() {
+    return this.props.deletedAt;
+  }
+
   static totalServicesPriceInCents(services: AppointmentServiceSnapshot[]) {
     return services.reduce((total, service) => total + service.priceInCents, 0);
   }
@@ -141,6 +148,7 @@ export class Appointment extends AggregateRoot<AppointmentProps> {
         updatedAt: props.updatedAt ?? new Date(),
         doneAt: props.doneAt ?? null,
         cancelledAt: props.cancelledAt ?? null,
+        deletedAt: props.deletedAt ?? null,
       },
       id,
     );
@@ -151,6 +159,7 @@ export class Appointment extends AggregateRoot<AppointmentProps> {
   }
 
   changeStatus(status: AppointmentStatus, referenceDate: Date = new Date()) {
+    this.assertNotDeleted();
     this.assertValidDate(referenceDate, "referenceDate must be a valid date.");
 
     this.props.status = status;
@@ -174,6 +183,8 @@ export class Appointment extends AggregateRoot<AppointmentProps> {
   }
 
   update(props: AppointmentUpdateProps) {
+    this.assertNotDeleted();
+
     const previousProps = this.props;
 
     this.props = {
@@ -194,8 +205,33 @@ export class Appointment extends AggregateRoot<AppointmentProps> {
     this.touch();
   }
 
+  softDelete(referenceDate: Date = new Date()) {
+    this.assertValidDate(referenceDate, "referenceDate must be a valid date.");
+
+    if (this.status === "DONE") {
+      throw new DoneAppointmentCannotBeDeletedError();
+    }
+
+    if (this.isDeleted()) {
+      throw new AppointmentAlreadyDeletedError();
+    }
+
+    this.props.deletedAt = referenceDate;
+    this.touch();
+  }
+
+  isDeleted() {
+    return this.props.deletedAt !== null;
+  }
+
   private touch() {
     this.props.updatedAt = new Date();
+  }
+
+  private assertNotDeleted() {
+    if (this.isDeleted()) {
+      throw new AppointmentAlreadyDeletedError();
+    }
   }
 
   private assertValidState() {
@@ -213,6 +249,10 @@ export class Appointment extends AggregateRoot<AppointmentProps> {
     this.assertNullableDate(
       this.props.cancelledAt,
       "cancelledAt must be a valid date.",
+    );
+    this.assertNullableDate(
+      this.props.deletedAt,
+      "deletedAt must be a valid date.",
     );
 
     if (this.props.services.length === 0) {

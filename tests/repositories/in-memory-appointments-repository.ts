@@ -249,6 +249,7 @@ export class InMemoryAppointmentsRepository implements AppointmentsRepository {
       .slice()
       .sort((a, b) => a.startsAt.getTime() - b.startsAt.getTime())
       .filter((item) => item.establishmentId.toString() === establishmentId)
+      .filter((item) => !item.isDeleted())
       .filter((item) => {
         if (
           filters?.customerId &&
@@ -295,6 +296,7 @@ export class InMemoryAppointmentsRepository implements AppointmentsRepository {
     return this.items
       .slice()
       .filter((item) => item.establishmentId.toString() === establishmentId)
+      .filter((item) => !item.isDeleted())
       .filter((item) => item.status === "DONE")
       .filter((item) => {
         if (filters?.startsAt && item.startsAt < filters.startsAt) {
@@ -314,7 +316,9 @@ export class InMemoryAppointmentsRepository implements AppointmentsRepository {
   }
 
   async findById(id: string): Promise<Appointment | null> {
-    const appointment = this.items.find((item) => item.id.toString() === id);
+    const appointment = this.items.find(
+      (item) => item.id.toString() === id && !item.isDeleted(),
+    );
 
     if (!appointment) {
       return null;
@@ -330,7 +334,8 @@ export class InMemoryAppointmentsRepository implements AppointmentsRepository {
     const appointment = this.items.find(
       (item) =>
         item.id.toString() === id &&
-        item.establishmentId.toString() === establishmentId,
+        item.establishmentId.toString() === establishmentId &&
+        !item.isDeleted(),
     );
 
     if (!appointment) {
@@ -348,6 +353,7 @@ export class InMemoryAppointmentsRepository implements AppointmentsRepository {
       .slice()
       .sort((a, b) => a.startsAt.getTime() - b.startsAt.getTime())
       .filter((item) => item.establishmentId.toString() === establishmentId)
+      .filter((item) => !item.isDeleted())
       .filter((item) => {
         if (filters.status && item.status !== filters.status) {
           return false;

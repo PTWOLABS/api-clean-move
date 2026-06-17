@@ -77,6 +77,7 @@ export class PrismaAppointmentMapper {
         updatedAt: raw.updatedAt,
         doneAt: raw.doneAt,
         cancelledAt: raw.cancelledAt,
+        deletedAt: raw.deletedAt,
       },
       new UniqueEntityId(raw.id),
     );
@@ -120,6 +121,7 @@ export class PrismaAppointmentMapper {
       ...(raw.updatedAt ? { updatedAt: raw.updatedAt } : {}),
       doneAt: raw.doneAt,
       cancelledAt: raw.cancelledAt,
+      deletedAt: raw.deletedAt,
     };
   }
 
@@ -146,6 +148,7 @@ export class PrismaAppointmentMapper {
       ...(raw.updatedAt ? { updatedAt: raw.updatedAt } : {}),
       doneAt: raw.doneAt,
       cancelledAt: raw.cancelledAt,
+      deletedAt: raw.deletedAt,
     };
   }
 }
