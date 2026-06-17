@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
 
 import { CreateAppointmentUseCase } from "../../modules/application/use-cases/appointment/create-appointment";
+import { DeleteAppointmentUseCase } from "../../modules/application/use-cases/appointment/delete-appointment";
 import { ListAppointmentsUseCase } from "../../modules/application/use-cases/appointment/list-appointments";
 import { ListCalendarAppointmentsUseCase } from "../../modules/application/use-cases/appointment/list-calendar-appointments";
 import { UpdateAppointmentUseCase } from "../../modules/application/use-cases/appointment/update-appointment";
@@ -62,6 +63,7 @@ import { StorageModule } from "../storage/storage.module";
 import { AuthenticateWithGoogleController } from "./controllers/authenticate-with-google.controller";
 import { CompleteOnboardingController } from "./controllers/complete-onboarding.controller";
 import { CreateAppointmentController } from "./controllers/create-appointment.controller";
+import { DeleteAppointmentController } from "./controllers/delete-appointment.controller";
 import { CreateCustomerController } from "./controllers/create-customer.controller";
 import { CreateCustomerVehicleController } from "./controllers/create-customer-vehicle.controller";
 import { CreateServiceCategoryController } from "./controllers/create-service-category.controller";
@@ -150,6 +152,7 @@ import { DeleteEstablishmentBannerImageController } from "./controllers/media/de
     UpdateCustomerVehicleController,
     DeleteCustomerVehicleController,
     CreateAppointmentController,
+    DeleteAppointmentController,
     ListAppointmentsController,
     ListCalendarAppointmentsController,
     UpdateAppointmentController,
@@ -194,6 +197,7 @@ import { DeleteEstablishmentBannerImageController } from "./controllers/media/de
     UpdateCustomerVehicleUseCase,
     DeleteCustomerVehicleUseCase,
     CreateAppointmentUseCase,
+    DeleteAppointmentUseCase,
     ListAppointmentsUseCase,
     ListCalendarAppointmentsUseCase,
     UpdateAppointmentUseCase,
