@@ -117,7 +117,7 @@ function resolvePresetRange(
 
   return {
     startsAt: startOfUtcMonth(referenceDate),
-    endsAt: referenceDayEnd,
+    endsAt: endOfUtcMonth(referenceDate),
   };
 }
 

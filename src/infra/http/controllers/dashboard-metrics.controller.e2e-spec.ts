@@ -717,8 +717,8 @@ describe("Dashboard metrics controller (e2e)", () => {
     expect(thisMonth.summary).toEqual({
       revenueInCents: 85000,
       appointments: 7,
-      revenueTrendPercent: 750,
-      appointmentsTrendPercent: 600,
+      revenueTrendPercent: 400,
+      appointmentsTrendPercent: 250,
     });
   });
 
