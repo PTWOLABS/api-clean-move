@@ -48,7 +48,7 @@ describe("Update customer", () => {
     }
 
     expect(result.value.customer.fullName).toBe("Maria Oliveira");
-    expect(result.value.customer.phone.toString()).toBe("11988888888");
+    expect(result.value.customer.phone?.toString()).toBe("11988888888");
   });
 
   it("should reject customers outside the establishment", async () => {

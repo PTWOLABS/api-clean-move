@@ -18,7 +18,7 @@ type CreateCustomerUseCaseRequest = {
   establishmentOwnerId: string;
   cpfCnpj?: string | null;
   fullName: string;
-  phone: string;
+  phone?: string | null;
   email?: string | null;
   address?: AddressCreateInput | null;
   birthDate?: Date | null;
@@ -43,7 +43,7 @@ export class CreateCustomerUseCase {
     establishmentOwnerId,
     cpfCnpj = null,
     fullName,
-    phone,
+    phone = null,
     email,
     address = null,
     birthDate = null,
@@ -63,7 +63,10 @@ export class CreateCustomerUseCase {
         establishmentId: establishment.id,
         cpfCnpj,
         fullName,
-        phone: Phone.create(phone),
+        phone:
+          phone !== undefined && phone !== null && phone.trim()
+            ? Phone.create(phone)
+            : null,
         email: email !== undefined && email !== null ? new Email(email) : null,
         address: address ? Address.create(address) : null,
         birthDate,

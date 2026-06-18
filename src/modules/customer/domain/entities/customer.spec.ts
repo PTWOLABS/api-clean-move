@@ -32,6 +32,23 @@ describe("Customer", () => {
     expect(customer.isDeleted()).toBe(false);
   });
 
+  it("should create a customer without phone", () => {
+    const customer = Customer.create({
+      establishmentId: new UniqueEntityId("establishment-1"),
+      cpfCnpj: null,
+      fullName: "Jose Silva",
+      phone: null,
+      email: null,
+      address: null,
+      birthDate: null,
+      nickname: null,
+    });
+
+    expect(customer.fullName).toBe("Jose Silva");
+    expect(customer.phone).toBeNull();
+    expect(customer.email).toBeNull();
+  });
+
   it("should soft-delete a customer", () => {
     const customer = Customer.create({
       establishmentId: new UniqueEntityId("establishment-1"),

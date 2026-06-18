@@ -303,12 +303,13 @@ export class CreateCustomerBodyDto {
   })
   fullName!: string;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     example: "11999999999",
     minLength: 1,
-    description: "Customer phone number.",
+    nullable: true,
+    description: "Optional customer phone number.",
   })
-  phone!: string;
+  phone?: string | null;
 
   @ApiPropertyOptional({
     example: "maria@example.com",
@@ -393,8 +394,8 @@ export class CustomerDto {
   @ApiProperty({ example: "Maria Silva" })
   fullName!: string;
 
-  @ApiProperty({ example: "11999999999" })
-  phone!: string;
+  @ApiProperty({ example: "11999999999", nullable: true })
+  phone!: string | null;
 
   @ApiProperty({ example: "maria@example.com", nullable: true })
   email!: string | null;

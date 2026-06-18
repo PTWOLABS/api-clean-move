@@ -81,11 +81,16 @@ export class RegisterQuoteProspectAsCustomerUseCase {
     let vehicle: CustomerVehicle | null = null;
 
     try {
+      const phoneValue = request.phone ?? quote.customer.phone ?? null;
+
       customer = Customer.create({
         establishmentId: scope.value.establishment.id,
         cpfCnpj: quote.customer.cpfCnpj,
         fullName: quote.customer.name,
-        phone: Phone.create(request.phone ?? quote.customer.phone ?? ""),
+        phone:
+          phoneValue !== null && phoneValue.trim()
+            ? Phone.create(phoneValue)
+            : null,
         email: new Email(request.email),
         address: toAddress(quote.customer.address),
         birthDate: request.birthDate ?? null,
