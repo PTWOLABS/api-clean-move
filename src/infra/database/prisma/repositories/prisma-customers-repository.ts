@@ -75,6 +75,32 @@ export class PrismaCustomersRepository implements CustomersRepository {
     }
   }
 
+  async findManyByIdsAndEstablishmentIdIncludingDeleted(
+    ids: string[],
+    establishmentId: string,
+  ): Promise<Customer[]> {
+    if (ids.length === 0) {
+      return [];
+    }
+
+    try {
+      const customers = await PrismaUnitOfWork.getClient(
+        this.prisma,
+      ).customer.findMany({
+        where: {
+          id: { in: ids },
+          establishmentId,
+        },
+      });
+
+      return customers.map((customer) =>
+        PrismaCustomerMapper.toDomain(customer),
+      );
+    } catch (error) {
+      rethrowPrismaRepositoryError(error);
+    }
+  }
+
   async findActiveByCpfCnpjAndEstablishmentId(
     cpfCnpj: string,
     establishmentId: string,
