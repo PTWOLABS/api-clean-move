@@ -1,17 +1,23 @@
 import { ResourceNotFoundError } from "../../../../shared/errors/resource-not-found-error";
 import { makeAppointment } from "../../../../../tests/factories/appointment-factory";
+import { makeCustomer } from "../../../../../tests/factories/customer-factory";
+import { makeCustomerVehicle } from "../../../../../tests/factories/customer-vehicle-factory";
 import { makeEmployee } from "../../../../../tests/factories/employee-factory";
 import { makeEstablishment } from "../../../../../tests/factories/establishment-factory";
+import { makeService } from "../../../../../tests/factories/service-factory";
 import { makeUser } from "../../../../../tests/factories/user-factory";
 import { InMemoryAppointmentsRepository } from "../../../../../tests/repositories/in-memory-appointments-repository";
+import { InMemoryCustomerVehiclesRepository } from "../../../../../tests/repositories/in-memory-customer-vehicles-repository";
 import { InMemoryCustomersRepository } from "../../../../../tests/repositories/in-memory-customers-repository";
 import { InMemoryEmployeesRepository } from "../../../../../tests/repositories/in-memory-employees-repository";
 import { InMemoryEstablishmentsRepository } from "../../../../../tests/repositories/in-memory-establishment-repository";
 import { InMemoryServicesRepository } from "../../../../../tests/repositories/in-memory-services-repository";
+import { AppointmentResourceStatusResolver } from "../../services/appointment-resource-status-resolver";
 import { EstablishmentScopeService } from "../../services/establishment-scope";
 import { ListCalendarAppointmentsUseCase } from "./list-calendar-appointments";
 
 let inMemoryAppointmentsRepository: InMemoryAppointmentsRepository;
+let inMemoryCustomerVehiclesRepository: InMemoryCustomerVehiclesRepository;
 let inMemoryCustomersRepository: InMemoryCustomersRepository;
 let inMemoryEmployeesRepository: InMemoryEmployeesRepository;
 let inMemoryEstablishmentsRepository: InMemoryEstablishmentsRepository;
@@ -28,6 +34,9 @@ describe("List calendar appointments", () => {
     inMemoryAppointmentsRepository = new InMemoryAppointmentsRepository(
       inMemoryCustomersRepository,
     );
+    inMemoryCustomerVehiclesRepository = new InMemoryCustomerVehiclesRepository(
+      inMemoryCustomersRepository,
+    );
     inMemoryServicesRepository = new InMemoryServicesRepository();
     inMemoryEmployeesRepository = new InMemoryEmployeesRepository();
     inMemoryEstablishmentsRepository = new InMemoryEstablishmentsRepository(
@@ -41,6 +50,11 @@ describe("List calendar appointments", () => {
     sut = new ListCalendarAppointmentsUseCase(
       inMemoryAppointmentsRepository,
       establishmentScope,
+      new AppointmentResourceStatusResolver(
+        inMemoryCustomersRepository,
+        inMemoryCustomerVehiclesRepository,
+        inMemoryServicesRepository,
+      ),
     );
   });
 
@@ -159,6 +173,74 @@ describe("List calendar appointments", () => {
     if (result.isLeft()) throw result.value;
     expect(result.value.appointments).toEqual([doneAppointment]);
     expect(result.value.totalItems).toBe(1);
+  });
+
+  it("should resolve deleted resource status for calendar snapshots", async () => {
+    const establishment = makeEstablishment();
+    const customer = makeCustomer({ establishmentId: establishment.id });
+    const vehicle = makeCustomerVehicle({
+      establishmentId: establishment.id,
+      customerId: customer.id,
+    });
+    const service = makeService({ establishmentId: establishment.id });
+    const deletedAt = new Date("2026-04-10T10:00:00.000Z");
+
+    customer.softDelete(deletedAt);
+    vehicle.softDelete(deletedAt);
+    service.softDelete(deletedAt);
+
+    const appointment = makeAppointment({
+      establishmentId: establishment.id,
+      customerId: customer.id,
+      customer: { fullName: customer.fullName },
+      vehicleId: vehicle.id,
+      vehicle: {
+        plate: vehicle.plate,
+        brand: vehicle.brand,
+        model: vehicle.model,
+        color: vehicle.color,
+        year: vehicle.year,
+      },
+      services: [
+        {
+          serviceId: service.id,
+          serviceName: service.serviceName.value,
+          category: service.category,
+          durationInMinutes: service.estimatedDuration?.upperBoundInMinutes,
+          priceInCents: service.price.amountInCents,
+        },
+      ],
+      startsAt: new Date("2026-04-11T10:00:00.000Z"),
+      endsAt: new Date("2026-04-12T10:00:00.000Z"),
+    });
+
+    await inMemoryEstablishmentsRepository.create(establishment);
+    await inMemoryCustomersRepository.create(customer);
+    await inMemoryCustomerVehiclesRepository.create(vehicle);
+    await inMemoryServicesRepository.create(service);
+    await inMemoryAppointmentsRepository.create(appointment);
+
+    const result = await sut.execute({
+      actor: {
+        userId: establishment.ownerId.toString(),
+        role: "ESTABLISHMENT",
+      },
+      filters: {
+        startsAt: rangeStartsAt,
+        endsAt: rangeEndsAt,
+      },
+    });
+
+    expect(result.isRight()).toBe(true);
+    if (result.isLeft()) throw result.value;
+
+    const listedAppointment = result.value.appointments[0]!;
+
+    expect(listedAppointment.customerCurrentResourceStatus).toBe("DELETED");
+    expect(listedAppointment.getServiceCurrentResourceStatus(service.id)).toBe(
+      "DELETED",
+    );
+    expect(listedAppointment.vehicleCurrentResourceStatus).toBe("DELETED");
   });
 
   it("should order appointments by startsAt ascending", async () => {
