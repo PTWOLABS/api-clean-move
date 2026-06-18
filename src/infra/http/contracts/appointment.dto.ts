@@ -1,4 +1,7 @@
-import { AppointmentStatus } from "../../../modules/scheduling/domain/entities/appointment";
+import {
+  AppointmentResourceStatus,
+  AppointmentStatus,
+} from "../../../modules/scheduling/domain/entities/appointment";
 
 export type ServiceCategoryDTO = {
   id: string;
@@ -11,10 +14,12 @@ export type AppointmentServiceDTO = {
   category: ServiceCategoryDTO | null;
   durationInMinutes: number | null;
   priceInCents: number;
+  currentResourceStatus: AppointmentResourceStatus;
 };
 
 export type AppointmentCustomerDTO = {
   fullName: string;
+  currentResourceStatus: AppointmentResourceStatus;
 };
 
 export type AppointmentItemDTO = {
@@ -31,6 +36,7 @@ export type AppointmentItemDTO = {
     color: string | null;
     year: number | null;
     displayName: string | null;
+    currentResourceStatus: AppointmentResourceStatus;
   } | null;
   startsAt: string;
   endsAt: string | null;
