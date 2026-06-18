@@ -42,6 +42,10 @@ export abstract class ServicesRepository {
     serviceId: string,
     establishmentId: string,
   ): Promise<Service | null>;
+  abstract findManyByIdsAndEstablishmentIdIncludingDeleted(
+    ids: string[],
+    establishmentId: string,
+  ): Promise<Service[]>;
   abstract save(service: Service): Promise<void>;
   abstract findMany(filters?: ServiceFilters): Promise<PaginatedServices>;
   abstract clearCategoryFromServices(categoryId: string): Promise<number>;
