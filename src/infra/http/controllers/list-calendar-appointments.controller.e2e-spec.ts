@@ -8,6 +8,10 @@ import { EstablishmentFactory } from "../../../../tests/factories/establishment-
 import { ServiceFactory } from "../../../../tests/factories/service-factory";
 import { UserFactory } from "../../../../tests/factories/user-factory";
 import {
+  createAppointmentResourceStatusScenario,
+  expectAppointmentResourceStatusScenario,
+} from "../../../../tests/helpers/appointment-resource-status.e2e-helper";
+import {
   appointmentPayload,
   appointmentResponseSchema,
   listAppointmentsResponseSchema,
@@ -158,9 +162,9 @@ describe("ListCalendarAppointmentsController (e2e)", () => {
     expect(
       body.appointments.map((appointment) => appointment.customer),
     ).toEqual([
-      { fullName: "Cliente Agenda" },
-      { fullName: "Cliente Agenda" },
-      { fullName: "Cliente Agenda" },
+      { fullName: "Cliente Agenda", currentResourceStatus: "UPDATED" },
+      { fullName: "Cliente Agenda", currentResourceStatus: "UPDATED" },
+      { fullName: "Cliente Agenda", currentResourceStatus: "UPDATED" },
     ]);
   });
 
@@ -244,6 +248,37 @@ describe("ListCalendarAppointmentsController (e2e)", () => {
         (appointment) => appointment.id === scheduledAppointment.id,
       ),
     ).toBe(false);
+  });
+
+  it("should return current resource status for unchanged, updated, and deleted snapshots", async () => {
+    const { accessToken, establishment } = await makeEstablishmentAuth({
+      app,
+      prisma,
+      userFactory,
+      establishmentFactory,
+      envService,
+    });
+    const scenario = await createAppointmentResourceStatusScenario({
+      app,
+      prisma,
+      accessToken,
+      establishment,
+      customerFactory,
+      serviceFactory,
+    });
+
+    const response = await request(getHttpServer(app))
+      .get("/appointments/calendar")
+      .set("Authorization", `Bearer ${accessToken}`)
+      .query({
+        startsAt: rangeStartsAt,
+        endsAt: rangeEndsAt,
+      });
+    const body = listAppointmentsResponseSchema.parse(response.body);
+
+    expect(response.status).toBe(200);
+    expect(body.appointments).toHaveLength(3);
+    expectAppointmentResourceStatusScenario(body.appointments, scenario);
   });
 
   it("should enforce authentication and establishment role", async () => {
