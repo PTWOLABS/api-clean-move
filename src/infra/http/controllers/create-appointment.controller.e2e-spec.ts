@@ -22,12 +22,21 @@ import { PrismaService } from "../../database/prisma/prisma.service";
 import { EnvService } from "../../env/env.service";
 
 const appointmentStatusSchema = z.enum(["SCHEDULED", "DONE", "CANCELLED"]);
+const appointmentResourceStatusSchema = z.enum([
+  "UNCHANGED",
+  "UPDATED",
+  "DELETED",
+]);
 
 const appointmentResponseSchema = z.object({
   appointment: z.object({
     id: z.uuid(),
     establishmentId: z.uuid(),
     customerId: z.uuid(),
+    customer: z.object({
+      fullName: z.string(),
+      currentResourceStatus: appointmentResourceStatusSchema,
+    }),
     vehicleId: z.uuid().nullable(),
     services: z
       .array(
@@ -37,6 +46,7 @@ const appointmentResponseSchema = z.object({
           category: z.string().nullable(),
           durationInMinutes: z.number().int().nullable(),
           priceInCents: z.number().int(),
+          currentResourceStatus: appointmentResourceStatusSchema,
         }),
       )
       .min(1),
@@ -47,6 +57,8 @@ const appointmentResponseSchema = z.object({
         model: z.string().nullable(),
         color: z.string().nullable(),
         year: z.number().int().nullable(),
+        displayName: z.string().nullable(),
+        currentResourceStatus: appointmentResourceStatusSchema,
       })
       .nullable(),
     startsAt: z.string(),
@@ -296,6 +308,8 @@ describe("Appointment controllers (e2e)", () => {
       model: "Corolla",
       color: "Prata",
       year: 2022,
+      displayName: "Toyota Corolla 2022",
+      currentResourceStatus: "UNCHANGED",
     });
   });
 

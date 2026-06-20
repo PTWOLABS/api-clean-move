@@ -831,6 +831,12 @@ export class AppointmentServiceDto {
 
   @ApiProperty({ example: 7500 })
   priceInCents!: number;
+
+  @ApiProperty({
+    enum: ["UNCHANGED", "UPDATED", "DELETED"],
+    example: "UNCHANGED",
+  })
+  currentResourceStatus!: "UNCHANGED" | "UPDATED" | "DELETED";
 }
 
 export class AppointmentVehicleSnapshotDto {
@@ -855,11 +861,23 @@ export class AppointmentVehicleSnapshotDto {
     description: "Derived display name built from brand, model, and year.",
   })
   displayName!: string | null;
+
+  @ApiProperty({
+    enum: ["UNCHANGED", "UPDATED", "DELETED"],
+    example: "UNCHANGED",
+  })
+  currentResourceStatus!: "UNCHANGED" | "UPDATED" | "DELETED";
 }
 
 export class AppointmentCustomerSnapshotDto {
   @ApiProperty({ example: "Maria Silva" })
   fullName!: string;
+
+  @ApiProperty({
+    enum: ["UNCHANGED", "UPDATED", "DELETED"],
+    example: "UNCHANGED",
+  })
+  currentResourceStatus!: "UNCHANGED" | "UPDATED" | "DELETED";
 }
 
 export class AppointmentDto {

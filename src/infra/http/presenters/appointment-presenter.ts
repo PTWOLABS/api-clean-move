@@ -24,6 +24,7 @@ export class AppointmentPresenter {
       customerId: appointment.customerId.toString(),
       customer: {
         fullName: appointment.customer.fullName,
+        currentResourceStatus: appointment.customerCurrentResourceStatus,
       },
       vehicleId: appointment.vehicleId?.toString() ?? null,
       services: appointment.services.map((service) => ({
@@ -37,6 +38,9 @@ export class AppointmentPresenter {
           : null,
         durationInMinutes: service.durationInMinutes ?? null,
         priceInCents: service.priceInCents,
+        currentResourceStatus: appointment.getServiceCurrentResourceStatus(
+          service.serviceId,
+        ),
       })),
       vehicle: appointment.vehicle
         ? {
@@ -48,6 +52,7 @@ export class AppointmentPresenter {
             displayName: buildAppointmentVehicleDisplayName(
               appointment.vehicle,
             ),
+            currentResourceStatus: appointment.vehicleCurrentResourceStatus,
           }
         : null,
       startsAt: appointment.startsAt.toISOString(),

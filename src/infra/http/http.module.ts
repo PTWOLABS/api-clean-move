@@ -8,6 +8,7 @@ import { UpdateAppointmentUseCase } from "../../modules/application/use-cases/ap
 import { UpdateAppointmentStatusUseCase } from "../../modules/application/use-cases/appointment/update-appointment-status";
 import { AuthenticateWithOAuthUseCase } from "../../modules/application/use-cases/auth/authenticate-with-oauth";
 import { AuthSessionService } from "../../modules/application/services/auth-session.service";
+import { AppointmentResourceStatusResolver } from "../../modules/application/services/appointment-resource-status-resolver";
 import { EstablishmentScopeService } from "../../modules/application/services/establishment-scope";
 import { UserEstablishmentResolver } from "../../modules/application/services/user-establishment-resolver";
 import { LoginWithCredentialsUseCase } from "../../modules/application/use-cases/auth/login-with-credentials";
@@ -214,6 +215,7 @@ import { DeleteEstablishmentBannerImageController } from "./controllers/media/de
     UpdateEmployeeUseCase,
     DeleteEmployeeUseCase,
     UploadDomainImageUseCase,
+    AppointmentResourceStatusResolver,
     AuthSessionService,
     EstablishmentScopeService,
     UserEstablishmentResolver,

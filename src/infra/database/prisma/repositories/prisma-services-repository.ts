@@ -207,6 +207,31 @@ export class PrismaServicesRepository implements ServicesRepository {
     }
   }
 
+  async findManyByIdsAndEstablishmentIdIncludingDeleted(
+    ids: string[],
+    establishmentId: string,
+  ): Promise<Service[]> {
+    if (ids.length === 0) {
+      return [];
+    }
+
+    try {
+      const services = await PrismaUnitOfWork.getClient(
+        this.prisma,
+      ).service.findMany({
+        where: {
+          id: { in: ids },
+          establishmentId,
+        },
+        include: { category: true },
+      });
+
+      return services.map((service) => PrismaServiceMapper.toDomain(service));
+    } catch (error) {
+      rethrowPrismaRepositoryError(error);
+    }
+  }
+
   async save(service: Service): Promise<void> {
     const data = PrismaServiceMapper.toPrismaUpdate(service);
 

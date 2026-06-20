@@ -9,6 +9,13 @@ import { InvalidAppointmentInputError } from "../errors/invalid-appointment-inpu
 import { BookedServiceSnapshot } from "../value-objects/booked-service-snapshot";
 
 export type AppointmentStatus = "SCHEDULED" | "DONE" | "CANCELLED";
+export type AppointmentResourceStatus = "UNCHANGED" | "UPDATED" | "DELETED";
+
+type AppointmentCurrentResourceStatuses = {
+  customer?: AppointmentResourceStatus;
+  services?: Map<string, AppointmentResourceStatus>;
+  vehicle?: AppointmentResourceStatus;
+};
 
 export type AppointmentServiceSnapshot = {
   serviceId: UniqueEntityId;
@@ -69,6 +76,8 @@ type AppointmentUpdateProps = Partial<
 >;
 
 export class Appointment extends AggregateRoot<AppointmentProps> {
+  private currentResourceStatuses: AppointmentCurrentResourceStatuses = {};
+
   get establishmentId() {
     return this.props.establishmentId;
   }
@@ -131,6 +140,43 @@ export class Appointment extends AggregateRoot<AppointmentProps> {
 
   get deletedAt() {
     return this.props.deletedAt;
+  }
+
+  get customerCurrentResourceStatus(): AppointmentResourceStatus {
+    return this.currentResourceStatuses.customer ?? "UNCHANGED";
+  }
+
+  get vehicleCurrentResourceStatus(): AppointmentResourceStatus {
+    return this.currentResourceStatuses.vehicle ?? "UNCHANGED";
+  }
+
+  getServiceCurrentResourceStatus(
+    serviceId: UniqueEntityId,
+  ): AppointmentResourceStatus {
+    return (
+      this.currentResourceStatuses.services?.get(serviceId.toString()) ??
+      "UNCHANGED"
+    );
+  }
+
+  setCurrentResourceStatuses(statuses: {
+    customer: AppointmentResourceStatus;
+    services: Array<{
+      serviceId: UniqueEntityId;
+      status: AppointmentResourceStatus;
+    }>;
+    vehicle?: AppointmentResourceStatus;
+  }) {
+    this.currentResourceStatuses = {
+      customer: statuses.customer,
+      services: new Map(
+        statuses.services.map((service) => [
+          service.serviceId.toString(),
+          service.status,
+        ]),
+      ),
+      ...(statuses.vehicle ? { vehicle: statuses.vehicle } : {}),
+    };
   }
 
   static totalServicesPriceInCents(services: AppointmentServiceSnapshot[]) {

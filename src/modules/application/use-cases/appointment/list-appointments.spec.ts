@@ -9,14 +9,17 @@ import { makeService } from "../../../../../tests/factories/service-factory";
 import { makeUser } from "../../../../../tests/factories/user-factory";
 import { Employee } from "../../../employees/domain/entities/employee";
 import { InMemoryAppointmentsRepository } from "../../../../../tests/repositories/in-memory-appointments-repository";
+import { InMemoryCustomerVehiclesRepository } from "../../../../../tests/repositories/in-memory-customer-vehicles-repository";
 import { InMemoryCustomersRepository } from "../../../../../tests/repositories/in-memory-customers-repository";
 import { InMemoryEmployeesRepository } from "../../../../../tests/repositories/in-memory-employees-repository";
 import { InMemoryEstablishmentsRepository } from "../../../../../tests/repositories/in-memory-establishment-repository";
 import { InMemoryServicesRepository } from "../../../../../tests/repositories/in-memory-services-repository";
+import { AppointmentResourceStatusResolver } from "../../services/appointment-resource-status-resolver";
 import { EstablishmentScopeService } from "../../services/establishment-scope";
 import { ListAppointmentsUseCase } from "./list-appointments";
 
 let inMemoryAppointmentsRepository: InMemoryAppointmentsRepository;
+let inMemoryCustomerVehiclesRepository: InMemoryCustomerVehiclesRepository;
 let inMemoryCustomersRepository: InMemoryCustomersRepository;
 let inMemoryEmployeesRepository: InMemoryEmployeesRepository;
 let inMemoryEstablishmentsRepository: InMemoryEstablishmentsRepository;
@@ -28,6 +31,9 @@ describe("List appointments", () => {
   beforeEach(() => {
     inMemoryCustomersRepository = new InMemoryCustomersRepository();
     inMemoryAppointmentsRepository = new InMemoryAppointmentsRepository(
+      inMemoryCustomersRepository,
+    );
+    inMemoryCustomerVehiclesRepository = new InMemoryCustomerVehiclesRepository(
       inMemoryCustomersRepository,
     );
     inMemoryServicesRepository = new InMemoryServicesRepository();
@@ -43,6 +49,11 @@ describe("List appointments", () => {
     sut = new ListAppointmentsUseCase(
       inMemoryAppointmentsRepository,
       establishmentScope,
+      new AppointmentResourceStatusResolver(
+        inMemoryCustomersRepository,
+        inMemoryCustomerVehiclesRepository,
+        inMemoryServicesRepository,
+      ),
     );
   });
 
@@ -153,6 +164,9 @@ describe("List appointments", () => {
     await inMemoryEstablishmentsRepository.create(otherEstablishment);
     await inMemoryCustomersRepository.create(customer);
     await inMemoryCustomersRepository.create(otherCustomer);
+    await inMemoryCustomerVehiclesRepository.create(vehicle);
+    await inMemoryServicesRepository.create(service);
+    await inMemoryServicesRepository.create(otherService);
     await inMemoryAppointmentsRepository.create(matchingAppointment);
     await inMemoryAppointmentsRepository.create(wrongStatusAppointment);
     await inMemoryAppointmentsRepository.create(wrongCustomerAppointment);
@@ -189,6 +203,70 @@ describe("List appointments", () => {
 
     expect(result.value.appointments).toEqual([matchingAppointment]);
     expect(result.value.totalItems).toBe(1);
+  });
+
+  it("should resolve current resource status for appointment snapshots", async () => {
+    const establishment = makeEstablishment();
+    const customer = makeCustomer({
+      establishmentId: establishment.id,
+      fullName: "Maria Atualizada",
+    });
+    const vehicle = makeCustomerVehicle({
+      establishmentId: establishment.id,
+      customerId: customer.id,
+      model: "Corolla Cross",
+    });
+    const service = makeService({
+      establishmentId: establishment.id,
+    });
+    service.update({ serviceName: "Lavagem detalhada" });
+
+    const appointment = makeAppointment({
+      establishmentId: establishment.id,
+      customerId: customer.id,
+      customer: { fullName: "Maria Silva" },
+      vehicleId: vehicle.id,
+      vehicle: {
+        plate: vehicle.plate,
+        brand: vehicle.brand,
+        model: "Corolla",
+        color: vehicle.color,
+        year: vehicle.year,
+      },
+      services: [
+        {
+          serviceId: service.id,
+          serviceName: "Lavagem completa",
+          category: service.category,
+          durationInMinutes: service.estimatedDuration?.upperBoundInMinutes,
+          priceInCents: service.price.amountInCents,
+        },
+      ],
+    });
+
+    await inMemoryEstablishmentsRepository.create(establishment);
+    await inMemoryCustomersRepository.create(customer);
+    await inMemoryCustomerVehiclesRepository.create(vehicle);
+    await inMemoryServicesRepository.create(service);
+    await inMemoryAppointmentsRepository.create(appointment);
+
+    const result = await sut.execute({
+      actor: {
+        userId: establishment.ownerId.toString(),
+        role: "ESTABLISHMENT",
+      },
+    });
+
+    expect(result.isRight()).toBe(true);
+    if (result.isLeft()) throw result.value;
+
+    const listedAppointment = result.value.appointments[0]!;
+
+    expect(listedAppointment.customerCurrentResourceStatus).toBe("UPDATED");
+    expect(listedAppointment.getServiceCurrentResourceStatus(service.id)).toBe(
+      "UPDATED",
+    );
+    expect(listedAppointment.vehicleCurrentResourceStatus).toBe("UPDATED");
   });
 
   it("should return totalItems across all pages when paginating", async () => {

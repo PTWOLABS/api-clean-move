@@ -134,6 +134,7 @@ describe("UpdateAppointmentController (e2e)", () => {
       displayName: "Honda Civic 2024",
       color: "Preto",
       year: 2024,
+      currentResourceStatus: "UNCHANGED",
     });
     expect(body.appointment.startsAt).toBe("2026-05-01T10:00:00.000Z");
     expect(body.appointment.endsAt).toBe("2026-05-01T12:00:00.000Z");

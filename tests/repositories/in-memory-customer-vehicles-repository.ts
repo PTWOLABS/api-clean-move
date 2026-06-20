@@ -61,6 +61,19 @@ export class InMemoryCustomerVehiclesRepository implements CustomerVehiclesRepos
     return vehicle;
   }
 
+  async findManyByIdsAndEstablishmentIdIncludingDeleted(
+    ids: string[],
+    establishmentId: string,
+  ): Promise<CustomerVehicle[]> {
+    const idSet = new Set(ids);
+
+    return this.items.filter(
+      (item) =>
+        idSet.has(item.id.toString()) &&
+        item.establishmentId.toString() === establishmentId,
+    );
+  }
+
   async findActiveByPlateAndEstablishmentId(
     plate: string,
     establishmentId: string,

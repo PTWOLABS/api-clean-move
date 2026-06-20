@@ -101,6 +101,32 @@ export class PrismaCustomerVehiclesRepository implements CustomerVehiclesReposit
     }
   }
 
+  async findManyByIdsAndEstablishmentIdIncludingDeleted(
+    ids: string[],
+    establishmentId: string,
+  ): Promise<CustomerVehicle[]> {
+    if (ids.length === 0) {
+      return [];
+    }
+
+    try {
+      const vehicles = await PrismaUnitOfWork.getClient(
+        this.prisma,
+      ).customerVehicle.findMany({
+        where: {
+          id: { in: ids },
+          establishmentId,
+        },
+      });
+
+      return vehicles.map((vehicle) =>
+        PrismaCustomerVehicleMapper.toDomain(vehicle),
+      );
+    } catch (error) {
+      rethrowPrismaRepositoryError(error);
+    }
+  }
+
   async findActiveByPlateAndEstablishmentId(
     plate: string,
     establishmentId: string,

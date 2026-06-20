@@ -24,6 +24,7 @@ describe("AppointmentPresenter", () => {
       color: "Prata",
       year: 2011,
       displayName: "Honda Civic 2011",
+      currentResourceStatus: "UNCHANGED",
     });
   });
 
