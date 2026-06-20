@@ -26,6 +26,27 @@ describe("Create customer", () => {
     );
   });
 
+  it("should create an establishment customer with only fullName", async () => {
+    const establishment = makeEstablishment();
+    await inMemoryEstablishmentsRepository.create(establishment);
+
+    const result = await sut.execute({
+      establishmentOwnerId: establishment.ownerId.toString(),
+      fullName: "Maria Silva",
+    });
+
+    expect(result.isRight()).toBe(true);
+
+    if (result.isLeft()) {
+      throw result.value;
+    }
+
+    expect(inMemoryCustomersRepository.items[0]).toBe(result.value.customer);
+    expect(result.value.customer.fullName).toBe("Maria Silva");
+    expect(result.value.customer.phone).toBeNull();
+    expect(result.value.customer.email).toBeNull();
+  });
+
   it("should create an establishment customer", async () => {
     const establishment = makeEstablishment();
     await inMemoryEstablishmentsRepository.create(establishment);

@@ -39,7 +39,7 @@ import { CustomerPresenter } from "../presenters/customer-presenter";
 const createCustomerBodySchema = z.object({
   cpfCnpj: z.string().trim().optional().nullable(),
   fullName: z.string().trim().min(1),
-  phone: z.string().trim().min(1),
+  phone: z.string().trim().optional().nullable(),
   email: z.email().trim().optional().nullable(),
   address: z
     .object({
@@ -104,7 +104,7 @@ export class CreateCustomerController {
     const result = await this.createCustomer.execute({
       establishmentOwnerId: user.userId,
       fullName: body.fullName,
-      phone: body.phone,
+      ...(body.phone !== undefined ? { phone: body.phone } : {}),
       ...(body.email !== undefined ? { email: body.email } : {}),
       ...(body.cpfCnpj !== undefined ? { cpfCnpj: body.cpfCnpj } : {}),
       ...(body.address !== undefined ? { address: body.address } : {}),

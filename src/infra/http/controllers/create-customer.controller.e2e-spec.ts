@@ -23,7 +23,7 @@ const customerResponseSchema = z.object({
     cpfCnpj: z.string().nullable(),
     documentType: z.enum(["CPF", "CNPJ"]).nullable(),
     fullName: z.string(),
-    phone: z.string(),
+    phone: z.string().nullable(),
     email: z.email().nullable(),
     address: z
       .object({
@@ -148,6 +148,49 @@ describe("Customer controllers (e2e)", () => {
     });
 
     expect(deletedCustomer?.deletedAt).toBeInstanceOf(Date);
+  });
+
+  it("should create a customer with only fullName", async () => {
+    const { accessToken } = await makeEstablishmentAccessToken({
+      app,
+      prisma,
+      userFactory,
+      establishmentFactory,
+      envService,
+    });
+
+    const response = await request(getHttpServer(app))
+      .post("/customers")
+      .set("Authorization", `Bearer ${accessToken}`)
+      .send({ fullName: "Cliente Minimo" });
+    const body = customerResponseSchema.parse(response.body);
+
+    expect(response.status).toBe(201);
+    expect(body.customer.fullName).toBe("Cliente Minimo");
+    expect(body.customer.phone).toBeNull();
+    expect(body.customer.email).toBeNull();
+  });
+
+  it("should create a customer without phone", async () => {
+    const { accessToken } = await makeEstablishmentAccessToken({
+      app,
+      prisma,
+      userFactory,
+      establishmentFactory,
+      envService,
+    });
+
+    const payload = validCustomerPayload("111.444.777-35");
+    delete (payload as Partial<typeof payload>).phone;
+
+    const response = await request(getHttpServer(app))
+      .post("/customers")
+      .set("Authorization", `Bearer ${accessToken}`)
+      .send(payload);
+    const body = customerResponseSchema.parse(response.body);
+
+    expect(response.status).toBe(201);
+    expect(body.customer.phone).toBeNull();
   });
 
   it("should create a customer without email", async () => {

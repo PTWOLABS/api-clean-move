@@ -10,7 +10,7 @@ export class CustomerPresenter {
       cpfCnpj: customer.cpfCnpj?.toString() ?? null,
       documentType: customer.cpfCnpj?.type ?? null,
       fullName: customer.fullName,
-      phone: customer.phone.toString(),
+      phone: customer.phone?.toString() ?? null,
       email: customer.email?.toString() ?? null,
       address: customer.address
         ? {
