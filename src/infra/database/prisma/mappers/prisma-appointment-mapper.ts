@@ -4,6 +4,7 @@ import {
   Prisma,
 } from "../../../../generated/prisma/client";
 import { Money } from "../../../../modules/catalog/domain/value-objects/money";
+import { ServicePriceSpecificationValue } from "../../../../modules/catalog/domain/value-objects/service-price-specification";
 import { Appointment } from "../../../../modules/scheduling/domain/entities/appointment";
 import { UniqueEntityId } from "../../../../shared/entities/unique-entity-id";
 
@@ -24,6 +25,76 @@ function toCategorySnapshot(
 type PrismaAppointmentWithBookedServices = PrismaAppointmentRecord & {
   bookedServices: PrismaAppointmentBookedServiceRecord[];
 };
+
+function toPriceSpecificationSnapshot(
+  bookedService: PrismaAppointmentBookedServiceRecord,
+): ServicePriceSpecificationValue {
+  if (bookedService.servicePriceSpecificationType === "FIXED") {
+    return {
+      type: "FIXED",
+      fixedPriceInCents: bookedService.servicePriceDefaultInCents,
+    };
+  }
+
+  if (bookedService.servicePriceSpecificationType === "STARTING_AT") {
+    return {
+      type: "STARTING_AT",
+      minPriceInCents: bookedService.servicePriceDefaultInCents,
+    };
+  }
+
+  const maxPriceInCents = bookedService.servicePriceRangeMaxInCents;
+
+  if (maxPriceInCents === null) {
+    throw new Error(
+      "Invalid booked service record: servicePriceRangeMaxInCents is required for range pricing.",
+    );
+  }
+
+  return {
+    type: "RANGE",
+    minPriceInCents: bookedService.servicePriceDefaultInCents,
+    maxPriceInCents,
+  };
+}
+
+function toBookedServicePricePersistence(
+  priceSpecification: ServicePriceSpecificationValue | undefined,
+  priceInCents: number,
+): Pick<
+  Prisma.AppointmentBookedServiceUncheckedCreateWithoutAppointmentInput,
+  | "servicePriceDefaultInCents"
+  | "servicePriceSpecificationType"
+  | "servicePriceRangeMaxInCents"
+> {
+  const defaultPriceInCents =
+    priceSpecification?.fixedPriceInCents ??
+    priceSpecification?.minPriceInCents ??
+    priceInCents;
+
+  if (!priceSpecification || priceSpecification.type === "FIXED") {
+    return {
+      servicePriceDefaultInCents: defaultPriceInCents,
+      servicePriceSpecificationType: "FIXED",
+      servicePriceRangeMaxInCents: null,
+    };
+  }
+
+  if (priceSpecification.type === "STARTING_AT") {
+    return {
+      servicePriceDefaultInCents: defaultPriceInCents,
+      servicePriceSpecificationType: "STARTING_AT",
+      servicePriceRangeMaxInCents: null,
+    };
+  }
+
+  return {
+    servicePriceDefaultInCents: defaultPriceInCents,
+    servicePriceSpecificationType: "RANGE",
+    servicePriceRangeMaxInCents:
+      priceSpecification.maxPriceInCents ?? priceInCents,
+  };
+}
 
 export class PrismaAppointmentMapper {
   static toDomain(raw: PrismaAppointmentWithBookedServices): Appointment {
@@ -54,7 +125,9 @@ export class PrismaAppointmentMapper {
             ),
             durationInMinutes:
               bookedService.serviceDurationInMinutes ?? undefined,
+            priceSpecification: toPriceSpecificationSnapshot(bookedService),
             priceInCents: bookedService.servicePriceInCents,
+            isActive: bookedService.serviceIsActive,
           })),
         vehicle: hasVehicleSnapshot
           ? {
@@ -93,6 +166,11 @@ export class PrismaAppointmentMapper {
       serviceCategoryName: service.category?.name ?? null,
       serviceDurationInMinutes: service.durationInMinutes ?? null,
       servicePriceInCents: service.priceInCents,
+      ...toBookedServicePricePersistence(
+        service.priceSpecification,
+        service.priceInCents,
+      ),
+      serviceIsActive: service.isActive ?? true,
       position: index,
     }));
   }

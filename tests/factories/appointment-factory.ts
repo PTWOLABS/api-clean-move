@@ -23,7 +23,12 @@ export function makeAppointment(
           serviceName: "Lavagem simples",
           category: makeServiceCategoryRef("Lavagem"),
           durationInMinutes: 60,
+          priceSpecification: {
+            type: "FIXED",
+            fixedPriceInCents: 30000,
+          },
           priceInCents: 30000,
+          isActive: true,
         },
       ],
 

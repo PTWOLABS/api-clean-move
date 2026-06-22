@@ -1,5 +1,6 @@
 import { ServiceCategorySnapshot } from "../../../catalog/domain/value-objects/service-category-ref";
 import { Money } from "../../../catalog/domain/value-objects/money";
+import { ServicePriceSpecificationValue } from "../../../catalog/domain/value-objects/service-price-specification";
 import { AggregateRoot } from "../../../../shared/entities/aggregate-root";
 import { UniqueEntityId } from "../../../../shared/entities/unique-entity-id";
 import { Optional } from "../../../../shared/types/optional";
@@ -22,7 +23,9 @@ export type AppointmentServiceSnapshot = {
   serviceName: string;
   category: ServiceCategorySnapshot | undefined;
   durationInMinutes: number | undefined;
+  priceSpecification?: ServicePriceSpecificationValue;
   priceInCents: number;
+  isActive?: boolean;
 };
 
 export type AppointmentCustomerSnapshot = {
@@ -65,6 +68,7 @@ type AppointmentUpdateProps = Partial<
   Pick<
     AppointmentProps,
     | "customerId"
+    | "customer"
     | "vehicleId"
     | "services"
     | "vehicle"
