@@ -42,6 +42,10 @@ export abstract class ServicesRepository {
     serviceId: string,
     establishmentId: string,
   ): Promise<Service | null>;
+  abstract findActiveByNameAndEstablishmentId(
+    serviceName: string,
+    establishmentId: string,
+  ): Promise<Service | null>;
   abstract findManyByIdsAndEstablishmentIdIncludingDeleted(
     ids: string[],
     establishmentId: string,

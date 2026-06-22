@@ -207,6 +207,35 @@ export class PrismaServicesRepository implements ServicesRepository {
     }
   }
 
+  async findActiveByNameAndEstablishmentId(
+    serviceName: string,
+    establishmentId: string,
+  ): Promise<Service | null> {
+    try {
+      const service = await PrismaUnitOfWork.getClient(
+        this.prisma,
+      ).service.findFirst({
+        where: {
+          establishmentId,
+          serviceName: {
+            equals: serviceName.trim(),
+            mode: "insensitive",
+          },
+          deletedAt: null,
+        },
+        include: { category: true },
+      });
+
+      if (!service) {
+        return null;
+      }
+
+      return PrismaServiceMapper.toDomain(service);
+    } catch (error) {
+      rethrowPrismaRepositoryError(error);
+    }
+  }
+
   async findManyByIdsAndEstablishmentIdIncludingDeleted(
     ids: string[],
     establishmentId: string,
