@@ -1,11 +1,14 @@
 import { ResourceNotFoundError } from "../../../../shared/errors/resource-not-found-error";
+import { ResourceAlreadyExistsError } from "../../../../shared/errors/resource-already-exists-error";
 import { UniqueEntityId } from "../../../../shared/entities/unique-entity-id";
 import { makeEstablishment } from "../../../../../tests/factories/establishment-factory";
+import { makeService } from "../../../../../tests/factories/service-factory";
 import { InMemoryEstablishmentsRepository } from "../../../../../tests/repositories/in-memory-establishment-repository";
 import { InMemoryServiceCategoriesRepository } from "../../../../../tests/repositories/in-memory-service-categories-repository";
 import { InMemoryServicesRepository } from "../../../../../tests/repositories/in-memory-services-repository";
 import { ServiceCategory } from "../../../catalog/domain/entities/service-category";
 import { CategoryName } from "../../../catalog/domain/value-objects/category-name";
+import { ServiceName } from "../../../catalog/domain/value-objects/service-name";
 import { CreateServiceUseCase } from "./create-service";
 import { InvalidServiceUpdateInputError } from "./update-service";
 
@@ -139,6 +142,46 @@ describe("Create a service", () => {
         fixedPriceInCents: 8000,
       });
     }
+  });
+
+  it("should reject an active duplicated service name in the same establishment", async () => {
+    const establishment = makeEstablishment();
+    const service = makeService({
+      establishmentId: establishment.id,
+      serviceName: ServiceName.create("Higienizacao"),
+    });
+
+    await inMemoryEstablishmentsRepository.create(establishment);
+    await inMemoryServicesRepository.create(service);
+
+    const result = await sut.execute({
+      establishmentOwnerId: establishment.ownerId.toString(),
+      serviceName: " higienizacao ",
+      price: 8000,
+    });
+
+    expect(result.isLeft()).toBe(true);
+    expect(result.value).toBeInstanceOf(ResourceAlreadyExistsError);
+  });
+
+  it("should create a service with the same name as a soft-deleted service", async () => {
+    const establishment = makeEstablishment();
+    const service = makeService({
+      establishmentId: establishment.id,
+      serviceName: ServiceName.create("Higienizacao"),
+    });
+    service.softDelete(new Date("2026-06-22T12:00:00.000Z"));
+
+    await inMemoryEstablishmentsRepository.create(establishment);
+    await inMemoryServicesRepository.create(service);
+
+    const result = await sut.execute({
+      establishmentOwnerId: establishment.ownerId.toString(),
+      serviceName: "Higienizacao",
+      price: 8000,
+    });
+
+    expect(result.isRight()).toBe(true);
   });
 
   it("should default missing price to a starting-at minimum price", async () => {

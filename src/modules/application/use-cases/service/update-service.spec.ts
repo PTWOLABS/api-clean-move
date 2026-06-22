@@ -1,5 +1,6 @@
 import { UniqueEntityId } from "../../../../shared/entities/unique-entity-id";
 import { NotAllowedError } from "../../../../shared/errors/not-allowed-error";
+import { ResourceAlreadyExistsError } from "../../../../shared/errors/resource-already-exists-error";
 import { ResourceNotFoundError } from "../../../../shared/errors/resource-not-found-error";
 import { makeCustomer } from "../../../../../tests/factories/customer-factory";
 import { makeEstablishment } from "../../../../../tests/factories/establishment-factory";
@@ -285,6 +286,61 @@ describe("Update a service", () => {
 
     expect(result.isLeft()).toBe(true);
     expect(result.value).toBeInstanceOf(ResourceNotFoundError);
+  });
+
+  it("should reject renaming a service to an active duplicated name in the same establishment", async () => {
+    const establishment = makeEstablishment();
+    await inMemoryEstablishmentsRepository.create(establishment);
+
+    const existingService = makeService({
+      establishmentId: establishment.id,
+      serviceName: ServiceName.create("Higienizacao"),
+    });
+    const serviceToUpdate = makeService({
+      establishmentId: establishment.id,
+      serviceName: ServiceName.create("Lavagem"),
+    });
+    await inMemoryServicesRepository.create(existingService);
+    await inMemoryServicesRepository.create(serviceToUpdate);
+
+    const result = await sut.execute({
+      establishmentOwnerId: establishment.ownerId.toString(),
+      serviceId: serviceToUpdate.id.toString(),
+      data: { serviceName: " higienizacao " },
+    });
+
+    expect(result.isLeft()).toBe(true);
+    expect(result.value).toBeInstanceOf(ResourceAlreadyExistsError);
+    expect(serviceToUpdate.serviceName.value).toBe("Lavagem");
+  });
+
+  it("should allow renaming a service to the same name as a soft-deleted service", async () => {
+    const establishment = makeEstablishment();
+    await inMemoryEstablishmentsRepository.create(establishment);
+
+    const deletedService = makeService({
+      establishmentId: establishment.id,
+      serviceName: ServiceName.create("Higienizacao"),
+    });
+    deletedService.softDelete(new Date("2026-06-22T12:00:00.000Z"));
+    const serviceToUpdate = makeService({
+      establishmentId: establishment.id,
+      serviceName: ServiceName.create("Lavagem"),
+    });
+    await inMemoryServicesRepository.create(deletedService);
+    await inMemoryServicesRepository.create(serviceToUpdate);
+
+    const result = await sut.execute({
+      establishmentOwnerId: establishment.ownerId.toString(),
+      serviceId: serviceToUpdate.id.toString(),
+      data: { serviceName: "Higienizacao" },
+    });
+
+    expect(result.isRight()).toBe(true);
+    if (result.isLeft()) {
+      throw result.value;
+    }
+    expect(result.value.service.serviceName.value).toBe("Higienizacao");
   });
 
   it("should not be able to update a service using an establishment that is not the owner of that service", async () => {
