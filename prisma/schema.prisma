@@ -218,7 +218,7 @@ model ServiceCategory {
   establishment Establishment @relation(fields: [establishmentId], references: [id], onDelete: Restrict)
   services      Service[]
 
-  @@unique([establishmentId, name])
+  @@index([establishmentId, name])
   @@index([establishmentId, deletedAt])
   @@map("service_categories")
 }
