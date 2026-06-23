@@ -8,8 +8,8 @@ export type CustomerVehicleProps = {
   customerId: UniqueEntityId;
   imageUrl: string | null;
   plate: string | null;
-  brand: string | null;
-  model: string | null;
+  brand: string;
+  model: string;
   color: string | null;
   year: number | null;
   notes: string | null;
@@ -108,8 +108,8 @@ export class CustomerVehicle extends AggregateRoot<CustomerVehicleProps> {
         ...props,
         imageUrl: CustomerVehicle.normalizeOptionalText(props.imageUrl),
         plate: props.plate,
-        brand: CustomerVehicle.normalizeOptionalText(props.brand),
-        model: CustomerVehicle.normalizeOptionalText(props.model),
+        brand: CustomerVehicle.normalizeRequiredText(props.brand, "brand"),
+        model: CustomerVehicle.normalizeRequiredText(props.model, "model"),
         color: CustomerVehicle.normalizeOptionalText(props.color),
         notes: CustomerVehicle.normalizeOptionalText(props.notes),
         year: props.year,

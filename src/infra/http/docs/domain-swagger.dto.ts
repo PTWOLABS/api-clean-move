@@ -575,11 +575,11 @@ export class CustomerVehicleDto {
   @ApiProperty({ type: String, example: "ABC1D23", nullable: true })
   plate!: string | null;
 
-  @ApiProperty({ type: String, example: "Toyota", nullable: true })
-  brand!: string | null;
+  @ApiProperty({ type: String, example: "Toyota" })
+  brand!: string;
 
-  @ApiProperty({ type: String, example: "Corolla", nullable: true })
-  model!: string | null;
+  @ApiProperty({ type: String, example: "Corolla" })
+  model!: string;
 
   @ApiProperty({ type: String, example: "Prata", nullable: true })
   color!: string | null;

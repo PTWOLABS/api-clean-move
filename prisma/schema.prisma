@@ -163,8 +163,8 @@ model CustomerVehicle {
   customerId      String    @map("customer_id") @db.Uuid
   imageUrl        String?   @map("image_url")
   plate           String?   @db.VarChar(12)
-  brand           String?
-  model           String?
+  brand           String
+  model           String
   color           String?
   year            Int?
   notes           String?   @db.Text

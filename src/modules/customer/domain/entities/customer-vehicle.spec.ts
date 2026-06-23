@@ -78,14 +78,14 @@ describe("CustomerVehicle", () => {
     ).toThrow(InvalidCustomerInputError);
   });
 
-  it("should update image URL", () => {
+  it("should update image URL on restored legacy-compatible vehicles", () => {
     const vehicle = CustomerVehicle.restore({
       establishmentId: new UniqueEntityId("establishment-1"),
       customerId: new UniqueEntityId("customer-1"),
       imageUrl: null,
       plate: null,
-      brand: null,
-      model: null,
+      brand: "Toyota",
+      model: "Corolla",
       color: null,
       year: null,
       notes: null,

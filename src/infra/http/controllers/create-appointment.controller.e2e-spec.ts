@@ -1,4 +1,5 @@
 import { INestApplication } from "@nestjs/common";
+import { buildCustomerVehiclePrismaData } from "../../../../tests/helpers/customer-vehicle.e2e-helpers";
 import { Test } from "@nestjs/testing";
 import { randomUUID } from "node:crypto";
 import request from "supertest";
@@ -272,7 +273,7 @@ describe("Appointment controllers (e2e)", () => {
       establishmentId: establishment.id,
     });
     const vehicle = await prisma.customerVehicle.create({
-      data: {
+      data: buildCustomerVehiclePrismaData({
         establishmentId: establishment.id.toString(),
         customerId: customer.id.toString(),
         plate: "ABC1D23",
@@ -280,7 +281,7 @@ describe("Appointment controllers (e2e)", () => {
         model: "Corolla",
         color: "Prata",
         year: 2022,
-      },
+      }),
     });
 
     const response = await request(getHttpServer(app))
@@ -556,19 +557,19 @@ describe("Appointment controllers (e2e)", () => {
       },
     });
     const deletedVehicle = await prisma.customerVehicle.create({
-      data: {
+      data: buildCustomerVehiclePrismaData({
         establishmentId: establishment.id.toString(),
         customerId: activeCustomer.id.toString(),
         plate: "ABC1D23",
         deletedAt: new Date(),
-      },
+      }),
     });
     const otherCustomerVehicle = await prisma.customerVehicle.create({
-      data: {
+      data: buildCustomerVehiclePrismaData({
         establishmentId: establishment.id.toString(),
         customerId: otherCustomer.id.toString(),
         plate: "DEF4G56",
-      },
+      }),
     });
 
     const deletedCustomerResponse = await request(getHttpServer(app))
@@ -698,11 +699,11 @@ describe("Appointment controllers (e2e)", () => {
       establishmentId: establishment.id,
     });
     const vehicle = await prisma.customerVehicle.create({
-      data: {
+      data: buildCustomerVehiclePrismaData({
         establishmentId: establishment.id.toString(),
         customerId: firstCustomer.id.toString(),
         plate: "ABC1D23",
-      },
+      }),
     });
 
     const firstResponse = await request(getHttpServer(app))

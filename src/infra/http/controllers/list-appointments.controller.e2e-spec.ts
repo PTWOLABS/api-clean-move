@@ -1,4 +1,5 @@
 import { INestApplication } from "@nestjs/common";
+import { buildCustomerVehiclePrismaData } from "../../../../tests/helpers/customer-vehicle.e2e-helpers";
 import { Test } from "@nestjs/testing";
 import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -86,13 +87,13 @@ describe("ListAppointmentsController (e2e)", () => {
       serviceName: ServiceName.create("Polimento tecnico"),
     });
     const vehicle = await prisma.customerVehicle.create({
-      data: {
+      data: buildCustomerVehiclePrismaData({
         establishmentId: establishment.id.toString(),
         customerId: firstCustomer.id.toString(),
         plate: "ABC1D23",
         brand: "Toyota",
         model: "Corolla",
-      },
+      }),
     });
     const firstResponse = await request(getHttpServer(app))
       .post("/appointments")

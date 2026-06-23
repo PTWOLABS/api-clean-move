@@ -1,4 +1,5 @@
 import { INestApplication } from "@nestjs/common";
+import { buildCustomerVehiclePrismaData } from "../../../../tests/helpers/customer-vehicle.e2e-helpers";
 import { Test } from "@nestjs/testing";
 import { randomUUID } from "node:crypto";
 import request from "supertest";
@@ -97,7 +98,7 @@ describe("UpdateAppointmentController (e2e)", () => {
       establishmentId: establishment.id,
     });
     const vehicle = await prisma.customerVehicle.create({
-      data: {
+      data: buildCustomerVehiclePrismaData({
         establishmentId: establishment.id.toString(),
         customerId: customer.id.toString(),
         plate: "DEF4G56",
@@ -105,7 +106,7 @@ describe("UpdateAppointmentController (e2e)", () => {
         model: "Civic",
         color: "Preto",
         year: 2024,
-      },
+      }),
     });
 
     const response = await request(getHttpServer(app))
