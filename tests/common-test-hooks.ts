@@ -4,9 +4,18 @@ import { afterEach } from "vitest";
 
 import { DomainEvents } from "../src/shared/events/domain-events";
 
-export function registerCommonTestHooks(): void {
+type CommonTestHooksOptions = {
+  clearHandlers?: boolean;
+};
+
+export function registerCommonTestHooks({
+  clearHandlers = true,
+}: CommonTestHooksOptions = {}): void {
   afterEach(() => {
-    DomainEvents.clearHandlers();
+    if (clearHandlers) {
+      DomainEvents.clearHandlers();
+    }
+
     DomainEvents.clearMarkedAggregates();
   });
 }

@@ -8,6 +8,8 @@ import { InMemoryServicesRepository } from "../../../../../tests/repositories/in
 import { InMemoryUnitOfWork } from "../../../../../tests/repositories/in-memory-unit-of-work";
 import { InMemoryUsersRepository } from "../../../../../tests/repositories/in-memory-users-repository";
 import { Email } from "../../../accounts/domain/value-objects/email";
+import { DEFAULT_SERVICE_CATEGORY_NAMES } from "../../../catalog/domain/constants/default-service-categories";
+import { CreateDefaultServiceCategoriesOnEstablishmentRegistered } from "../../subscribers/create-default-service-categories-on-establishment-registered";
 import { InvalidRegisterEstablishmentInputError } from "../../../establishments/domain/errors/invalid-register-establishment-input-error";
 import { Cnpj } from "../../../establishments/domain/value-objects/cnpj";
 import { RegisterEstablishmentUseCase } from "./register-establishment";
@@ -34,9 +36,12 @@ describe("Register an establishment", () => {
     sut = new RegisterEstablishmentUseCase(
       inMemoryUsersRepository,
       inMemoryEstablishmentsRepository,
-      inMemoryServiceCategoriesRepository,
       fakeHashGenerator,
       inMemoryUnitOfWork,
+    );
+
+    new CreateDefaultServiceCategoriesOnEstablishmentRegistered(
+      inMemoryServiceCategoriesRepository,
     );
   });
 
@@ -73,6 +78,14 @@ describe("Register an establishment", () => {
     expect(inMemoryUsersRepository.items[0]?.hashedPassword).toBe(
       "jondoe@123-hashed",
     );
+    expect(inMemoryServiceCategoriesRepository.items).toHaveLength(
+      DEFAULT_SERVICE_CATEGORY_NAMES.length,
+    );
+    expect(
+      inMemoryServiceCategoriesRepository.items.every((category) =>
+        category.establishmentId.equals(result.value.establishment.id),
+      ),
+    ).toBe(true);
     const slug = result.value.establishment.slug;
     expect(slug).not.toBeNull();
     expect(slug!.value).toEqual("valid-establishment");

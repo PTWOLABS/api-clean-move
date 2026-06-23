@@ -5,7 +5,7 @@ import { disconnectTestDatabase, truncateAllTables } from "./database";
 import { configureE2EEnv } from "./env";
 
 configureE2EEnv();
-registerCommonTestHooks();
+registerCommonTestHooks({ clearHandlers: false });
 
 afterEach(async () => {
   await truncateAllTables();
