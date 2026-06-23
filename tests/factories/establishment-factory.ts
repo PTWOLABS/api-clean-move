@@ -12,6 +12,10 @@ import {
 import { PrismaService } from "../../src/infra/database/prisma/prisma.service";
 import { PrismaEstablishmentMapper } from "../../src/infra/database/prisma/mappers/prisma-establishment-mapper";
 import { PrismaServiceCategoryMapper } from "../../src/infra/database/prisma/mappers/prisma-service-category-mapper";
+import { PrismaUnitOfWork } from "../../src/infra/database/prisma/prisma-unit-of-work";
+import { PrismaEstablishmentRepository } from "../../src/infra/database/prisma/repositories/prisma-establishments-repository";
+import { EstablishmentsRepository } from "../../src/modules/application/repositories/establishment-repository";
+import { UnitOfWork } from "../../src/modules/application/repositories/unit-of-work";
 import { createDefaultServiceCategories } from "../../src/modules/application/services/default-service-categories.factory";
 
 function calculateCnpjCheckDigit(numbers: number[], weights: number[]) {
@@ -68,7 +72,13 @@ export function makeEstablishment(
 }
 
 export class EstablishmentFactory {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private unitOfWork: UnitOfWork = new PrismaUnitOfWork(prisma),
+    private establishmentsRepository: EstablishmentsRepository = new PrismaEstablishmentRepository(
+      prisma,
+    ),
+  ) {}
 
   async makePrismaEstablishment(
     data?: Partial<EstablishmentProps>,
@@ -91,10 +101,9 @@ export class EstablishmentFactory {
   }) {
     const establishment = Establishment.createOAuthDraft({ ownerId });
 
-    await this.prisma.establishment.create({
-      data: PrismaEstablishmentMapper.toPrisma(establishment),
+    await this.unitOfWork.execute(async () => {
+      await this.establishmentsRepository.create(establishment);
     });
-    await this.seedDefaultServiceCategories(establishment.id);
 
     return establishment;
   }

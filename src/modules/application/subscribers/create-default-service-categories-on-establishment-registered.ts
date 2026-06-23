@@ -6,9 +6,7 @@ import { ServiceCategoriesRepository } from "../repositories/service-categories-
 import { createDefaultServiceCategories } from "../services/default-service-categories.factory";
 
 @Injectable()
-export class CreateDefaultServiceCategoriesOnEstablishmentRegistered
-  implements OnModuleDestroy
-{
+export class CreateDefaultServiceCategoriesOnEstablishmentRegistered implements OnModuleDestroy {
   constructor(
     private serviceCategoriesRepository: ServiceCategoriesRepository,
   ) {
