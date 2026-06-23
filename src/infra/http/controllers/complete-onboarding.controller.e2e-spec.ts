@@ -304,6 +304,31 @@ describe("CompleteOnboardingController (e2e)", () => {
     expect(response.status).toBe(400);
   });
 
+  it("should reject vehicle data without brand and model when customer data is provided", async () => {
+    const { accessToken } = await makeEstablishmentAccessToken({
+      app,
+      prisma,
+      userFactory,
+      establishmentFactory,
+      envService,
+    });
+
+    const response = await request(getHttpServer(app))
+      .post("/onboarding")
+      .set("Authorization", `Bearer ${accessToken}`)
+      .send({
+        customer: {
+          fullName: "Joao Silva",
+          phone: "11988888888",
+        },
+        vehicle: {
+          plate: "def-4g56",
+        },
+      });
+
+    expect(response.status).toBe(400);
+  });
+
   it("should reject customer data without name and phone", async () => {
     const { accessToken } = await makeEstablishmentAccessToken({
       app,

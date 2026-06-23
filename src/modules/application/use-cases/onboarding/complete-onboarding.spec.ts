@@ -463,6 +463,8 @@ describe("Complete onboarding", () => {
       },
       vehicle: {
         plate: "abc-1d23",
+        brand: "Toyota",
+        model: "Corolla",
       },
     });
 
@@ -483,6 +485,7 @@ describe("Complete onboarding", () => {
       },
       vehicle: {
         brand: "Honda",
+        model: "Civic",
       },
     });
 
@@ -495,6 +498,27 @@ describe("Complete onboarding", () => {
     expect(result.value.customer?.email).toBeNull();
     expect(result.value.vehicle?.plate).toBeNull();
     expect(result.value.vehicle?.brand).toBe("Honda");
+    expect(result.value.vehicle?.model).toBe("Civic");
+  });
+
+  it("should reject vehicle data without brand and model", async () => {
+    const establishment = makeEstablishment();
+    await inMemoryEstablishmentsRepository.create(establishment);
+
+    const result = await sut.execute({
+      establishmentOwnerId: establishment.ownerId.toString(),
+      customer: {
+        fullName: "Joao Silva",
+        phone: "11988888888",
+      },
+      vehicle: {
+        plate: "abc-1d23",
+      },
+    });
+
+    expect(result.isLeft()).toBe(true);
+    expect(result.value).toBeInstanceOf(InvalidOnboardingInputError);
+    expect(inMemoryCustomerVehiclesRepository.items).toHaveLength(0);
   });
 
   it("should return invalid onboarding input for invalid domain values", async () => {

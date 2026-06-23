@@ -170,6 +170,10 @@ describe("UpdateCustomerVehicleController (e2e)", () => {
       .patch(`/customers/${customer.id.toString()}/vehicles/${vehicle.id}`)
       .set("Authorization", `Bearer ${accessToken}`)
       .send({});
+    const clearBrandResponse = await request(getHttpServer(app))
+      .patch(`/customers/${customer.id.toString()}/vehicles/${vehicle.id}`)
+      .set("Authorization", `Bearer ${accessToken}`)
+      .send({ brand: null });
     const invalidPlateResponse = await request(getHttpServer(app))
       .patch(`/customers/${customer.id.toString()}/vehicles/${vehicle.id}`)
       .set("Authorization", `Bearer ${accessToken}`)
@@ -178,6 +182,7 @@ describe("UpdateCustomerVehicleController (e2e)", () => {
     expect(invalidCustomerIdResponse.status).toBe(400);
     expect(invalidVehicleIdResponse.status).toBe(400);
     expect(emptyBodyResponse.status).toBe(400);
+    expect(clearBrandResponse.status).toBe(400);
     expect(invalidPlateResponse.status).toBe(400);
   });
 

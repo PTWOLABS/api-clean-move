@@ -78,16 +78,7 @@ export class UpdateCustomerVehicleUseCase {
       let normalizedPlate: string | null;
 
       try {
-        normalizedPlate = CustomerVehicle.create({
-          establishmentId: establishment.id,
-          customerId: customer.id,
-          plate,
-          brand: null,
-          model: null,
-          color: null,
-          year: null,
-          notes: null,
-        }).plate;
+        normalizedPlate = CustomerVehicle.normalizePlate(plate);
       } catch (error) {
         return left(
           error instanceof Error ? error : new UnexpectedDomainError(),

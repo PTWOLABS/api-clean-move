@@ -1,11 +1,10 @@
-import {
-  CustomerVehicle,
-  CustomerVehicleProps,
-} from "../../src/modules/customer/domain/entities/customer-vehicle";
+import { CustomerVehicle } from "../../src/modules/customer/domain/entities/customer-vehicle";
 import { UniqueEntityId } from "../../src/shared/entities/unique-entity-id";
 
+type CustomerVehicleCreateProps = Parameters<typeof CustomerVehicle.create>[0];
+
 export function makeCustomerVehicle(
-  override?: Partial<CustomerVehicleProps>,
+  override?: Partial<CustomerVehicleCreateProps>,
   id?: UniqueEntityId,
 ) {
   const vehicle = CustomerVehicle.create(

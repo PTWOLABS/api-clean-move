@@ -159,6 +159,42 @@ const onboardingBodySchema = z
       });
     }
 
+    if (hasVehicleData) {
+      if (body.vehicle?.brand === undefined) {
+        ctx.addIssue({
+          code: "custom",
+          message: "Required when vehicle data is provided.",
+          path: ["vehicle", "brand"],
+        });
+      } else if (
+        body.vehicle.brand === null ||
+        body.vehicle.brand.trim().length === 0
+      ) {
+        ctx.addIssue({
+          code: "custom",
+          message: "brand cannot be empty.",
+          path: ["vehicle", "brand"],
+        });
+      }
+
+      if (body.vehicle?.model === undefined) {
+        ctx.addIssue({
+          code: "custom",
+          message: "Required when vehicle data is provided.",
+          path: ["vehicle", "model"],
+        });
+      } else if (
+        body.vehicle.model === null ||
+        body.vehicle.model.trim().length === 0
+      ) {
+        ctx.addIssue({
+          code: "custom",
+          message: "model cannot be empty.",
+          path: ["vehicle", "model"],
+        });
+      }
+    }
+
     if (hasCustomerData) {
       if (body.customer?.fullName === undefined) {
         ctx.addIssue({

@@ -21,16 +21,32 @@ describe("CustomerVehicle", () => {
     expect(vehicle.deletedAt).toBeNull();
   });
 
+  it("should reject create without brand or model", () => {
+    expect(() =>
+      CustomerVehicle.create({
+        establishmentId: new UniqueEntityId("establishment-1"),
+        customerId: new UniqueEntityId("customer-1"),
+        brand: "",
+        model: "Corolla",
+      }),
+    ).toThrow(InvalidCustomerInputError);
+
+    expect(() =>
+      CustomerVehicle.create({
+        establishmentId: new UniqueEntityId("establishment-1"),
+        customerId: new UniqueEntityId("customer-1"),
+        brand: "Toyota",
+        model: "   ",
+      }),
+    ).toThrow(InvalidCustomerInputError);
+  });
+
   it("should soft-delete a vehicle", () => {
     const vehicle = CustomerVehicle.create({
       establishmentId: new UniqueEntityId("establishment-1"),
       customerId: new UniqueEntityId("customer-1"),
-      plate: null,
-      brand: null,
-      model: null,
-      color: null,
-      year: null,
-      notes: null,
+      brand: "Toyota",
+      model: "Corolla",
     });
 
     const deletedAt = new Date("2026-04-27T10:00:00.000Z");
@@ -46,11 +62,8 @@ describe("CustomerVehicle", () => {
         establishmentId: new UniqueEntityId("establishment-1"),
         customerId: new UniqueEntityId("customer-1"),
         plate: "ABC123",
-        brand: null,
-        model: null,
-        color: null,
-        year: null,
-        notes: null,
+        brand: "Toyota",
+        model: "Corolla",
       }),
     ).toThrow(InvalidCustomerInputError);
 
@@ -59,29 +72,46 @@ describe("CustomerVehicle", () => {
         establishmentId: new UniqueEntityId("establishment-1"),
         customerId: new UniqueEntityId("customer-1"),
         plate: "ABC12345",
-        brand: null,
-        model: null,
-        color: null,
-        year: null,
-        notes: null,
+        brand: "Toyota",
+        model: "Corolla",
       }),
     ).toThrow(InvalidCustomerInputError);
   });
 
   it("should update image URL", () => {
-    const vehicle = CustomerVehicle.create({
+    const vehicle = CustomerVehicle.restore({
       establishmentId: new UniqueEntityId("establishment-1"),
       customerId: new UniqueEntityId("customer-1"),
+      imageUrl: null,
       plate: null,
       brand: null,
       model: null,
       color: null,
       year: null,
       notes: null,
+      deletedAt: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
     });
 
     vehicle.update({ imageUrl: "  https://cdn.example.com/v.png  " });
 
     expect(vehicle.imageUrl).toBe("https://cdn.example.com/v.png");
+  });
+
+  it("should reject update that clears brand or model", () => {
+    const vehicle = CustomerVehicle.create({
+      establishmentId: new UniqueEntityId("establishment-1"),
+      customerId: new UniqueEntityId("customer-1"),
+      brand: "Toyota",
+      model: "Corolla",
+    });
+
+    expect(() => vehicle.update({ brand: null })).toThrow(
+      InvalidCustomerInputError,
+    );
+    expect(() => vehicle.update({ model: "" })).toThrow(
+      InvalidCustomerInputError,
+    );
   });
 });

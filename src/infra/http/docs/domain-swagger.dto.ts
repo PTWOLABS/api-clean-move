@@ -467,21 +467,19 @@ export class CreateCustomerVehicleBodyDto {
   })
   plate?: string | null;
 
-  @ApiPropertyOptional({
+  @ApiProperty({
     type: String,
     example: "Toyota",
-    nullable: true,
-    description: "Optional vehicle brand.",
+    description: "Required vehicle brand.",
   })
-  brand?: string | null;
+  brand!: string;
 
-  @ApiPropertyOptional({
+  @ApiProperty({
     type: String,
     example: "Corolla",
-    nullable: true,
-    description: "Optional vehicle model.",
+    description: "Required vehicle model.",
   })
-  model?: string | null;
+  model!: string;
 
   @ApiPropertyOptional({
     type: String,
@@ -509,7 +507,57 @@ export class CreateCustomerVehicleBodyDto {
   notes?: string | null;
 }
 
-export class UpdateCustomerVehicleBodyDto extends CreateCustomerVehicleBodyDto {}
+export class UpdateCustomerVehicleBodyDto {
+  @ApiPropertyOptional({
+    type: String,
+    example: "ABC1D23",
+    nullable: true,
+    description:
+      "Optional vehicle plate. Non-alphanumeric characters are removed and the normalized plate must have exactly 7 characters. Must be unique among active vehicles in the authenticated establishment when provided.",
+  })
+  plate?: string | null;
+
+  @ApiPropertyOptional({
+    type: String,
+    example: "Toyota",
+    description:
+      "Optional vehicle brand. Cannot be null or empty when provided.",
+  })
+  brand?: string;
+
+  @ApiPropertyOptional({
+    type: String,
+    example: "Corolla",
+    description:
+      "Optional vehicle model. Cannot be null or empty when provided.",
+  })
+  model?: string;
+
+  @ApiPropertyOptional({
+    type: String,
+    example: "Prata",
+    nullable: true,
+    description: "Optional vehicle color.",
+  })
+  color?: string | null;
+
+  @ApiPropertyOptional({
+    type: Number,
+    example: 2022,
+    nullable: true,
+    minimum: 1900,
+    description: "Optional vehicle model year. Must be an integer >= 1900.",
+  })
+  year?: number | null;
+
+  @ApiPropertyOptional({
+    type: String,
+    example: "Veiculo principal",
+    nullable: true,
+    description: "Optional vehicle notes.",
+  })
+  notes?: string | null;
+}
 
 export class CustomerVehicleDto {
   @ApiProperty({ example: "d4051bc0-3f48-4700-8208-ec64d1031618" })
@@ -1276,10 +1324,16 @@ export class CompleteOnboardingVehicleBodyDto {
   @ApiPropertyOptional({ example: "ABC-1D23", nullable: true })
   plate?: string | null;
 
-  @ApiPropertyOptional({ example: "Toyota", nullable: true })
+  @ApiPropertyOptional({
+    example: "Toyota",
+    description: "Required when vehicle data is provided.",
+  })
   brand?: string | null;
 
-  @ApiPropertyOptional({ example: "Corolla", nullable: true })
+  @ApiPropertyOptional({
+    example: "Corolla",
+    description: "Required when vehicle data is provided.",
+  })
   model?: string | null;
 
   @ApiPropertyOptional({ example: "Prata", nullable: true })

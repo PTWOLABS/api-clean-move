@@ -104,6 +104,14 @@ export class RegisterQuoteProspectAsCustomerUseCase {
           );
         }
 
+        if (!quote.vehicle.brand?.trim() || !quote.vehicle.model?.trim()) {
+          return left(
+            new InvalidQuoteInputError(
+              "Quote vehicle snapshot must include brand and model.",
+            ),
+          );
+        }
+
         vehicle = CustomerVehicle.create({
           establishmentId: scope.value.establishment.id,
           customerId: customer.id,

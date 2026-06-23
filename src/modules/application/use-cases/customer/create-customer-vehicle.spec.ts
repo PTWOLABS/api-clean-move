@@ -1,3 +1,4 @@
+import { InvalidCustomerInputError } from "../../../customer/domain/errors/invalid-customer-input-error";
 import { ResourceAlreadyExistsError } from "../../../../shared/errors/resource-already-exists-error";
 import { ResourceNotFoundError } from "../../../../shared/errors/resource-not-found-error";
 import { makeCustomer } from "../../../../../tests/factories/customer-factory";
@@ -74,6 +75,8 @@ describe("Create customer vehicle", () => {
       establishmentOwnerId: establishment.ownerId.toString(),
       customerId: customer.id.toString(),
       plate: "ABC1D23",
+      brand: "Toyota",
+      model: "Corolla",
     });
 
     expect(result.isLeft()).toBe(true);
@@ -97,9 +100,30 @@ describe("Create customer vehicle", () => {
       establishmentOwnerId: establishment.ownerId.toString(),
       customerId: customer.id.toString(),
       plate: "abc-1d23",
+      brand: "Toyota",
+      model: "Corolla",
     });
 
     expect(result.isLeft()).toBe(true);
     expect(result.value).toBeInstanceOf(ResourceAlreadyExistsError);
+  });
+
+  it("should reject create without brand or model", async () => {
+    const establishment = makeEstablishment();
+    const customer = makeCustomer({ establishmentId: establishment.id });
+
+    await inMemoryEstablishmentsRepository.create(establishment);
+    await inMemoryCustomersRepository.create(customer);
+
+    const result = await sut.execute({
+      establishmentOwnerId: establishment.ownerId.toString(),
+      customerId: customer.id.toString(),
+      plate: "ABC1D23",
+      brand: "",
+      model: "Corolla",
+    });
+
+    expect(result.isLeft()).toBe(true);
+    expect(result.value).toBeInstanceOf(InvalidCustomerInputError);
   });
 });

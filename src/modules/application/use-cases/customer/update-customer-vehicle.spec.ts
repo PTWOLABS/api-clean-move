@@ -1,3 +1,4 @@
+import { InvalidCustomerInputError } from "../../../customer/domain/errors/invalid-customer-input-error";
 import { ResourceAlreadyExistsError } from "../../../../shared/errors/resource-already-exists-error";
 import { ResourceNotFoundError } from "../../../../shared/errors/resource-not-found-error";
 import { makeCustomer } from "../../../../../tests/factories/customer-factory";
@@ -120,5 +121,36 @@ describe("Update customer vehicle", () => {
 
     expect(result.isLeft()).toBe(true);
     expect(result.value).toBeInstanceOf(ResourceAlreadyExistsError);
+  });
+
+  it("should reject update that clears brand or model", async () => {
+    const establishment = makeEstablishment();
+    const customer = makeCustomer({ establishmentId: establishment.id });
+    const vehicle = makeCustomerVehicle({
+      establishmentId: establishment.id,
+      customerId: customer.id,
+    });
+
+    await inMemoryEstablishmentsRepository.create(establishment);
+    await inMemoryCustomersRepository.create(customer);
+    await inMemoryCustomerVehiclesRepository.create(vehicle);
+
+    const clearBrandResult = await sut.execute({
+      establishmentOwnerId: establishment.ownerId.toString(),
+      customerId: customer.id.toString(),
+      vehicleId: vehicle.id.toString(),
+      brand: null,
+    });
+    const clearModelResult = await sut.execute({
+      establishmentOwnerId: establishment.ownerId.toString(),
+      customerId: customer.id.toString(),
+      vehicleId: vehicle.id.toString(),
+      model: "",
+    });
+
+    expect(clearBrandResult.isLeft()).toBe(true);
+    expect(clearBrandResult.value).toBeInstanceOf(InvalidCustomerInputError);
+    expect(clearModelResult.isLeft()).toBe(true);
+    expect(clearModelResult.value).toBeInstanceOf(InvalidCustomerInputError);
   });
 });
