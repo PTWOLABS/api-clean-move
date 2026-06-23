@@ -1,6 +1,7 @@
 import { AggregateRoot } from "../../../../shared/entities/aggregate-root";
 import { UniqueEntityId } from "../../../../shared/entities/unique-entity-id";
 import { Optional } from "../../../../shared/types/optional";
+import { EstablishmentRegisteredEvent } from "../events/establishment-registered-event";
 import { Cnpj } from "../value-objects/cnpj";
 import { Slug } from "../value-objects/slug";
 
@@ -150,6 +151,16 @@ export class Establishment extends AggregateRoot<EstablishmentProps> {
       },
       id,
     );
+    return establishment;
+  }
+
+  static register(props: EstablishmentCreateProps, id?: UniqueEntityId) {
+    const establishment = Establishment.create(props, id);
+
+    establishment.addDomainEvent(
+      new EstablishmentRegisteredEvent(establishment),
+    );
+
     return establishment;
   }
 
