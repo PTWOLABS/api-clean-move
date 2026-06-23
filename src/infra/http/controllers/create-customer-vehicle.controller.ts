@@ -40,8 +40,8 @@ import { CustomerVehiclePresenter } from "../presenters/customer-vehicle-present
 
 const customerVehicleBodySchema = z.object({
   plate: z.string().trim().optional().nullable(),
-  brand: z.string().trim().optional().nullable(),
-  model: z.string().trim().optional().nullable(),
+  brand: z.string().trim().min(1),
+  model: z.string().trim().min(1),
   color: z.string().trim().optional().nullable(),
   year: z.number().int().optional().nullable(),
   notes: z.string().trim().optional().nullable(),
@@ -106,8 +106,8 @@ export class CreateCustomerVehicleController {
       establishmentOwnerId: user.userId,
       customerId,
       ...(body.plate !== undefined ? { plate: body.plate } : {}),
-      ...(body.brand !== undefined ? { brand: body.brand } : {}),
-      ...(body.model !== undefined ? { model: body.model } : {}),
+      brand: body.brand,
+      model: body.model,
       ...(body.color !== undefined ? { color: body.color } : {}),
       ...(body.year !== undefined ? { year: body.year } : {}),
       ...(body.notes !== undefined ? { notes: body.notes } : {}),

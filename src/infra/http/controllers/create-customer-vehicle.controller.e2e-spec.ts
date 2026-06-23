@@ -264,6 +264,13 @@ describe("Customer vehicle controllers (e2e)", () => {
       .post(`/customers/${customer.id.toString()}/vehicles`)
       .set("Authorization", `Bearer ${accessToken}`)
       .send(validVehiclePayload("abc"));
+    const missingBrandResponse = await request(getHttpServer(app))
+      .post(`/customers/${customer.id.toString()}/vehicles`)
+      .set("Authorization", `Bearer ${accessToken}`)
+      .send({
+        plate: "def-4g56",
+        model: "Corolla",
+      });
     const emptyUpdateResponse = await request(getHttpServer(app))
       .patch(`/customers/${customer.id.toString()}/vehicles/${vehicleId}`)
       .set("Authorization", `Bearer ${accessToken}`)
@@ -272,6 +279,7 @@ describe("Customer vehicle controllers (e2e)", () => {
     expect(invalidCustomerIdResponse.status).toBe(400);
     expect(invalidVehicleIdResponse.status).toBe(400);
     expect(invalidPlateResponse.status).toBe(400);
+    expect(missingBrandResponse.status).toBe(400);
     expect(emptyUpdateResponse.status).toBe(400);
   });
 

@@ -12,9 +12,9 @@ import { EstablishmentsRepository } from "../../repositories/establishment-repos
 type CreateCustomerVehicleUseCaseRequest = {
   establishmentOwnerId: string;
   customerId: string;
+  brand: string;
+  model: string;
   plate?: string | null;
-  brand?: string | null;
-  model?: string | null;
   color?: string | null;
   year?: number | null;
   notes?: string | null;
@@ -39,8 +39,8 @@ export class CreateCustomerVehicleUseCase {
     establishmentOwnerId,
     customerId,
     plate = null,
-    brand = null,
-    model = null,
+    brand,
+    model,
     color = null,
     year = null,
     notes = null,

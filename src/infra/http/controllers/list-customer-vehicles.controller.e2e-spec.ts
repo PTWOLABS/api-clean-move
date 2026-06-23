@@ -1,4 +1,5 @@
 import { INestApplication } from "@nestjs/common";
+import { buildCustomerVehiclePrismaData } from "../../../../tests/helpers/customer-vehicle.e2e-helpers";
 import { Test } from "@nestjs/testing";
 import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -57,26 +58,26 @@ describe("ListCustomerVehiclesController (e2e)", () => {
       cpfCnpj: null,
     });
     const firstVehicle = await prisma.customerVehicle.create({
-      data: {
+      data: buildCustomerVehiclePrismaData({
         establishmentId: establishment.id.toString(),
         customerId: customer.id.toString(),
         plate: "ABC1D23",
-      },
+      }),
     });
     const secondVehicle = await prisma.customerVehicle.create({
-      data: {
+      data: buildCustomerVehiclePrismaData({
         establishmentId: establishment.id.toString(),
         customerId: customer.id.toString(),
         plate: "DEF4G56",
-      },
+      }),
     });
     const deletedVehicle = await prisma.customerVehicle.create({
-      data: {
+      data: buildCustomerVehiclePrismaData({
         establishmentId: establishment.id.toString(),
         customerId: customer.id.toString(),
         plate: "GHI7J89",
         deletedAt: new Date(),
-      },
+      }),
     });
 
     const allResponse = await request(getHttpServer(app))
@@ -195,11 +196,11 @@ describe("ListCustomerVehiclesController (e2e)", () => {
       cpfCnpj: null,
     });
     await prisma.customerVehicle.create({
-      data: {
+      data: buildCustomerVehiclePrismaData({
         establishmentId: firstOwner.establishment.id.toString(),
         customerId: firstCustomer.id.toString(),
         plate: "ABC1D23",
-      },
+      }),
     });
 
     const crossEstablishmentResponse = await request(getHttpServer(app))

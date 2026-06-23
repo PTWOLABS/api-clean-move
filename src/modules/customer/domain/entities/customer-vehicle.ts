@@ -8,8 +8,8 @@ export type CustomerVehicleProps = {
   customerId: UniqueEntityId;
   imageUrl: string | null;
   plate: string | null;
-  brand: string | null;
-  model: string | null;
+  brand: string;
+  model: string;
   color: string | null;
   year: number | null;
   notes: string | null;
@@ -70,23 +70,52 @@ export class CustomerVehicle extends AggregateRoot<CustomerVehicleProps> {
   static create(
     props: Optional<
       CustomerVehicleProps,
-      "createdAt" | "updatedAt" | "deletedAt" | "imageUrl"
-    >,
+      | "createdAt"
+      | "updatedAt"
+      | "deletedAt"
+      | "imageUrl"
+      | "plate"
+      | "color"
+      | "year"
+      | "notes"
+    > & {
+      brand: string;
+      model: string;
+    },
     id?: UniqueEntityId,
   ) {
     return new CustomerVehicle(
       {
         ...props,
         imageUrl: CustomerVehicle.normalizeOptionalText(props.imageUrl ?? null),
-        plate: CustomerVehicle.normalizePlate(props.plate),
-        brand: CustomerVehicle.normalizeOptionalText(props.brand),
-        model: CustomerVehicle.normalizeOptionalText(props.model),
-        color: CustomerVehicle.normalizeOptionalText(props.color),
-        notes: CustomerVehicle.normalizeOptionalText(props.notes),
-        year: CustomerVehicle.normalizeYear(props.year),
+        plate: CustomerVehicle.normalizePlate(props.plate ?? null),
+        brand: CustomerVehicle.normalizeRequiredText(props.brand, "brand"),
+        model: CustomerVehicle.normalizeRequiredText(props.model, "model"),
+        color: CustomerVehicle.normalizeOptionalText(props.color ?? null),
+        notes: CustomerVehicle.normalizeOptionalText(props.notes ?? null),
+        year: CustomerVehicle.normalizeYear(props.year ?? null),
         deletedAt: props.deletedAt ?? null,
         createdAt: props.createdAt ?? new Date(),
         updatedAt: props.updatedAt ?? new Date(),
+      },
+      id,
+    );
+  }
+
+  static restore(props: CustomerVehicleProps, id?: UniqueEntityId) {
+    return new CustomerVehicle(
+      {
+        ...props,
+        imageUrl: CustomerVehicle.normalizeOptionalText(props.imageUrl),
+        plate: props.plate,
+        brand: CustomerVehicle.normalizeRequiredText(props.brand, "brand"),
+        model: CustomerVehicle.normalizeRequiredText(props.model, "model"),
+        color: CustomerVehicle.normalizeOptionalText(props.color),
+        notes: CustomerVehicle.normalizeOptionalText(props.notes),
+        year: props.year,
+        deletedAt: props.deletedAt,
+        createdAt: props.createdAt,
+        updatedAt: props.updatedAt,
       },
       id,
     );
@@ -112,11 +141,17 @@ export class CustomerVehicle extends AggregateRoot<CustomerVehicleProps> {
     }
 
     if (data.brand !== undefined) {
-      this.props.brand = CustomerVehicle.normalizeOptionalText(data.brand);
+      this.props.brand = CustomerVehicle.normalizeRequiredText(
+        data.brand,
+        "brand",
+      );
     }
 
     if (data.model !== undefined) {
-      this.props.model = CustomerVehicle.normalizeOptionalText(data.model);
+      this.props.model = CustomerVehicle.normalizeRequiredText(
+        data.model,
+        "model",
+      );
     }
 
     if (data.color !== undefined) {
@@ -147,7 +182,7 @@ export class CustomerVehicle extends AggregateRoot<CustomerVehicleProps> {
     this.props.updatedAt = new Date();
   }
 
-  private static normalizePlate(value: string | null) {
+  static normalizePlate(value: string | null) {
     if (value === null) {
       return null;
     }
@@ -175,6 +210,23 @@ export class CustomerVehicle extends AggregateRoot<CustomerVehicleProps> {
     }
 
     return value;
+  }
+
+  private static normalizeRequiredText(
+    value: string | null | undefined,
+    field: string,
+  ) {
+    if (value === null || value === undefined) {
+      throw new InvalidCustomerInputError(`${field} is required.`);
+    }
+
+    const normalized = value.trim();
+
+    if (!normalized) {
+      throw new InvalidCustomerInputError(`${field} is required.`);
+    }
+
+    return normalized;
   }
 
   private static normalizeOptionalText(value: string | null | undefined) {

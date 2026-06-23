@@ -1,4 +1,5 @@
 import { INestApplication } from "@nestjs/common";
+import { buildCustomerVehiclePrismaData } from "../../../../tests/helpers/customer-vehicle.e2e-helpers";
 import { Test } from "@nestjs/testing";
 import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -57,7 +58,7 @@ describe("UpdateCustomerVehicleController (e2e)", () => {
       cpfCnpj: null,
     });
     const vehicle = await prisma.customerVehicle.create({
-      data: {
+      data: buildCustomerVehiclePrismaData({
         establishmentId: establishment.id.toString(),
         customerId: customer.id.toString(),
         plate: "ABC1D23",
@@ -66,7 +67,7 @@ describe("UpdateCustomerVehicleController (e2e)", () => {
         color: "Prata",
         year: 2022,
         notes: "Principal",
-      },
+      }),
     });
 
     const response = await request(getHttpServer(app))
@@ -109,11 +110,11 @@ describe("UpdateCustomerVehicleController (e2e)", () => {
       cpfCnpj: null,
     });
     const vehicle = await prisma.customerVehicle.create({
-      data: {
+      data: buildCustomerVehiclePrismaData({
         establishmentId: establishment.id.toString(),
         customerId: customer.id.toString(),
         plate: "ABC1D23",
-      },
+      }),
     });
 
     const noTokenResponse = await request(getHttpServer(app))
@@ -151,11 +152,11 @@ describe("UpdateCustomerVehicleController (e2e)", () => {
       cpfCnpj: null,
     });
     const vehicle = await prisma.customerVehicle.create({
-      data: {
+      data: buildCustomerVehiclePrismaData({
         establishmentId: establishment.id.toString(),
         customerId: customer.id.toString(),
         plate: "ABC1D23",
-      },
+      }),
     });
 
     const invalidCustomerIdResponse = await request(getHttpServer(app))
@@ -170,6 +171,10 @@ describe("UpdateCustomerVehicleController (e2e)", () => {
       .patch(`/customers/${customer.id.toString()}/vehicles/${vehicle.id}`)
       .set("Authorization", `Bearer ${accessToken}`)
       .send({});
+    const clearBrandResponse = await request(getHttpServer(app))
+      .patch(`/customers/${customer.id.toString()}/vehicles/${vehicle.id}`)
+      .set("Authorization", `Bearer ${accessToken}`)
+      .send({ brand: null });
     const invalidPlateResponse = await request(getHttpServer(app))
       .patch(`/customers/${customer.id.toString()}/vehicles/${vehicle.id}`)
       .set("Authorization", `Bearer ${accessToken}`)
@@ -178,6 +183,7 @@ describe("UpdateCustomerVehicleController (e2e)", () => {
     expect(invalidCustomerIdResponse.status).toBe(400);
     expect(invalidVehicleIdResponse.status).toBe(400);
     expect(emptyBodyResponse.status).toBe(400);
+    expect(clearBrandResponse.status).toBe(400);
     expect(invalidPlateResponse.status).toBe(400);
   });
 
@@ -194,18 +200,18 @@ describe("UpdateCustomerVehicleController (e2e)", () => {
       cpfCnpj: null,
     });
     await prisma.customerVehicle.create({
-      data: {
+      data: buildCustomerVehiclePrismaData({
         establishmentId: establishment.id.toString(),
         customerId: customer.id.toString(),
         plate: "ABC1D23",
-      },
+      }),
     });
     const targetVehicle = await prisma.customerVehicle.create({
-      data: {
+      data: buildCustomerVehiclePrismaData({
         establishmentId: establishment.id.toString(),
         customerId: customer.id.toString(),
         plate: "DEF4G56",
-      },
+      }),
     });
 
     const response = await request(getHttpServer(app))
@@ -242,11 +248,11 @@ describe("UpdateCustomerVehicleController (e2e)", () => {
       cpfCnpj: null,
     });
     const vehicle = await prisma.customerVehicle.create({
-      data: {
+      data: buildCustomerVehiclePrismaData({
         establishmentId: firstOwner.establishment.id.toString(),
         customerId: firstCustomer.id.toString(),
         plate: "ABC1D23",
-      },
+      }),
     });
 
     const crossEstablishmentResponse = await request(getHttpServer(app))
