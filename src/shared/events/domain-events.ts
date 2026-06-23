@@ -27,6 +27,17 @@ export class DomainEvents {
     ];
   }
 
+  static unregister<T extends DomainEvent>(
+    callback: DomainEventHandler<T>,
+    eventName: string,
+  ) {
+    const handlers = DomainEvents.handlersMap[eventName] ?? [];
+
+    DomainEvents.handlersMap[eventName] = handlers.filter(
+      (handler) => handler !== callback,
+    );
+  }
+
   static markAggregateForDispatch(aggregate: EventCapableAggregate) {
     const aggregateAlreadyMarked = DomainEvents.markedAggregates.some((item) =>
       item.id.equals(aggregate.id),
