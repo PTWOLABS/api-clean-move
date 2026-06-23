@@ -7,6 +7,7 @@ import {
   AppointmentVehicleSnapshot,
 } from "../../scheduling/domain/entities/appointment";
 import { Service } from "../../catalog/domain/entities/services";
+import { ServicePriceSpecificationValue } from "../../catalog/domain/value-objects/service-price-specification";
 import { Customer } from "../../customer/domain/entities/customer";
 import { CustomerVehicle } from "../../customer/domain/entities/customer-vehicle";
 import { CustomersRepository } from "../repositories/customers-repository";
@@ -108,25 +109,46 @@ function resolveServiceStatus(
     return "DELETED";
   }
 
-  const currentCategoryId = service.category?.id.toString() ?? null;
-  const snapshotCategoryId = snapshot.category?.id.toString() ?? null;
-  const currentCategoryName = service.category?.name ?? null;
-  const snapshotCategoryName = snapshot.category?.name ?? null;
   const currentDuration =
     service.estimatedDuration?.upperBoundInMinutes ?? undefined;
+  const snapshotPriceSpecification =
+    snapshot.priceSpecification ?? legacyFixedPriceSpecification(snapshot);
 
   if (
     service.serviceName.value !== snapshot.serviceName ||
-    currentCategoryId !== snapshotCategoryId ||
-    currentCategoryName !== snapshotCategoryName ||
     currentDuration !== snapshot.durationInMinutes ||
-    service.priceSpecification.defaultChargePriceInCents !==
-      snapshot.priceInCents
+    service.isActive !== (snapshot.isActive ?? true) ||
+    !servicePriceSpecificationsEqual(
+      service.priceSpecification.toValue(),
+      snapshotPriceSpecification,
+    )
   ) {
     return "UPDATED";
   }
 
   return "UNCHANGED";
+}
+
+function legacyFixedPriceSpecification(
+  snapshot: AppointmentServiceSnapshot,
+): ServicePriceSpecificationValue {
+  return {
+    type: "FIXED",
+    fixedPriceInCents: snapshot.priceInCents,
+  };
+}
+
+function servicePriceSpecificationsEqual(
+  current: ServicePriceSpecificationValue,
+  snapshot: ServicePriceSpecificationValue,
+): boolean {
+  return (
+    current.type === snapshot.type &&
+    (current.fixedPriceInCents ?? null) ===
+      (snapshot.fixedPriceInCents ?? null) &&
+    (current.minPriceInCents ?? null) === (snapshot.minPriceInCents ?? null) &&
+    (current.maxPriceInCents ?? null) === (snapshot.maxPriceInCents ?? null)
+  );
 }
 
 function resolveVehicleStatus(

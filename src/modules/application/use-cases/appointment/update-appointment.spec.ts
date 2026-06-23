@@ -109,13 +109,18 @@ describe("Update appointment", () => {
     }
 
     expect(result.value.appointment.customerId).toEqual(newCustomer.id);
+    expect(result.value.appointment.customer).toEqual({
+      fullName: newCustomer.fullName,
+    });
     expect(result.value.appointment.services).toEqual([
       {
         serviceId: service.id,
         serviceName: service.serviceName.value,
         category: protectionCategory,
         durationInMinutes: service.estimatedDuration?.upperBoundInMinutes,
+        priceSpecification: service.priceSpecification.toValue(),
         priceInCents: service.price.amountInCents,
+        isActive: service.isActive,
       },
     ]);
     expect(result.value.appointment.vehicleId).toEqual(vehicle.id);
@@ -199,7 +204,7 @@ describe("Update appointment", () => {
     expect(result.value.appointment.discountInCents).toBeNull();
   });
 
-  it("should clear vehicle when customer changes and vehicle is omitted", async () => {
+  it("should reject customer changes when vehicle is omitted", async () => {
     const establishment = makeEstablishment();
     const customer = makeCustomer({ establishmentId: establishment.id });
     const newCustomer = makeCustomer({
@@ -238,15 +243,10 @@ describe("Update appointment", () => {
       customerId: newCustomer.id.toString(),
     });
 
-    expect(result.isRight()).toBe(true);
-
-    if (result.isLeft()) {
-      throw result.value;
-    }
-
-    expect(result.value.appointment.customerId).toEqual(newCustomer.id);
-    expect(result.value.appointment.vehicleId).toBeNull();
-    expect(result.value.appointment.vehicle).toBeNull();
+    expect(result.isLeft()).toBe(true);
+    expect(result.value).toBeInstanceOf(InvalidAppointmentInputError);
+    expect(appointment.customerId).toEqual(customer.id);
+    expect(appointment.vehicleId).toEqual(vehicle.id);
   });
 
   it("should reject duplicate services", async () => {

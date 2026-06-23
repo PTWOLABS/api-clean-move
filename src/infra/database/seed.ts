@@ -764,6 +764,10 @@ async function seedAppointments({
               serviceDurationInMinutes:
                 resolveBookedServiceDurationInMinutes(service),
               servicePriceInCents: service.priceInCents,
+              servicePriceDefaultInCents: service.priceInCents,
+              servicePriceSpecificationType: service.priceSpecificationType,
+              servicePriceRangeMaxInCents: service.priceRangeMaxInCents,
+              serviceIsActive: service.isActive,
               position,
             })),
           },

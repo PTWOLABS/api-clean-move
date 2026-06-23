@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { Either, left, right } from "../../../../shared/either";
 import { ResourceNotFoundError } from "../../../../shared/errors/resource-not-found-error";
+import { ResourceAlreadyExistsError } from "../../../../shared/errors/resource-already-exists-error";
 import { UnexpectedDomainError } from "../../../../shared/errors/unexpected-domain-error";
 import { UniqueEntityId } from "../../../../shared/entities/unique-entity-id";
 import { Service } from "../../../catalog/domain/entities/services";
@@ -41,6 +42,7 @@ type CreateServiceUseCaseRequest = {
 
 type CreateServiceUseCaseResponse = Either<
   | ResourceNotFoundError
+  | ResourceAlreadyExistsError
   | InvalidServiceUpdateInputError
   | UnexpectedDomainError,
   {
@@ -100,9 +102,11 @@ export class CreateServiceUseCase {
     }
 
     let resolvedPriceSpecification: ServicePriceSpecification;
+    let resolvedServiceName: ServiceName;
     let service: Service;
 
     try {
+      resolvedServiceName = ServiceName.create(serviceName);
       resolvedPriceSpecification = priceSpecification
         ? ServicePriceSpecification.create(priceSpecification)
         : price !== undefined
@@ -117,7 +121,7 @@ export class CreateServiceUseCase {
 
       service = Service.create({
         establishmentId: establishment.id,
-        serviceName: ServiceName.create(serviceName),
+        serviceName: resolvedServiceName,
         description,
         category,
         priceSpecification: resolvedPriceSpecification,
@@ -136,6 +140,20 @@ export class CreateServiceUseCase {
         return left(new InvalidServiceUpdateInputError(error.message));
       }
       return left(new UnexpectedDomainError());
+    }
+
+    const serviceWithSameName =
+      await this.servicesRepository.findActiveByNameAndEstablishmentId(
+        resolvedServiceName.value,
+        establishment.id.toString(),
+      );
+
+    if (serviceWithSameName) {
+      return left(
+        new ResourceAlreadyExistsError(
+          "A service with this name already exists.",
+        ),
+      );
     }
 
     await this.servicesRepository.create(service);
