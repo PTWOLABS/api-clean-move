@@ -125,6 +125,15 @@ export class UpdateAppointmentUseCase {
     }
 
     const customerChanged = !customer.id.equals(appointment.customerId);
+
+    if (customerChanged && (vehicleId === undefined || vehicleId === null)) {
+      return left(
+        new InvalidAppointmentInputError(
+          "vehicleId is required when changing appointment customer.",
+        ),
+      );
+    }
+
     const vehicleResult: ResolveVehicleResponse =
       vehicleId !== undefined
         ? await this.resolveVehicle(
@@ -143,7 +152,14 @@ export class UpdateAppointmentUseCase {
 
     try {
       appointment.update({
-        ...(customerId !== undefined ? { customerId: customer.id } : {}),
+        ...(customerId !== undefined
+          ? {
+              customerId: customer.id,
+              customer: {
+                fullName: customer.fullName,
+              },
+            }
+          : {}),
         ...(serviceIds !== undefined || services !== undefined
           ? { services: servicesResult.value.services }
           : {}),
@@ -224,7 +240,9 @@ export class UpdateAppointmentUseCase {
         serviceName: service.serviceName.value,
         category: service.category,
         durationInMinutes: service.estimatedDuration?.upperBoundInMinutes,
+        priceSpecification: service.priceSpecification.toValue(),
         priceInCents,
+        isActive: service.isActive,
       });
     }
 

@@ -1,4 +1,5 @@
 import { INestApplication } from "@nestjs/common";
+import { buildCustomerVehiclePrismaData } from "../../../../tests/helpers/customer-vehicle.e2e-helpers";
 import { Test } from "@nestjs/testing";
 import { randomUUID } from "node:crypto";
 import request from "supertest";
@@ -22,12 +23,21 @@ import { PrismaService } from "../../database/prisma/prisma.service";
 import { EnvService } from "../../env/env.service";
 
 const appointmentStatusSchema = z.enum(["SCHEDULED", "DONE", "CANCELLED"]);
+const appointmentResourceStatusSchema = z.enum([
+  "UNCHANGED",
+  "UPDATED",
+  "DELETED",
+]);
 
 const appointmentResponseSchema = z.object({
   appointment: z.object({
     id: z.uuid(),
     establishmentId: z.uuid(),
     customerId: z.uuid(),
+    customer: z.object({
+      fullName: z.string(),
+      currentResourceStatus: appointmentResourceStatusSchema,
+    }),
     vehicleId: z.uuid().nullable(),
     services: z
       .array(
@@ -37,6 +47,7 @@ const appointmentResponseSchema = z.object({
           category: z.string().nullable(),
           durationInMinutes: z.number().int().nullable(),
           priceInCents: z.number().int(),
+          currentResourceStatus: appointmentResourceStatusSchema,
         }),
       )
       .min(1),
@@ -47,6 +58,8 @@ const appointmentResponseSchema = z.object({
         model: z.string().nullable(),
         color: z.string().nullable(),
         year: z.number().int().nullable(),
+        displayName: z.string().nullable(),
+        currentResourceStatus: appointmentResourceStatusSchema,
       })
       .nullable(),
     startsAt: z.string(),
@@ -260,7 +273,7 @@ describe("Appointment controllers (e2e)", () => {
       establishmentId: establishment.id,
     });
     const vehicle = await prisma.customerVehicle.create({
-      data: {
+      data: buildCustomerVehiclePrismaData({
         establishmentId: establishment.id.toString(),
         customerId: customer.id.toString(),
         plate: "ABC1D23",
@@ -268,7 +281,7 @@ describe("Appointment controllers (e2e)", () => {
         model: "Corolla",
         color: "Prata",
         year: 2022,
-      },
+      }),
     });
 
     const response = await request(getHttpServer(app))
@@ -296,6 +309,8 @@ describe("Appointment controllers (e2e)", () => {
       model: "Corolla",
       color: "Prata",
       year: 2022,
+      displayName: "Toyota Corolla 2022",
+      currentResourceStatus: "UNCHANGED",
     });
   });
 
@@ -542,19 +557,19 @@ describe("Appointment controllers (e2e)", () => {
       },
     });
     const deletedVehicle = await prisma.customerVehicle.create({
-      data: {
+      data: buildCustomerVehiclePrismaData({
         establishmentId: establishment.id.toString(),
         customerId: activeCustomer.id.toString(),
         plate: "ABC1D23",
         deletedAt: new Date(),
-      },
+      }),
     });
     const otherCustomerVehicle = await prisma.customerVehicle.create({
-      data: {
+      data: buildCustomerVehiclePrismaData({
         establishmentId: establishment.id.toString(),
         customerId: otherCustomer.id.toString(),
         plate: "DEF4G56",
-      },
+      }),
     });
 
     const deletedCustomerResponse = await request(getHttpServer(app))
@@ -684,11 +699,11 @@ describe("Appointment controllers (e2e)", () => {
       establishmentId: establishment.id,
     });
     const vehicle = await prisma.customerVehicle.create({
-      data: {
+      data: buildCustomerVehiclePrismaData({
         establishmentId: establishment.id.toString(),
         customerId: firstCustomer.id.toString(),
         plate: "ABC1D23",
-      },
+      }),
     });
 
     const firstResponse = await request(getHttpServer(app))

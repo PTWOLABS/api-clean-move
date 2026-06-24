@@ -152,6 +152,7 @@ export class CompleteOnboardingUseCase {
       hasAppointmentData,
       service: request.service,
       customer: request.customer,
+      vehicle: request.vehicle,
       appointment: request.appointment,
     });
 
@@ -275,6 +276,7 @@ export class CompleteOnboardingUseCase {
     hasAppointmentData,
     service,
     customer,
+    vehicle,
     appointment,
   }: {
     hasServiceData: boolean;
@@ -283,6 +285,7 @@ export class CompleteOnboardingUseCase {
     hasAppointmentData: boolean;
     service?: OnboardingServiceInput | undefined;
     customer?: OnboardingCustomerInput | undefined;
+    vehicle?: OnboardingVehicleInput | undefined;
     appointment?: OnboardingAppointmentInput | undefined;
   }) {
     if (hasServiceData) {
@@ -302,6 +305,14 @@ export class CompleteOnboardingUseCase {
       return new InvalidOnboardingInputError(
         "Vehicle onboarding requires customer data.",
       );
+    }
+
+    if (hasVehicleData) {
+      if (!vehicle?.brand?.trim() || !vehicle?.model?.trim()) {
+        return new InvalidOnboardingInputError(
+          "Vehicle onboarding requires brand and model.",
+        );
+      }
     }
 
     if (hasCustomerData) {
@@ -410,8 +421,8 @@ export class CompleteOnboardingUseCase {
       establishmentId: establishment.id,
       customerId: customer.id,
       plate: vehicleInput.plate ?? null,
-      brand: vehicleInput.brand ?? null,
-      model: vehicleInput.model ?? null,
+      brand: vehicleInput.brand!,
+      model: vehicleInput.model!,
       color: vehicleInput.color ?? null,
       year: vehicleInput.year ?? null,
       notes: vehicleInput.notes ?? null,

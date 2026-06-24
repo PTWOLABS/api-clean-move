@@ -4,6 +4,7 @@ import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import z from "zod";
 
+import { DEFAULT_SERVICE_CATEGORY_NAMES } from "../../../modules/catalog/domain/constants/default-service-categories";
 import { AppModule } from "../../app.module";
 import { PrismaService } from "../../database/prisma/prisma.service";
 
@@ -128,6 +129,11 @@ describe("RegisterEstablishmentController (e2e)", () => {
     });
     expect(createdEstablishment).not.toBeNull();
     expect(createdEstablishment?.slug).toBe("valid-establishment");
+    expect(
+      await prisma.serviceCategory.count({
+        where: { establishmentId: responseBody.establishmentId },
+      }),
+    ).toBe(DEFAULT_SERVICE_CATEGORY_NAMES.length);
   });
 
   it("should return 400 when sending an invalid establishment payload", async () => {
@@ -215,5 +221,15 @@ describe("RegisterEstablishmentController (e2e)", () => {
       .send(makeRegisterEstablishmentPayload());
 
     expect(response.status).toBe(201);
+
+    const responseBody = registerEstablishmentResponseSchema.parse(
+      response.body,
+    );
+
+    expect(
+      await prisma.serviceCategory.count({
+        where: { establishmentId: responseBody.establishmentId },
+      }),
+    ).toBe(DEFAULT_SERVICE_CATEGORY_NAMES.length);
   });
 });

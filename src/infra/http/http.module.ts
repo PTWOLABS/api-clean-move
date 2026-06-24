@@ -1,14 +1,17 @@
 import { Module } from "@nestjs/common";
 
 import { CreateAppointmentUseCase } from "../../modules/application/use-cases/appointment/create-appointment";
+import { DeleteAppointmentUseCase } from "../../modules/application/use-cases/appointment/delete-appointment";
 import { ListAppointmentsUseCase } from "../../modules/application/use-cases/appointment/list-appointments";
 import { ListCalendarAppointmentsUseCase } from "../../modules/application/use-cases/appointment/list-calendar-appointments";
 import { UpdateAppointmentUseCase } from "../../modules/application/use-cases/appointment/update-appointment";
 import { UpdateAppointmentStatusUseCase } from "../../modules/application/use-cases/appointment/update-appointment-status";
 import { AuthenticateWithOAuthUseCase } from "../../modules/application/use-cases/auth/authenticate-with-oauth";
 import { AuthSessionService } from "../../modules/application/services/auth-session.service";
+import { AppointmentResourceStatusResolver } from "../../modules/application/services/appointment-resource-status-resolver";
 import { EstablishmentScopeService } from "../../modules/application/services/establishment-scope";
 import { UserEstablishmentResolver } from "../../modules/application/services/user-establishment-resolver";
+import { CreateDefaultServiceCategoriesOnEstablishmentRegistered } from "../../modules/application/subscribers/create-default-service-categories-on-establishment-registered";
 import { LoginWithCredentialsUseCase } from "../../modules/application/use-cases/auth/login-with-credentials";
 import { RefreshSessionUseCase } from "../../modules/application/use-cases/auth/refresh-session";
 import { SignOutUseCase } from "../../modules/application/use-cases/auth/sign-out";
@@ -62,6 +65,7 @@ import { StorageModule } from "../storage/storage.module";
 import { AuthenticateWithGoogleController } from "./controllers/authenticate-with-google.controller";
 import { CompleteOnboardingController } from "./controllers/complete-onboarding.controller";
 import { CreateAppointmentController } from "./controllers/create-appointment.controller";
+import { DeleteAppointmentController } from "./controllers/delete-appointment.controller";
 import { CreateCustomerController } from "./controllers/create-customer.controller";
 import { CreateCustomerVehicleController } from "./controllers/create-customer-vehicle.controller";
 import { CreateServiceCategoryController } from "./controllers/create-service-category.controller";
@@ -150,6 +154,7 @@ import { DeleteEstablishmentBannerImageController } from "./controllers/media/de
     UpdateCustomerVehicleController,
     DeleteCustomerVehicleController,
     CreateAppointmentController,
+    DeleteAppointmentController,
     ListAppointmentsController,
     ListCalendarAppointmentsController,
     UpdateAppointmentController,
@@ -194,6 +199,7 @@ import { DeleteEstablishmentBannerImageController } from "./controllers/media/de
     UpdateCustomerVehicleUseCase,
     DeleteCustomerVehicleUseCase,
     CreateAppointmentUseCase,
+    DeleteAppointmentUseCase,
     ListAppointmentsUseCase,
     ListCalendarAppointmentsUseCase,
     UpdateAppointmentUseCase,
@@ -210,6 +216,7 @@ import { DeleteEstablishmentBannerImageController } from "./controllers/media/de
     UpdateEmployeeUseCase,
     DeleteEmployeeUseCase,
     UploadDomainImageUseCase,
+    AppointmentResourceStatusResolver,
     AuthSessionService,
     EstablishmentScopeService,
     UserEstablishmentResolver,
@@ -225,6 +232,7 @@ import { DeleteEstablishmentBannerImageController } from "./controllers/media/de
     GetEstablishmentUseCase,
     UpdateEstablishmentUseCase,
     SessionCreationService,
+    CreateDefaultServiceCategoriesOnEstablishmentRegistered,
   ],
 })
 export class HttpModule {}

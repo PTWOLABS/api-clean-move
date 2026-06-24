@@ -135,7 +135,7 @@ model Customer {
   establishmentId String    @map("establishment_id") @db.Uuid
   cpfCnpj         String?   @map("cpf_cnpj") @db.VarChar(14)
   fullName        String    @map("full_name")
-  phone           String    @db.VarChar(11)
+  phone           String?   @db.VarChar(11)
   email           String?
   address         Json?
   birthDate       DateTime? @map("birth_date")
@@ -163,8 +163,8 @@ model CustomerVehicle {
   customerId      String    @map("customer_id") @db.Uuid
   imageUrl        String?   @map("image_url")
   plate           String?   @db.VarChar(12)
-  brand           String?
-  model           String?
+  brand           String
+  model           String
   color           String?
   year            Int?
   notes           String?   @db.Text
@@ -218,7 +218,7 @@ model ServiceCategory {
   establishment Establishment @relation(fields: [establishmentId], references: [id], onDelete: Restrict)
   services      Service[]
 
-  @@unique([establishmentId, name])
+  @@index([establishmentId, name])
   @@index([establishmentId, deletedAt])
   @@map("service_categories")
 }
@@ -272,6 +272,7 @@ model Appointment {
   updatedAt        DateTime          @default(now()) @updatedAt @map("updated_at")
   doneAt           DateTime?         @map("done_at")
   cancelledAt      DateTime?         @map("cancelled_at")
+  deletedAt        DateTime?         @map("deleted_at")
 
   establishment      Establishment              @relation("EstablishmentAppointments", fields: [establishmentId], references: [id], onDelete: Restrict)
   customer           Customer                   @relation(fields: [customerId], references: [id], onDelete: Restrict)
@@ -286,19 +287,24 @@ model Appointment {
   @@index([establishmentId, status])
   @@index([establishmentId, customerId])
   @@index([establishmentId, vehicleId])
+  @@index([establishmentId, deletedAt])
   @@map("appointments")
 }
 
 model AppointmentBookedService {
-  id                       String  @id @default(uuid()) @db.Uuid
-  appointmentId            String  @map("appointment_id") @db.Uuid
-  serviceId                String  @map("service_id") @db.Uuid
-  serviceName              String  @map("service_name") @db.VarChar(72)
-  serviceCategoryId        String? @map("service_category_id") @db.Uuid
-  serviceCategoryName      String? @map("service_category_name") @db.VarChar(48)
-  serviceDurationInMinutes Int?    @map("service_duration_in_minutes")
-  servicePriceInCents      Int     @map("service_price_in_cents")
-  position                 Int     @default(0)
+  id                            String           @id @default(uuid()) @db.Uuid
+  appointmentId                 String           @map("appointment_id") @db.Uuid
+  serviceId                     String           @map("service_id") @db.Uuid
+  serviceName                   String           @map("service_name") @db.VarChar(72)
+  serviceCategoryId             String?          @map("service_category_id") @db.Uuid
+  serviceCategoryName           String?          @map("service_category_name") @db.VarChar(48)
+  serviceDurationInMinutes      Int?             @map("service_duration_in_minutes")
+  servicePriceInCents           Int              @map("service_price_in_cents")
+  servicePriceDefaultInCents    Int              @map("service_price_default_in_cents")
+  servicePriceSpecificationType ServicePriceType @default(FIXED) @map("service_price_specification_type")
+  servicePriceRangeMaxInCents   Int?             @map("service_price_range_max_in_cents")
+  serviceIsActive               Boolean          @default(true) @map("service_is_active")
+  position                      Int              @default(0)
 
   appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
   service     Service     @relation(fields: [serviceId], references: [id], onDelete: Restrict)

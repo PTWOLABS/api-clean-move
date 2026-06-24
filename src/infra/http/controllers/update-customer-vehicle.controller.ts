@@ -41,8 +41,24 @@ import { CustomerVehiclePresenter } from "../presenters/customer-vehicle-present
 const updateCustomerVehicleBodySchema = z
   .object({
     plate: z.string().trim().optional().nullable(),
-    brand: z.string().trim().optional().nullable(),
-    model: z.string().trim().optional().nullable(),
+    brand: z
+      .string()
+      .trim()
+      .min(1)
+      .optional()
+      .nullable()
+      .refine((value) => value !== null, {
+        message: "brand cannot be empty.",
+      }),
+    model: z
+      .string()
+      .trim()
+      .min(1)
+      .optional()
+      .nullable()
+      .refine((value) => value !== null, {
+        message: "model cannot be empty.",
+      }),
     color: z.string().trim().optional().nullable(),
     year: z.number().int().optional().nullable(),
     notes: z.string().trim().optional().nullable(),

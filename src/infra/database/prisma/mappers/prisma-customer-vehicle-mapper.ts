@@ -7,7 +7,7 @@ import { UniqueEntityId } from "../../../../shared/entities/unique-entity-id";
 
 export class PrismaCustomerVehicleMapper {
   static toDomain(raw: PrismaCustomerVehicle): CustomerVehicle {
-    return CustomerVehicle.create(
+    return CustomerVehicle.restore(
       {
         establishmentId: new UniqueEntityId(raw.establishmentId),
         customerId: new UniqueEntityId(raw.customerId),

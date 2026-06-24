@@ -180,7 +180,7 @@ export class CreateQuoteUseCase {
         customerId: customer.id,
         customer: {
           name: customer.fullName,
-          phone: customer.phone.toString(),
+          phone: customer.phone?.toString() ?? null,
           cpfCnpj: customer.cpfCnpj?.toString() ?? null,
           address: toAddressSnapshot(customer.address),
         },

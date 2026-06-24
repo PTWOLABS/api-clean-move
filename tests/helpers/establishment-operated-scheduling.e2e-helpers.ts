@@ -119,6 +119,11 @@ export const appointmentStatusSchema = z.enum([
   "DONE",
   "CANCELLED",
 ]);
+export const appointmentResourceStatusSchema = z.enum([
+  "UNCHANGED",
+  "UPDATED",
+  "DELETED",
+]);
 
 export const appointmentResponseSchema = z.object({
   appointment: z.object({
@@ -127,6 +132,7 @@ export const appointmentResponseSchema = z.object({
     customerId: z.uuid(),
     customer: z.object({
       fullName: z.string(),
+      currentResourceStatus: appointmentResourceStatusSchema,
     }),
     vehicleId: z.uuid().nullable(),
     services: z
@@ -137,6 +143,7 @@ export const appointmentResponseSchema = z.object({
           category: z.string().nullable(),
           durationInMinutes: z.number().int().nullable(),
           priceInCents: z.number().int(),
+          currentResourceStatus: appointmentResourceStatusSchema,
         }),
       )
       .min(1),
@@ -148,6 +155,7 @@ export const appointmentResponseSchema = z.object({
         color: z.string().nullable(),
         year: z.number().int().nullable(),
         displayName: z.string().nullable(),
+        currentResourceStatus: appointmentResourceStatusSchema,
       })
       .nullable(),
     startsAt: z.string(),

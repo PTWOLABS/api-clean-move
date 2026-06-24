@@ -156,6 +156,35 @@ export class InMemoryServicesRepository implements ServicesRepository {
     return service;
   }
 
+  async findActiveByNameAndEstablishmentId(
+    serviceName: string,
+    establishmentId: string,
+  ): Promise<Service | null> {
+    const normalizedServiceName = serviceName.trim().toLowerCase();
+
+    return (
+      this.items.find(
+        (item) =>
+          item.establishmentId.toString() === establishmentId &&
+          !item.isDeleted() &&
+          item.serviceName.value.toLowerCase() === normalizedServiceName,
+      ) ?? null
+    );
+  }
+
+  async findManyByIdsAndEstablishmentIdIncludingDeleted(
+    ids: string[],
+    establishmentId: string,
+  ): Promise<Service[]> {
+    const idSet = new Set(ids);
+
+    return this.items.filter(
+      (item) =>
+        idSet.has(item.id.toString()) &&
+        item.establishmentId.toString() === establishmentId,
+    );
+  }
+
   async save(service: Service): Promise<void> {
     const serviceIndex = this.items.findIndex((item) =>
       item.id.equals(service.id),

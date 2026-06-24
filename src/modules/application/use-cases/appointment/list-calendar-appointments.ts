@@ -12,6 +12,7 @@ import {
   AppointmentsRepository,
   CalendarAppointmentFilters,
 } from "../../repositories/appointments-repository";
+import { AppointmentResourceStatusResolver } from "../../services/appointment-resource-status-resolver";
 
 type ListCalendarAppointmentsUseCaseRequest = {
   actor: EstablishmentScopeActor;
@@ -31,6 +32,7 @@ export class ListCalendarAppointmentsUseCase {
   constructor(
     private appointmentsRepository: AppointmentsRepository,
     private establishmentScope: EstablishmentScopeService,
+    private appointmentResourceStatusResolver: AppointmentResourceStatusResolver,
   ) {}
 
   async execute({
@@ -50,6 +52,11 @@ export class ListCalendarAppointmentsUseCase {
         establishment.id.toString(),
         filters,
       );
+
+    await this.appointmentResourceStatusResolver.applyToAppointments(
+      appointments,
+      establishment.id.toString(),
+    );
 
     return right({
       appointments,

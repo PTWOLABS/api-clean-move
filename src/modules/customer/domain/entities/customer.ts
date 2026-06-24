@@ -12,7 +12,7 @@ export type CustomerProps = {
   establishmentId: UniqueEntityId;
   cpfCnpj: CustomerDocument | null;
   fullName: string;
-  phone: Phone;
+  phone: Phone | null;
   email: Email | null;
   address: Address | null;
   birthDate: Date | null;
@@ -94,7 +94,7 @@ export class Customer extends AggregateRoot<CustomerProps> {
   update(data: {
     cpfCnpj?: CustomerDocument | string | null;
     fullName?: string;
-    phone?: Phone;
+    phone?: Phone | null;
     email?: Email | null;
     address?: Address | null;
     birthDate?: Date | null;

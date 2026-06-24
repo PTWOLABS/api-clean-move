@@ -1,4 +1,5 @@
 import { INestApplication } from "@nestjs/common";
+import { buildCustomerVehiclePrismaData } from "../../../../tests/helpers/customer-vehicle.e2e-helpers";
 import { Test } from "@nestjs/testing";
 import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -63,26 +64,26 @@ describe("ListVehiclesController (e2e)", () => {
       fullName: "Joao Santos",
     });
     const firstVehicle = await prisma.customerVehicle.create({
-      data: {
+      data: buildCustomerVehiclePrismaData({
         establishmentId: establishment.id.toString(),
         customerId: firstCustomer.id.toString(),
         plate: "ABC1D23",
-      },
+      }),
     });
     const secondVehicle = await prisma.customerVehicle.create({
-      data: {
+      data: buildCustomerVehiclePrismaData({
         establishmentId: establishment.id.toString(),
         customerId: secondCustomer.id.toString(),
         plate: "DEF4G56",
-      },
+      }),
     });
     const deletedVehicle = await prisma.customerVehicle.create({
-      data: {
+      data: buildCustomerVehiclePrismaData({
         establishmentId: establishment.id.toString(),
         customerId: firstCustomer.id.toString(),
         plate: "GHI7J89",
         deletedAt: new Date(),
-      },
+      }),
     });
 
     const allResponse = await request(getHttpServer(app))
@@ -129,18 +130,18 @@ describe("ListVehiclesController (e2e)", () => {
       fullName: "Joao Santos",
     });
     const mariaVehicle = await prisma.customerVehicle.create({
-      data: {
+      data: buildCustomerVehiclePrismaData({
         establishmentId: establishment.id.toString(),
         customerId: maria.id.toString(),
         plate: "ABC1D23",
-      },
+      }),
     });
     await prisma.customerVehicle.create({
-      data: {
+      data: buildCustomerVehiclePrismaData({
         establishmentId: establishment.id.toString(),
         customerId: joao.id.toString(),
         plate: "DEF4G56",
-      },
+      }),
     });
 
     const byCustomerIdResponse = await request(getHttpServer(app))
@@ -181,7 +182,7 @@ describe("ListVehiclesController (e2e)", () => {
       cpfCnpj: null,
     });
     const targetVehicle = await prisma.customerVehicle.create({
-      data: {
+      data: buildCustomerVehiclePrismaData({
         establishmentId: establishment.id.toString(),
         customerId: customer.id.toString(),
         plate: "ABC1D23",
@@ -189,10 +190,10 @@ describe("ListVehiclesController (e2e)", () => {
         brand: "Volkswagen",
         color: "Branco",
         year: 2020,
-      },
+      }),
     });
     await prisma.customerVehicle.create({
-      data: {
+      data: buildCustomerVehiclePrismaData({
         establishmentId: establishment.id.toString(),
         customerId: customer.id.toString(),
         plate: "XYZ9A87",
@@ -200,7 +201,7 @@ describe("ListVehiclesController (e2e)", () => {
         brand: "Chevrolet",
         color: "Preto",
         year: 2018,
-      },
+      }),
     });
 
     const assertSingleMatch = async (
@@ -250,22 +251,22 @@ describe("ListVehiclesController (e2e)", () => {
       cpfCnpj: null,
     });
     const targetVehicle = await prisma.customerVehicle.create({
-      data: {
+      data: buildCustomerVehiclePrismaData({
         establishmentId: establishment.id.toString(),
         customerId: customer.id.toString(),
         plate: "ABC1D23",
         model: "Gol",
         brand: "Volkswagen",
-      },
+      }),
     });
     await prisma.customerVehicle.create({
-      data: {
+      data: buildCustomerVehiclePrismaData({
         establishmentId: establishment.id.toString(),
         customerId: customer.id.toString(),
         plate: "XYZ9A87",
         model: "Gol",
         brand: "Chevrolet",
-      },
+      }),
     });
 
     const response = await request(getHttpServer(app))
@@ -384,11 +385,11 @@ describe("ListVehiclesController (e2e)", () => {
       cpfCnpj: null,
     });
     await prisma.customerVehicle.create({
-      data: {
+      data: buildCustomerVehiclePrismaData({
         establishmentId: firstOwner.establishment.id.toString(),
         customerId: customer.id.toString(),
         plate: "ABC1D23",
-      },
+      }),
     });
 
     const crossEstablishmentResponse = await request(getHttpServer(app))

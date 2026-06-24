@@ -81,11 +81,16 @@ export class RegisterQuoteProspectAsCustomerUseCase {
     let vehicle: CustomerVehicle | null = null;
 
     try {
+      const phoneValue = request.phone ?? quote.customer.phone ?? null;
+
       customer = Customer.create({
         establishmentId: scope.value.establishment.id,
         cpfCnpj: quote.customer.cpfCnpj,
         fullName: quote.customer.name,
-        phone: Phone.create(request.phone ?? quote.customer.phone ?? ""),
+        phone:
+          phoneValue !== null && phoneValue.trim()
+            ? Phone.create(phoneValue)
+            : null,
         email: new Email(request.email),
         address: toAddress(quote.customer.address),
         birthDate: request.birthDate ?? null,
@@ -96,6 +101,14 @@ export class RegisterQuoteProspectAsCustomerUseCase {
         if (!quote.vehicle) {
           return left(
             new InvalidQuoteInputError("Quote has no vehicle snapshot."),
+          );
+        }
+
+        if (!quote.vehicle.brand?.trim() || !quote.vehicle.model?.trim()) {
+          return left(
+            new InvalidQuoteInputError(
+              "Quote vehicle snapshot must include brand and model.",
+            ),
           );
         }
 

@@ -1,4 +1,5 @@
 import { INestApplication } from "@nestjs/common";
+import { buildCustomerVehiclePrismaData } from "../../../../tests/helpers/customer-vehicle.e2e-helpers";
 import { Test } from "@nestjs/testing";
 import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -75,50 +76,50 @@ describe("ListCustomerVehicleOptionsController (e2e)", () => {
       cpfCnpj: null,
     });
     const firstVehicle = await prisma.customerVehicle.create({
-      data: {
+      data: buildCustomerVehiclePrismaData({
         establishmentId: firstOwner.establishment.id.toString(),
         customerId: firstCustomer.id.toString(),
         plate: "ABC1D23",
         brand: "Volkswagen",
         model: "Gol Trend",
-      },
+      }),
     });
     await prisma.customerVehicle.create({
-      data: {
+      data: buildCustomerVehiclePrismaData({
         establishmentId: firstOwner.establishment.id.toString(),
         customerId: firstCustomer.id.toString(),
         plate: "DEF4G56",
         brand: "Chevrolet",
         model: "Onix",
-      },
+      }),
     });
     await prisma.customerVehicle.create({
-      data: {
+      data: buildCustomerVehiclePrismaData({
         establishmentId: firstOwner.establishment.id.toString(),
         customerId: secondCustomer.id.toString(),
         plate: "GHI7J89",
         brand: "Volkswagen",
         model: "Polo",
-      },
+      }),
     });
     const deletedVehicle = await prisma.customerVehicle.create({
-      data: {
+      data: buildCustomerVehiclePrismaData({
         establishmentId: firstOwner.establishment.id.toString(),
         customerId: firstCustomer.id.toString(),
         plate: "JKL1M23",
         brand: "Volkswagen",
         model: "Virtus",
         deletedAt: new Date(),
-      },
+      }),
     });
     await prisma.customerVehicle.create({
-      data: {
+      data: buildCustomerVehiclePrismaData({
         establishmentId: secondOwner.establishment.id.toString(),
         customerId: outsideCustomer.id.toString(),
         plate: "MNO4P56",
         brand: "Volkswagen",
         model: "Nivus",
-      },
+      }),
     });
 
     const brandResponse = await request(getHttpServer(app))
@@ -175,13 +176,13 @@ describe("ListCustomerVehicleOptionsController (e2e)", () => {
       cpfCnpj: null,
     });
     const vehicle = await prisma.customerVehicle.create({
-      data: {
+      data: buildCustomerVehiclePrismaData({
         establishmentId: owner.establishment.id.toString(),
         customerId: customer.id.toString(),
         plate: "ABC1D23",
         brand: "Toyota",
         model: "Corolla",
-      },
+      }),
     });
 
     const response = await request(getHttpServer(app))

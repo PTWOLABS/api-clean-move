@@ -53,7 +53,7 @@ describe("resolveDashboardMetricsRange", () => {
     );
   });
 
-  it("should resolve this-month and its equivalent elapsed interval in previous month", () => {
+  it("should resolve this-month and its previous full calendar month", () => {
     const result = resolveDashboardMetricsRange(
       { period: "this-month" },
       { referenceDate },
@@ -63,12 +63,12 @@ describe("resolveDashboardMetricsRange", () => {
     expectRange(
       result.current,
       "2026-05-01T00:00:00.000Z",
-      "2026-05-15T23:59:59.999Z",
+      "2026-05-31T23:59:59.999Z",
     );
     expectRange(
       result.comparison,
       "2026-04-01T00:00:00.000Z",
-      "2026-04-15T23:59:59.999Z",
+      "2026-04-30T23:59:59.999Z",
     );
   });
 
@@ -79,12 +79,12 @@ describe("resolveDashboardMetricsRange", () => {
     expectRange(
       result.current,
       "2026-05-01T00:00:00.000Z",
-      "2026-05-15T23:59:59.999Z",
+      "2026-05-31T23:59:59.999Z",
     );
     expectRange(
       result.comparison,
       "2026-04-01T00:00:00.000Z",
-      "2026-04-15T23:59:59.999Z",
+      "2026-04-30T23:59:59.999Z",
     );
   });
 

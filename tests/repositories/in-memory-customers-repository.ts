@@ -37,6 +37,19 @@ export class InMemoryCustomersRepository implements CustomersRepository {
     return customer;
   }
 
+  async findManyByIdsAndEstablishmentIdIncludingDeleted(
+    ids: string[],
+    establishmentId: string,
+  ): Promise<Customer[]> {
+    const idSet = new Set(ids);
+
+    return this.items.filter(
+      (item) =>
+        idSet.has(item.id.toString()) &&
+        item.establishmentId.toString() === establishmentId,
+    );
+  }
+
   async findActiveByCpfCnpjAndEstablishmentId(
     cpfCnpj: string,
     establishmentId: string,
@@ -75,7 +88,7 @@ export class InMemoryCustomersRepository implements CustomersRepository {
         }
 
         const fullName = item.fullName.toLowerCase();
-        const phone = item.phone.toString();
+        const phone = item.phone?.toString() ?? "";
         const email = item.email?.toString().toLowerCase() ?? "";
         const cpfCnpj = item.cpfCnpj?.toString() ?? "";
 

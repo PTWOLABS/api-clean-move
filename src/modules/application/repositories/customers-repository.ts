@@ -28,6 +28,10 @@ export abstract class CustomersRepository {
     id: string,
     establishmentId: string,
   ): Promise<Customer | null>;
+  abstract findManyByIdsAndEstablishmentIdIncludingDeleted(
+    ids: string[],
+    establishmentId: string,
+  ): Promise<Customer[]>;
   abstract findActiveByCpfCnpjAndEstablishmentId(
     cpfCnpj: string,
     establishmentId: string,

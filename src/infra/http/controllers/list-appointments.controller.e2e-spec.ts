@@ -1,4 +1,5 @@
 import { INestApplication } from "@nestjs/common";
+import { buildCustomerVehiclePrismaData } from "../../../../tests/helpers/customer-vehicle.e2e-helpers";
 import { Test } from "@nestjs/testing";
 import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -7,6 +8,10 @@ import { CustomerFactory } from "../../../../tests/factories/customer-factory";
 import { EstablishmentFactory } from "../../../../tests/factories/establishment-factory";
 import { ServiceFactory } from "../../../../tests/factories/service-factory";
 import { UserFactory } from "../../../../tests/factories/user-factory";
+import {
+  createAppointmentResourceStatusScenario,
+  expectAppointmentResourceStatusScenario,
+} from "../../../../tests/helpers/appointment-resource-status.e2e-helper";
 import {
   appointmentPayload,
   appointmentResponseSchema,
@@ -82,13 +87,13 @@ describe("ListAppointmentsController (e2e)", () => {
       serviceName: ServiceName.create("Polimento tecnico"),
     });
     const vehicle = await prisma.customerVehicle.create({
-      data: {
+      data: buildCustomerVehiclePrismaData({
         establishmentId: establishment.id.toString(),
         customerId: firstCustomer.id.toString(),
         plate: "ABC1D23",
         brand: "Toyota",
         model: "Corolla",
-      },
+      }),
     });
     const firstResponse = await request(getHttpServer(app))
       .post("/appointments")
@@ -250,8 +255,8 @@ describe("ListAppointmentsController (e2e)", () => {
     expect(
       customerBody.appointments.map((appointment) => appointment.customer),
     ).toEqual([
-      { fullName: "Ana Maria Souza" },
-      { fullName: "Ana Maria Souza" },
+      { fullName: "Ana Maria Souza", currentResourceStatus: "UNCHANGED" },
+      { fullName: "Ana Maria Souza", currentResourceStatus: "UNCHANGED" },
     ]);
     expect(serviceResponse.status).toBe(200);
     expect(
@@ -373,7 +378,39 @@ describe("ListAppointmentsController (e2e)", () => {
     expect(body.appointments[0]?.id).toBe(appointment.id);
     expect(body.appointments[0]?.customer).toEqual({
       fullName: "Nome Original",
+      currentResourceStatus: "UPDATED",
     });
+  });
+
+  it("should return current resource status for unchanged, updated, and deleted snapshots", async () => {
+    const { accessToken, establishment } = await makeEstablishmentAuth({
+      app,
+      prisma,
+      userFactory,
+      establishmentFactory,
+      envService,
+    });
+    const scenario = await createAppointmentResourceStatusScenario({
+      app,
+      prisma,
+      accessToken,
+      establishment,
+      customerFactory,
+      serviceFactory,
+    });
+
+    const response = await request(getHttpServer(app))
+      .get("/appointments")
+      .set("Authorization", `Bearer ${accessToken}`)
+      .query({
+        startsAt: "2026-04-13T00:00:00.000Z",
+        endsAt: "2026-04-13T23:59:59.999Z",
+      });
+    const body = listAppointmentsResponseSchema.parse(response.body);
+
+    expect(response.status).toBe(200);
+    expect(body.appointments).toHaveLength(3);
+    expectAppointmentResourceStatusScenario(body.appointments, scenario);
   });
 
   it("should enforce authentication and establishment role", async () => {

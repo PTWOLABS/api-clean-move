@@ -134,7 +134,9 @@ export class CreateAppointmentUseCase {
         serviceName: service.serviceName.value,
         category: service.category,
         durationInMinutes: service.estimatedDuration?.upperBoundInMinutes,
+        priceSpecification: service.priceSpecification.toValue(),
         priceInCents,
+        isActive: service.isActive,
       });
     }
 
