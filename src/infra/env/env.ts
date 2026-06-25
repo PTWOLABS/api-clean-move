@@ -82,6 +82,9 @@ export const envSchema = z
         typeof value === "string" && value.trim() === "" ? undefined : value,
       z.url().optional(),
     ),
+    RESEND_API_KEY: optionalNonEmptyStringSchema,
+    RESEND_FROM_EMAIL: optionalNonEmptyStringSchema,
+    PASSWORD_RESET_PATH: z.url(),
   })
   .superRefine(
     (
@@ -92,6 +95,8 @@ export const envSchema = z
         AWS_S3_ENDPOINT,
         AWS_ACCESS_KEY_ID,
         AWS_SECRET_ACCESS_KEY,
+        RESEND_API_KEY,
+        RESEND_FROM_EMAIL,
       },
       context,
     ) => {
@@ -150,6 +155,32 @@ export const envSchema = z
               "AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY are required when NODE_ENV is production or staging.",
           });
         }
+
+        if (RESEND_API_KEY === undefined) {
+          context.addIssue({
+            code: "custom",
+            path: ["RESEND_API_KEY"],
+            message:
+              "RESEND_API_KEY is required when NODE_ENV is production or staging.",
+          });
+        }
+
+        if (RESEND_FROM_EMAIL === undefined) {
+          context.addIssue({
+            code: "custom",
+            path: ["RESEND_FROM_EMAIL"],
+            message:
+              "RESEND_FROM_EMAIL is required when NODE_ENV is production or staging.",
+          });
+        }
+      }
+
+      if (RESEND_API_KEY !== undefined && RESEND_FROM_EMAIL === undefined) {
+        context.addIssue({
+          code: "custom",
+          path: ["RESEND_FROM_EMAIL"],
+          message: "RESEND_FROM_EMAIL is required when RESEND_API_KEY is set.",
+        });
       }
     },
   )

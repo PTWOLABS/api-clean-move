@@ -8,6 +8,11 @@ const R2_STORAGE_ENV = {
   AWS_SECRET_ACCESS_KEY: "r2-secret-access-key",
 } as const;
 
+const RESEND_ENV = {
+  RESEND_API_KEY: "re_test_key",
+  RESEND_FROM_EMAIL: "noreply@example.com",
+} as const;
+
 function baseEnv(
   overrides: Record<string, string | undefined> = {},
 ): Record<string, string | undefined> {
@@ -30,6 +35,7 @@ function baseEnv(
     AWS_REGION: "auto",
     AWS_S3_BUCKET: "my-bucket",
     AWS_S3_PUBLIC_BASE_URL: "https://cdn.example.com",
+    PASSWORD_RESET_PATH: "https://app.example.com/reset-password",
     ...overrides,
   };
 }
@@ -172,6 +178,7 @@ describe("envSchema", () => {
         FRONTEND_URL: "https://app.example.com",
         AWS_S3_PUBLIC_BASE_URL: "https://cdn.example.com",
         ...R2_STORAGE_ENV,
+        ...RESEND_ENV,
       }),
     );
 
@@ -193,6 +200,7 @@ describe("envSchema", () => {
         FRONTEND_URL: "https://staging.example.com",
         AWS_S3_PUBLIC_BASE_URL: "https://cdn-staging.example.com",
         ...R2_STORAGE_ENV,
+        ...RESEND_ENV,
       }),
     );
 
