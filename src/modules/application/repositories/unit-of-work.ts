@@ -11,14 +11,14 @@ export abstract class UnitOfWork {
           const result = await work();
 
           if (isRootExecution) {
-            await DomainEvents.dispatchEventsForMarkedAggregates();
+            await DomainEvents.dispatchEventsForMarkedAggregates(context);
           }
 
           return result;
         });
       } catch (error) {
         if (isRootExecution) {
-          DomainEvents.clearMarkedAggregates();
+          DomainEvents.clearMarkedAggregates(context);
         }
 
         throw error;

@@ -19,6 +19,8 @@ type DomainEventsExecutionContext = {
 
 export class DomainEvents {
   private static handlersMap: Record<string, DomainEventHandler[]> = {};
+  private static fallbackExecutionContext =
+    DomainEvents.createExecutionContext();
   private static executionContextStorage =
     new AsyncLocalStorage<DomainEventsExecutionContext>();
 
@@ -27,11 +29,13 @@ export class DomainEvents {
     eventName: string,
   ) {
     const handlers = DomainEvents.handlersMap[eventName] ?? [];
+    const handler = callback as DomainEventHandler;
 
-    DomainEvents.handlersMap[eventName] = [
-      ...handlers,
-      callback as DomainEventHandler,
-    ];
+    if (handlers.includes(handler)) {
+      return;
+    }
+
+    DomainEvents.handlersMap[eventName] = [...handlers, handler];
   }
 
   static unregister<T extends DomainEvent>(
@@ -58,9 +62,9 @@ export class DomainEvents {
     context.markedAggregates.push(aggregate);
   }
 
-  static async dispatchEventsForMarkedAggregates() {
-    const context = DomainEvents.executionContextStorage.getStore();
-
+  static async dispatchEventsForMarkedAggregates(
+    context = DomainEvents.getCurrentOrFallbackExecutionContext(),
+  ) {
     if (!context) {
       return;
     }
@@ -84,9 +88,9 @@ export class DomainEvents {
     DomainEvents.handlersMap = {};
   }
 
-  static clearMarkedAggregates() {
-    const context = DomainEvents.executionContextStorage.getStore();
-
+  static clearMarkedAggregates(
+    context = DomainEvents.getCurrentOrFallbackExecutionContext(),
+  ) {
     if (!context) {
       return;
     }
@@ -120,11 +124,16 @@ export class DomainEvents {
       return currentContext;
     }
 
-    const context = DomainEvents.createExecutionContext();
+    return DomainEvents.fallbackExecutionContext;
+  }
 
-    DomainEvents.executionContextStorage.enterWith(context);
-
-    return context;
+  private static getCurrentOrFallbackExecutionContext():
+    | DomainEventsExecutionContext
+    | undefined {
+    return (
+      DomainEvents.executionContextStorage.getStore() ??
+      DomainEvents.fallbackExecutionContext
+    );
   }
 
   private static createExecutionContext(): DomainEventsExecutionContext {

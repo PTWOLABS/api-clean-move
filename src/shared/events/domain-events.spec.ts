@@ -172,17 +172,18 @@ describe("DomainEvents", () => {
       handledEvents.push(event.name);
     }, TestDomainEvent.name);
 
+    const secondExecution = unitOfWork.execute(async () => {
+      await firstWorkStarted.promise;
+      secondAggregate.record("second");
+    });
+
     const firstExecution = unitOfWork.execute(async () => {
       firstAggregate.record("first");
       firstWorkStarted.resolve();
       await releaseFirstWork.promise;
     });
 
-    await firstWorkStarted.promise;
-
-    await unitOfWork.execute(async () => {
-      secondAggregate.record("second");
-    });
+    await secondExecution;
 
     const handledAfterSecondExecution = [...handledEvents];
 
@@ -236,19 +237,20 @@ describe("DomainEvents", () => {
       handledEvents.push(event.name);
     }, TestDomainEvent.name);
 
+    const secondExecution = unitOfWork.execute(async () => {
+      await firstWorkStarted.promise;
+      secondAggregate.record("second");
+    });
+
     const firstExecution = unitOfWork.execute(async () => {
       firstAggregate.record("first");
       firstWorkStarted.resolve();
       await releaseFirstWork.promise;
     });
 
-    await firstWorkStarted.promise;
-
-    await expect(
-      unitOfWork.execute(async () => {
-        secondAggregate.record("second");
-      }),
-    ).rejects.toThrow("Failed to handle second event.");
+    await expect(secondExecution).rejects.toThrow(
+      "Failed to handle second event.",
+    );
 
     const firstEventsAfterSecondFailure = firstAggregate.domainEvents;
 
