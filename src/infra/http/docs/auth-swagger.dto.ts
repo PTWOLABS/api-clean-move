@@ -54,3 +54,36 @@ export class AuthenticateWithGoogleBodyDto {
   })
   role!: string;
 }
+
+export class RequestPasswordResetBodyDto {
+  @ApiProperty({
+    example: "user@example.com",
+    description: "Account email used to request a password reset link.",
+  })
+  email!: string;
+}
+
+export class AuthMessageResponseDto {
+  @ApiProperty({
+    example:
+      "If an account exists for this email, we will send a password reset link.",
+    description: "Human-readable operation result message.",
+  })
+  message!: string;
+}
+
+export class ResetPasswordWithTokenBodyDto {
+  @ApiProperty({
+    example: "opaque-reset-token-from-email-link",
+    description: "Password reset token received in the reset email link.",
+  })
+  token!: string;
+
+  @ApiProperty({
+    example: "new-strong-password",
+    description: "New account password.",
+    minLength: 8,
+    maxLength: 72,
+  })
+  newPassword!: string;
+}

@@ -13,6 +13,8 @@ import { EstablishmentScopeService } from "../../modules/application/services/es
 import { UserEstablishmentResolver } from "../../modules/application/services/user-establishment-resolver";
 import { CreateDefaultServiceCategoriesOnEstablishmentRegistered } from "../../modules/application/subscribers/create-default-service-categories-on-establishment-registered";
 import { LoginWithCredentialsUseCase } from "../../modules/application/use-cases/auth/login-with-credentials";
+import { RequestPasswordResetUseCase } from "../../modules/application/use-cases/auth/request-password-reset";
+import { ResetPasswordWithTokenUseCase } from "../../modules/application/use-cases/auth/reset-password-with-token";
 import { RefreshSessionUseCase } from "../../modules/application/use-cases/auth/refresh-session";
 import { SignOutUseCase } from "../../modules/application/use-cases/auth/sign-out";
 import { CreateCustomerUseCase } from "../../modules/application/use-cases/customer/create-customer";
@@ -59,8 +61,19 @@ import { DeleteServiceUseCase } from "../../modules/application/use-cases/servic
 import { GetMeUseCase } from "../../modules/application/use-cases/user/get-me";
 import { UpdateUserUseCase } from "../../modules/application/use-cases/user/update-user";
 import { SessionCreationService } from "../../modules/accounts/domain/services/session-creation-service";
+import { EmailSender } from "../../modules/application/gateways/email-sender";
+import { HashGenerator } from "../../modules/application/repositories/hash-generator";
+import { PasswordResetTokensRepository } from "../../modules/application/repositories/password-reset-tokens-repository";
+import { ResetTokenGenerator } from "../../modules/application/repositories/reset-token-generator";
+import { SessionsRepository } from "../../modules/application/repositories/sessions-repository";
+import { TokenHasher } from "../../modules/application/repositories/token-hasher";
+import { UsersRepository } from "../../modules/application/repositories/users-repository";
+import { PasswordResetAuditLogger } from "../../modules/application/services/password-reset-audit-logger";
 import { AuthModule } from "../auth/auth.module";
 import { DatabaseModule } from "../database/database.module";
+import { EnvModule } from "../env/env.module";
+import { EnvService } from "../env/env.service";
+import { MailModule } from "../mail/mail.module";
 import { StorageModule } from "../storage/storage.module";
 import { AuthenticateWithGoogleController } from "./controllers/authenticate-with-google.controller";
 import { CompleteOnboardingController } from "./controllers/complete-onboarding.controller";
@@ -101,6 +114,8 @@ import { ListCustomerVehiclesController } from "./controllers/list-customer-vehi
 import { ListVehiclesController } from "./controllers/list-vehicles.controller";
 import { ListEmployeesController } from "./controllers/list-employees.controller";
 import { LoginWithCredentialsController } from "./controllers/login-with-credentials.controller";
+import { RequestPasswordResetController } from "./controllers/request-password-reset.controller";
+import { ResetPasswordWithTokenController } from "./controllers/reset-password-with-token.controller";
 import { SignOutController } from "./controllers/sign-out.controller";
 import { RefreshSessionController } from "./controllers/refresh-session.controller";
 import { RegisterEmployeeController } from "./controllers/register-employee.controller";
@@ -117,11 +132,13 @@ import { UploadUserProfileImageController } from "./controllers/upload-user-prof
 import { DeleteEstablishmentBannerImageController } from "./controllers/media/delete-establishment-banner-image.controller";
 
 @Module({
-  imports: [AuthModule, DatabaseModule, StorageModule],
+  imports: [AuthModule, DatabaseModule, StorageModule, MailModule, EnvModule],
   controllers: [
     RegisterEstablishmentController,
     AuthenticateWithGoogleController,
     LoginWithCredentialsController,
+    RequestPasswordResetController,
+    ResetPasswordWithTokenController,
     RefreshSessionController,
     SignOutController,
     CompleteOnboardingController,
@@ -221,6 +238,69 @@ import { DeleteEstablishmentBannerImageController } from "./controllers/media/de
     EstablishmentScopeService,
     UserEstablishmentResolver,
     LoginWithCredentialsUseCase,
+    {
+      provide: RequestPasswordResetUseCase,
+      useFactory: (
+        usersRepository: UsersRepository,
+        passwordResetTokensRepository: PasswordResetTokensRepository,
+        tokenHasher: TokenHasher,
+        emailSender: EmailSender,
+        resetTokenGenerator: ResetTokenGenerator,
+        passwordResetAuditLogger: PasswordResetAuditLogger,
+        envService: EnvService,
+      ) =>
+        new RequestPasswordResetUseCase(
+          usersRepository,
+          passwordResetTokensRepository,
+          tokenHasher,
+          emailSender,
+          resetTokenGenerator,
+          passwordResetAuditLogger,
+          envService.get("PASSWORD_RESET_PATH"),
+        ),
+      inject: [
+        UsersRepository,
+        PasswordResetTokensRepository,
+        TokenHasher,
+        EmailSender,
+        ResetTokenGenerator,
+        PasswordResetAuditLogger,
+        EnvService,
+      ],
+    },
+    {
+      provide: ResetPasswordWithTokenUseCase,
+      useFactory: (
+        usersRepository: UsersRepository,
+        passwordResetTokensRepository: PasswordResetTokensRepository,
+        sessionsRepository: SessionsRepository,
+        tokenHasher: TokenHasher,
+        hashGenerator: HashGenerator,
+        emailSender: EmailSender,
+        passwordResetAuditLogger: PasswordResetAuditLogger,
+        envService: EnvService,
+      ) =>
+        new ResetPasswordWithTokenUseCase(
+          usersRepository,
+          passwordResetTokensRepository,
+          sessionsRepository,
+          tokenHasher,
+          hashGenerator,
+          emailSender,
+          passwordResetAuditLogger,
+          envService.get("FRONTEND_URL"),
+        ),
+      inject: [
+        UsersRepository,
+        PasswordResetTokensRepository,
+        SessionsRepository,
+        TokenHasher,
+        HashGenerator,
+        EmailSender,
+        PasswordResetAuditLogger,
+        EnvService,
+      ],
+    },
     RefreshSessionUseCase,
     SignOutUseCase,
     CompleteOnboardingUseCase,
@@ -232,6 +312,7 @@ import { DeleteEstablishmentBannerImageController } from "./controllers/media/de
     GetEstablishmentUseCase,
     UpdateEstablishmentUseCase,
     SessionCreationService,
+    PasswordResetAuditLogger,
     CreateDefaultServiceCategoriesOnEstablishmentRegistered,
   ],
 })
