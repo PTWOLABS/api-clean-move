@@ -85,11 +85,11 @@ export class AuthenticateWithOAuthUseCase {
     });
 
     if (role === "ESTABLISHMENT") {
-      const establishment = Establishment.createOAuthDraft({
-        ownerId: user.id,
-      });
-
       await this.unitOfWork.execute(async () => {
+        const establishment = Establishment.createOAuthDraft({
+          ownerId: user.id,
+        });
+
         await this.usersRepository.create(user);
         await this.establishmentsRepository.create(establishment);
       });
