@@ -7,8 +7,11 @@ import z from "zod";
 import { DEFAULT_SERVICE_CATEGORY_NAMES } from "../../../modules/catalog/domain/constants/default-service-categories";
 import { PersistenceError } from "../../../shared/errors/persistence-error";
 import { AppModule } from "../../app.module";
+import { PrismaEstablishmentMapper } from "../../database/prisma/mappers/prisma-establishment-mapper";
+import { PrismaServiceCategoryMapper } from "../../database/prisma/mappers/prisma-service-category-mapper";
 import { PrismaEstablishmentRepository } from "../../database/prisma/repositories/prisma-establishments-repository";
 import { PrismaServiceCategoriesRepository } from "../../database/prisma/repositories/prisma-service-categories-repository";
+import { PrismaUnitOfWork } from "../../database/prisma/prisma-unit-of-work";
 import { PrismaService } from "../../database/prisma/prisma.service";
 
 const registerEstablishmentResponseSchema = z.object({
@@ -211,7 +214,6 @@ describe("RegisterEstablishmentController (e2e)", () => {
       (_, index) => makeConcurrentRegisterEstablishmentPayload(index),
     );
     const repositoryBarrier = createBarrier(concurrentRequestsCount);
-    const originalCreate = PrismaEstablishmentRepository.prototype.create;
 
     vi.spyOn(
       PrismaEstablishmentRepository.prototype,
@@ -220,7 +222,9 @@ describe("RegisterEstablishmentController (e2e)", () => {
       this: PrismaEstablishmentRepository,
       establishment,
     ) {
-      await originalCreate.call(this, establishment);
+      await PrismaUnitOfWork.getClient(prisma).establishment.create({
+        data: PrismaEstablishmentMapper.toPrisma(establishment),
+      });
       await repositoryBarrier.wait();
     });
 
@@ -335,9 +339,6 @@ describe("RegisterEstablishmentController (e2e)", () => {
       phone: "11987654392",
     };
     const repositoryBarrier = createBarrier(2);
-    const originalCreate = PrismaEstablishmentRepository.prototype.create;
-    const originalCreateMany =
-      PrismaServiceCategoriesRepository.prototype.createMany;
     let failingEstablishmentId: string | null = null;
 
     vi.spyOn(
@@ -347,7 +348,9 @@ describe("RegisterEstablishmentController (e2e)", () => {
       this: PrismaEstablishmentRepository,
       establishment,
     ) {
-      await originalCreate.call(this, establishment);
+      await PrismaUnitOfWork.getClient(prisma).establishment.create({
+        data: PrismaEstablishmentMapper.toPrisma(establishment),
+      });
 
       if (establishment.tradeName === failingPayload.tradeName) {
         failingEstablishmentId = establishment.id.toString();
@@ -371,7 +374,11 @@ describe("RegisterEstablishmentController (e2e)", () => {
         );
       }
 
-      await originalCreateMany.call(this, categories);
+      await PrismaUnitOfWork.getClient(prisma).serviceCategory.createMany({
+        data: categories.map((category) =>
+          PrismaServiceCategoryMapper.toPrisma(category),
+        ),
+      });
     });
 
     const [successfulResponse, failingResponse] = await Promise.all([
