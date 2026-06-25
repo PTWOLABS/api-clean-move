@@ -1,3 +1,4 @@
+import { AsyncLocalStorage } from "node:async_hooks";
 import type { UniqueEntityId } from "../entities/unique-entity-id.js";
 import type { DomainEvent } from "./domain-event.js";
 
@@ -11,9 +12,15 @@ type EventCapableAggregate = {
   clearEvents(): void;
 };
 
+type DomainEventsExecutionContext = {
+  markedAggregates: EventCapableAggregate[];
+  unitOfWorkDepth: number;
+};
+
 export class DomainEvents {
   private static handlersMap: Record<string, DomainEventHandler[]> = {};
-  private static markedAggregates: EventCapableAggregate[] = [];
+  private static executionContextStorage =
+    new AsyncLocalStorage<DomainEventsExecutionContext>();
 
   static register<T extends DomainEvent>(
     callback: DomainEventHandler<T>,
@@ -39,7 +46,8 @@ export class DomainEvents {
   }
 
   static markAggregateForDispatch(aggregate: EventCapableAggregate) {
-    const aggregateAlreadyMarked = DomainEvents.markedAggregates.some((item) =>
+    const context = DomainEvents.getOrCreateExecutionContext();
+    const aggregateAlreadyMarked = context.markedAggregates.some((item) =>
       item.id.equals(aggregate.id),
     );
 
@@ -47,12 +55,18 @@ export class DomainEvents {
       return;
     }
 
-    DomainEvents.markedAggregates.push(aggregate);
+    context.markedAggregates.push(aggregate);
   }
 
   static async dispatchEventsForMarkedAggregates() {
-    while (DomainEvents.markedAggregates.length > 0) {
-      const aggregate = DomainEvents.markedAggregates.shift();
+    const context = DomainEvents.executionContextStorage.getStore();
+
+    if (!context) {
+      return;
+    }
+
+    while (context.markedAggregates.length > 0) {
+      const aggregate = context.markedAggregates.shift();
 
       if (!aggregate) {
         continue;
@@ -72,10 +86,53 @@ export class DomainEvents {
   }
 
   static clearMarkedAggregates() {
-    while (DomainEvents.markedAggregates.length > 0) {
-      const aggregate = DomainEvents.markedAggregates.shift();
+    const context = DomainEvents.executionContextStorage.getStore();
+
+    if (!context) {
+      return;
+    }
+
+    while (context.markedAggregates.length > 0) {
+      const aggregate = context.markedAggregates.shift();
       aggregate?.clearEvents();
     }
+  }
+
+  static runWithExecutionContext<T>(
+    work: (context: DomainEventsExecutionContext) => Promise<T>,
+  ): Promise<T> {
+    const currentContext = DomainEvents.executionContextStorage.getStore();
+
+    if (currentContext) {
+      return work(currentContext);
+    }
+
+    const context = DomainEvents.createExecutionContext();
+
+    return DomainEvents.executionContextStorage.run(context, () =>
+      work(context),
+    );
+  }
+
+  private static getOrCreateExecutionContext(): DomainEventsExecutionContext {
+    const currentContext = DomainEvents.executionContextStorage.getStore();
+
+    if (currentContext) {
+      return currentContext;
+    }
+
+    const context = DomainEvents.createExecutionContext();
+
+    DomainEvents.executionContextStorage.enterWith(context);
+
+    return context;
+  }
+
+  private static createExecutionContext(): DomainEventsExecutionContext {
+    return {
+      markedAggregates: [],
+      unitOfWorkDepth: 0,
+    };
   }
 
   private static async dispatch(event: DomainEvent) {
