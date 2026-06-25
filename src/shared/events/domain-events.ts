@@ -8,8 +8,8 @@ export type DomainEventHandler<T extends DomainEvent = DomainEvent> = (
 
 type EventCapableAggregate = {
   id: UniqueEntityId;
-  domainEvents: DomainEvent[];
   clearEvents(): void;
+  pullDomainEvents(): DomainEvent[];
 };
 
 type DomainEventsExecutionContext = {
@@ -72,8 +72,7 @@ export class DomainEvents {
         continue;
       }
 
-      const events = [...aggregate.domainEvents];
-      aggregate.clearEvents();
+      const events = aggregate.pullDomainEvents();
 
       for (const event of events) {
         await DomainEvents.dispatch(event);

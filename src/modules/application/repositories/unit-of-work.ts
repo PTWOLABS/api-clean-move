@@ -10,12 +10,17 @@ export abstract class UnitOfWork {
         return await this.perform(async () => {
           const result = await work();
 
-          await DomainEvents.dispatchEventsForMarkedAggregates();
+          if (isRootExecution) {
+            await DomainEvents.dispatchEventsForMarkedAggregates();
+          }
 
           return result;
         });
       } catch (error) {
-        DomainEvents.clearMarkedAggregates();
+        if (isRootExecution) {
+          DomainEvents.clearMarkedAggregates();
+        }
+
         throw error;
       } finally {
         context.unitOfWorkDepth -= 1;
