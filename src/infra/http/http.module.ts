@@ -31,6 +31,9 @@ import { ListEmployeesUseCase } from "../../modules/application/use-cases/employ
 import { RegisterEmployeeUseCase } from "../../modules/application/use-cases/employee/register-employee";
 import { UpdateEmployeeUseCase } from "../../modules/application/use-cases/employee/update-employee";
 import { CompleteOnboardingUseCase } from "../../modules/application/use-cases/onboarding/complete-onboarding";
+import { CreateQuoteUseCase } from "../../modules/application/use-cases/quote/create-quote";
+import { GetQuoteUseCase } from "../../modules/application/use-cases/quote/get-quote";
+import { ListQuotesUseCase } from "../../modules/application/use-cases/quote/list-quotes";
 import { GetEstablishmentUseCase } from "../../modules/application/use-cases/establishment/get-establishment";
 import { GetEstablishmentAppointmentsCountUseCase } from "../../modules/application/use-cases/establishment/get-establishment-appointments-count";
 import { GetEstablishmentCancellationRateUseCase } from "../../modules/application/use-cases/establishment/get-establishment-cancellation-rate";
@@ -60,6 +63,7 @@ import { UpdateUserUseCase } from "../../modules/application/use-cases/user/upda
 import { SessionCreationService } from "../../modules/accounts/domain/services/session-creation-service";
 import { AuthModule } from "../auth/auth.module";
 import { DatabaseModule } from "../database/database.module";
+import { PdfModule } from "../pdf/pdf.module";
 import { StorageModule } from "../storage/storage.module";
 import { AuthenticateWithGoogleController } from "./controllers/authenticate-with-google.controller";
 import { CompleteOnboardingController } from "./controllers/complete-onboarding.controller";
@@ -67,6 +71,7 @@ import { CreateAppointmentController } from "./controllers/create-appointment.co
 import { DeleteAppointmentController } from "./controllers/delete-appointment.controller";
 import { CreateCustomerController } from "./controllers/create-customer.controller";
 import { CreateCustomerVehicleController } from "./controllers/create-customer-vehicle.controller";
+import { CreateQuoteController } from "./controllers/create-quote.controller";
 import { CreateServiceCategoryController } from "./controllers/create-service-category.controller";
 import { DeleteServiceCategoryController } from "./controllers/delete-service-category.controller";
 import { ListServiceCategoriesController } from "./controllers/list-service-categories.controller";
@@ -88,6 +93,7 @@ import { DeleteCustomerVehicleController } from "./controllers/delete-customer-v
 import { DeleteEmployeeController } from "./controllers/delete-employee.controller";
 import { GetEmployeeController } from "./controllers/get-employee.controller";
 import { GetEstablishmentController } from "./controllers/get-establishment.controller";
+import { GetQuoteController } from "./controllers/get-quote.controller";
 import { UpdateEstablishmentController } from "./controllers/update-establishment.controller";
 import { GetMeController } from "./controllers/get-me.controller";
 import { UpdateUserController } from "./controllers/update-user.controller";
@@ -97,6 +103,7 @@ import { ListCustomerOptionsController } from "./controllers/list-customer-optio
 import { ListCustomerVehicleOptionsController } from "./controllers/list-customer-vehicle-options.controller";
 import { ListCustomersController } from "./controllers/list-customers.controller";
 import { ListCustomerVehiclesController } from "./controllers/list-customer-vehicles.controller";
+import { ListQuotesController } from "./controllers/list-quotes.controller";
 import { ListVehiclesController } from "./controllers/list-vehicles.controller";
 import { ListEmployeesController } from "./controllers/list-employees.controller";
 import { LoginWithCredentialsController } from "./controllers/login-with-credentials.controller";
@@ -116,7 +123,7 @@ import { UploadUserProfileImageController } from "./controllers/upload-user-prof
 import { DeleteEstablishmentBannerImageController } from "./controllers/media/delete-establishment-banner-image.controller";
 
 @Module({
-  imports: [AuthModule, DatabaseModule, StorageModule],
+  imports: [AuthModule, DatabaseModule, StorageModule, PdfModule],
   controllers: [
     RegisterEstablishmentController,
     AuthenticateWithGoogleController,
@@ -152,6 +159,9 @@ import { DeleteEstablishmentBannerImageController } from "./controllers/media/de
     ListCustomerVehiclesController,
     UpdateCustomerVehicleController,
     DeleteCustomerVehicleController,
+    CreateQuoteController,
+    ListQuotesController,
+    GetQuoteController,
     CreateAppointmentController,
     DeleteAppointmentController,
     ListAppointmentsController,
@@ -197,6 +207,9 @@ import { DeleteEstablishmentBannerImageController } from "./controllers/media/de
     ListVehiclesUseCase,
     UpdateCustomerVehicleUseCase,
     DeleteCustomerVehicleUseCase,
+    CreateQuoteUseCase,
+    ListQuotesUseCase,
+    GetQuoteUseCase,
     CreateAppointmentUseCase,
     DeleteAppointmentUseCase,
     ListAppointmentsUseCase,
