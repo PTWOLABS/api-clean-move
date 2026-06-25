@@ -219,9 +219,7 @@ export class Quote extends AggregateRoot<QuoteProps> {
     this.assertValidDate(approvedAt, "approvedAt must be a valid date.");
 
     if (endsAt && endsAt.getTime() <= startsAt.getTime()) {
-      throw new InvalidQuoteInputError(
-        "endsAt must be greater than startsAt.",
-      );
+      throw new InvalidQuoteInputError("endsAt must be greater than startsAt.");
     }
 
     if (this.props.convertedAppointmentId || this.props.convertedAt) {

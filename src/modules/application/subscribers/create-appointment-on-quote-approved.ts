@@ -23,17 +23,11 @@ export class CreateAppointmentOnQuoteApproved implements OnModuleDestroy {
   }
 
   private setupSubscriptions() {
-    DomainEvents.register(
-      this.createAppointment,
-      QuoteApprovedEvent.name,
-    );
+    DomainEvents.register(this.createAppointment, QuoteApprovedEvent.name);
   }
 
   onModuleDestroy() {
-    DomainEvents.unregister(
-      this.createAppointment,
-      QuoteApprovedEvent.name,
-    );
+    DomainEvents.unregister(this.createAppointment, QuoteApprovedEvent.name);
   }
 
   private createAppointment = async (event: QuoteApprovedEvent) => {
