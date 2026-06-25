@@ -10,6 +10,7 @@ import { ServiceCategoriesRepository } from "../../modules/application/repositor
 import { ServicesRepository } from "../../modules/application/repositories/services-repository";
 import { UnitOfWork } from "../../modules/application/repositories/unit-of-work";
 import { UsersRepository } from "../../modules/application/repositories/users-repository";
+import { PasswordResetTokensRepository } from "../../modules/application/repositories/password-reset-tokens-repository";
 import { EnvModule } from "../env/env.module";
 import { PrismaAppointmentsRepository } from "./prisma/repositories/prisma-appointments-repository";
 import { PrismaService } from "./prisma/prisma.service";
@@ -24,6 +25,7 @@ import { PrismaUsersRepository } from "./prisma/repositories/prisma-users-reposi
 import { PrismaUnitOfWork } from "./prisma/prisma-unit-of-work";
 import { SessionsRepository } from "../../modules/application/repositories/sessions-repository";
 import { PrismaSessionsRepository } from "./prisma/repositories/prisma-sessions-repository";
+import { PrismaPasswordResetTokensRepository } from "./prisma/repositories/prisma-password-reset-tokens-repository";
 
 @Global()
 @Module({
@@ -74,6 +76,10 @@ import { PrismaSessionsRepository } from "./prisma/repositories/prisma-sessions-
       provide: SessionsRepository,
       useClass: PrismaSessionsRepository,
     },
+    {
+      provide: PasswordResetTokensRepository,
+      useClass: PrismaPasswordResetTokensRepository,
+    },
   ],
   exports: [
     PrismaService,
@@ -81,6 +87,7 @@ import { PrismaSessionsRepository } from "./prisma/repositories/prisma-sessions-
     EstablishmentsRepository,
     UsersRepository,
     SessionsRepository,
+    PasswordResetTokensRepository,
     CustomersRepository,
     CustomerVehiclesRepository,
     ServiceCategoriesRepository,
