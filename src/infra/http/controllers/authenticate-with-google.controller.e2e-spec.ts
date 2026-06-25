@@ -6,6 +6,7 @@ import z from "zod";
 import { AppModule } from "../../app.module";
 import { Prisma } from "../../../generated/prisma/client";
 import { PrismaService } from "../../database/prisma/prisma.service";
+import { DEFAULT_SERVICE_CATEGORY_NAMES } from "../../../modules/catalog/domain/constants/default-service-categories";
 import {
   OAuthIdTokenVerifier,
   OAuthUserClaims,
@@ -389,6 +390,20 @@ describe("AuthenticateWithGoogleController (e2e)", () => {
       }),
     );
     expect(responseBody.onboardingCompletedAt).toBeNull();
+
+    const establishmentId = createdUser?.ownedEstablishment?.id;
+
+    expect(establishmentId).toEqual(expect.any(String));
+
+    if (!establishmentId) {
+      throw new Error("Expected establishment draft to be created.");
+    }
+
+    expect(
+      await prisma.serviceCategory.count({
+        where: { establishmentId },
+      }),
+    ).toBe(DEFAULT_SERVICE_CATEGORY_NAMES.length);
   });
 
   it("should return 400 when role is omitted", async () => {
