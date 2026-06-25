@@ -2,6 +2,7 @@ import { AggregateRoot } from "../../../../shared/entities/aggregate-root";
 import { UniqueEntityId } from "../../../../shared/entities/unique-entity-id";
 import { Optional } from "../../../../shared/types/optional";
 import { InvalidQuoteInputError } from "../errors/invalid-quote-input-error";
+import { QuoteApprovedEvent } from "../events/quote-approved-event";
 import {
   QuotePaymentOption,
   QuotePaymentOptionInput,
@@ -86,6 +87,12 @@ export type QuoteCreateProps = Optional<
   | "createdAt"
   | "updatedAt"
 >;
+
+export type QuoteApproveProps = {
+  startsAt: Date;
+  endsAt?: Date | null;
+  approvedAt?: Date;
+};
 
 export class Quote extends AggregateRoot<QuoteProps> {
   get establishmentId() {
@@ -200,6 +207,43 @@ export class Quote extends AggregateRoot<QuoteProps> {
     return services.reduce((total, service) => {
       return total + service.courtesyValueInCents;
     }, 0);
+  }
+
+  approve({
+    startsAt,
+    endsAt = null,
+    approvedAt = new Date(),
+  }: QuoteApproveProps) {
+    this.assertValidDate(startsAt, "startsAt must be a valid date.");
+    this.assertNullableDate(endsAt, "endsAt must be a valid date.");
+    this.assertValidDate(approvedAt, "approvedAt must be a valid date.");
+
+    if (endsAt && endsAt.getTime() <= startsAt.getTime()) {
+      throw new InvalidQuoteInputError(
+        "endsAt must be greater than startsAt.",
+      );
+    }
+
+    if (this.props.convertedAppointmentId || this.props.convertedAt) {
+      throw new InvalidQuoteInputError("Quote is already converted.");
+    }
+
+    if (!this.props.customerId) {
+      throw new InvalidQuoteInputError(
+        "Quote must be linked to a customer before conversion.",
+      );
+    }
+
+    this.addDomainEvent(
+      new QuoteApprovedEvent(
+        this,
+        {
+          startsAt,
+          endsAt,
+        },
+        approvedAt,
+      ),
+    );
   }
 
   markAsConverted(
