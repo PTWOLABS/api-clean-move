@@ -11,7 +11,6 @@ import { AuthSessionService } from "../../modules/application/services/auth-sess
 import { AppointmentResourceStatusResolver } from "../../modules/application/services/appointment-resource-status-resolver";
 import { EstablishmentScopeService } from "../../modules/application/services/establishment-scope";
 import { UserEstablishmentResolver } from "../../modules/application/services/user-establishment-resolver";
-import { CreateDefaultServiceCategoriesOnEstablishmentRegistered } from "../../modules/application/subscribers/create-default-service-categories-on-establishment-registered";
 import { LoginWithCredentialsUseCase } from "../../modules/application/use-cases/auth/login-with-credentials";
 import { RefreshSessionUseCase } from "../../modules/application/use-cases/auth/refresh-session";
 import { SignOutUseCase } from "../../modules/application/use-cases/auth/sign-out";
@@ -232,7 +231,6 @@ import { DeleteEstablishmentBannerImageController } from "./controllers/media/de
     GetEstablishmentUseCase,
     UpdateEstablishmentUseCase,
     SessionCreationService,
-    CreateDefaultServiceCategoriesOnEstablishmentRegistered,
   ],
 })
 export class HttpModule {}
