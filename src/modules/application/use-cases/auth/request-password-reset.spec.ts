@@ -1,4 +1,6 @@
 import { makeUser } from "../../../../../tests/factories/user-factory";
+import type { Env } from "../../../../infra/env/env";
+import type { EnvService } from "../../../../infra/env/env.service";
 import { FakeEmailSender } from "../../../../../tests/repositories/fake-email-sender";
 import { FakePasswordResetAuditLogger } from "../../../../../tests/repositories/fake-password-reset-audit-logger";
 import { FakeResetTokenGenerator } from "../../../../../tests/repositories/fake-reset-token-generator";
@@ -15,6 +17,12 @@ let fakeEmailSender: FakeEmailSender;
 let fakeResetTokenGenerator: FakeResetTokenGenerator;
 let fakePasswordResetAuditLogger: FakePasswordResetAuditLogger;
 
+type EnvReader = {
+  get<T extends keyof Env>(key: T): Env[T];
+};
+
+let envService: EnvReader;
+
 let sut: RequestPasswordResetUseCase;
 
 describe("Request password reset", () => {
@@ -25,6 +33,15 @@ describe("Request password reset", () => {
     fakeEmailSender = new FakeEmailSender();
     fakeResetTokenGenerator = new FakeResetTokenGenerator();
     fakePasswordResetAuditLogger = new FakePasswordResetAuditLogger();
+    envService = {
+      get<T extends keyof Env>(key: T): Env[T] {
+        if (key === "PASSWORD_RESET_PATH") {
+          return "https://app.example.com/reset-password" as Env[T];
+        }
+
+        throw new Error(`Unexpected env key requested: ${String(key)}`);
+      },
+    };
 
     sut = new RequestPasswordResetUseCase(
       inMemoryUsersRepository,
@@ -33,7 +50,7 @@ describe("Request password reset", () => {
       fakeEmailSender,
       fakeResetTokenGenerator,
       fakePasswordResetAuditLogger,
-      "https://app.example.com/reset-password",
+      envService as EnvService,
     );
   });
 

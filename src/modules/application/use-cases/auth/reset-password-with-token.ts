@@ -1,5 +1,6 @@
 import { Injectable } from "@nestjs/common";
 
+import { EnvService } from "../../../../infra/env/env.service";
 import { Either, left, right } from "../../../../shared/either";
 import { InvalidOrExpiredPasswordResetTokenError } from "../../../../shared/errors/invalid-or-expired-password-reset-token-error";
 import { User } from "../../../accounts/domain/entities/user";
@@ -35,7 +36,7 @@ export class ResetPasswordWithTokenUseCase {
     private hashGenerator: HashGenerator,
     private emailSender: EmailSender,
     private passwordResetAuditLogger: PasswordResetAuditLogger,
-    private loginUrl: string,
+    private readonly envService: EnvService,
   ) {}
 
   async execute({
@@ -96,7 +97,7 @@ export class ResetPasswordWithTokenUseCase {
     }
 
     const emailContent = buildPasswordChangedEmail({
-      loginUrl: this.loginUrl,
+      loginUrl: this.envService.get("FRONTEND_URL"),
     });
 
     await this.emailSender.send({

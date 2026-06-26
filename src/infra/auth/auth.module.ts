@@ -8,7 +8,7 @@ import { EmployeeSessionAccessService } from "../../modules/application/services
 import { GoogleIdTokenVerifier } from "./google-id-token-verifier";
 import { TokenHasher } from "../../modules/application/repositories/token-hasher";
 import { ResetTokenGenerator } from "../../modules/application/repositories/reset-token-generator";
-import { SecureResetTokenGenerator } from "../../modules/application/repositories/secure-reset-token-generator";
+import { SecureResetTokenGenerator } from "./secure-reset-token-generator";
 import { EnvModule } from "../env/env.module";
 import { EnvService } from "../env/env.service";
 import { AccessSessionGuard } from "./access-session.guard";

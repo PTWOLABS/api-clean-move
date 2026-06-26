@@ -1,6 +1,8 @@
 import { PasswordResetToken } from "../../../accounts/domain/entities/password-reset-token";
 import { Session } from "../../../accounts/domain/entities/session";
 import { Email } from "../../../accounts/domain/value-objects/email";
+import type { Env } from "../../../../infra/env/env";
+import type { EnvService } from "../../../../infra/env/env.service";
 import { InvalidOrExpiredPasswordResetTokenError } from "../../../../shared/errors/invalid-or-expired-password-reset-token-error";
 import { makeUser } from "../../../../../tests/factories/user-factory";
 import { FakeEmailSender } from "../../../../../tests/repositories/fake-email-sender";
@@ -20,6 +22,12 @@ let fakeHashGenerator: FakeHashGenerator;
 let fakeEmailSender: FakeEmailSender;
 let fakePasswordResetAuditLogger: FakePasswordResetAuditLogger;
 
+type EnvReader = {
+  get<T extends keyof Env>(key: T): Env[T];
+};
+
+let envService: EnvReader;
+
 let sut: ResetPasswordWithTokenUseCase;
 
 describe("Reset password with token", () => {
@@ -31,6 +39,15 @@ describe("Reset password with token", () => {
     fakeHashGenerator = new FakeHashGenerator();
     fakeEmailSender = new FakeEmailSender();
     fakePasswordResetAuditLogger = new FakePasswordResetAuditLogger();
+    envService = {
+      get<T extends keyof Env>(key: T): Env[T] {
+        if (key === "FRONTEND_URL") {
+          return "https://app.example.com/login" as Env[T];
+        }
+
+        throw new Error(`Unexpected env key requested: ${String(key)}`);
+      },
+    };
 
     sut = new ResetPasswordWithTokenUseCase(
       inMemoryUsersRepository,
@@ -40,7 +57,7 @@ describe("Reset password with token", () => {
       fakeHashGenerator,
       fakeEmailSender,
       fakePasswordResetAuditLogger,
-      "https://app.example.com/login",
+      envService as EnvService,
     );
   });
 

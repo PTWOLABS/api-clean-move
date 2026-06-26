@@ -1,5 +1,6 @@
 import { Injectable } from "@nestjs/common";
 
+import { EnvService } from "../../../../infra/env/env.service";
 import { PasswordResetToken } from "../../../accounts/domain/entities/password-reset-token";
 import {
   Email,
@@ -31,8 +32,7 @@ export class RequestPasswordResetUseCase {
     private emailSender: EmailSender,
     private resetTokenGenerator: ResetTokenGenerator,
     private passwordResetAuditLogger: PasswordResetAuditLogger,
-    private resetPath: string,
-    private tokenTtlMs: number = DEFAULT_TOKEN_TTL_MS,
+    private readonly envService: EnvService,
   ) {}
 
   async execute({
@@ -76,7 +76,7 @@ export class RequestPasswordResetUseCase {
     const plainToken = this.resetTokenGenerator.generate();
     const hashedToken = await this.tokenHasher.hash(plainToken);
     const now = new Date();
-    const expiresAt = new Date(now.getTime() + this.tokenTtlMs);
+    const expiresAt = new Date(now.getTime() + DEFAULT_TOKEN_TTL_MS);
 
     const token = PasswordResetToken.create({
       userId: user.id,
@@ -87,7 +87,7 @@ export class RequestPasswordResetUseCase {
     await this.passwordResetTokensRepository.upsert(token);
 
     const emailContent = buildPasswordResetEmail({
-      resetPath: this.resetPath,
+      resetPath: this.envService.get("PASSWORD_RESET_PATH"),
       token: plainToken,
     });
 

@@ -66,18 +66,10 @@ import { DeleteServiceUseCase } from "../../modules/application/use-cases/servic
 import { GetMeUseCase } from "../../modules/application/use-cases/user/get-me";
 import { UpdateUserUseCase } from "../../modules/application/use-cases/user/update-user";
 import { SessionCreationService } from "../../modules/accounts/domain/services/session-creation-service";
-import { EmailSender } from "../../modules/application/gateways/email-sender";
-import { HashGenerator } from "../../modules/application/repositories/hash-generator";
-import { PasswordResetTokensRepository } from "../../modules/application/repositories/password-reset-tokens-repository";
-import { ResetTokenGenerator } from "../../modules/application/repositories/reset-token-generator";
-import { SessionsRepository } from "../../modules/application/repositories/sessions-repository";
-import { TokenHasher } from "../../modules/application/repositories/token-hasher";
-import { UsersRepository } from "../../modules/application/repositories/users-repository";
 import { PasswordResetAuditLogger } from "../../modules/application/services/password-reset-audit-logger";
 import { AuthModule } from "../auth/auth.module";
 import { DatabaseModule } from "../database/database.module";
 import { EnvModule } from "../env/env.module";
-import { EnvService } from "../env/env.service";
 import { MailModule } from "../mail/mail.module";
 import { PdfModule } from "../pdf/pdf.module";
 import { StorageModule } from "../storage/storage.module";
@@ -271,69 +263,8 @@ import { RegisterQuoteProspectAsCustomerController } from "./controllers/quote/r
     EstablishmentScopeService,
     UserEstablishmentResolver,
     LoginWithCredentialsUseCase,
-    {
-      provide: RequestPasswordResetUseCase,
-      useFactory: (
-        usersRepository: UsersRepository,
-        passwordResetTokensRepository: PasswordResetTokensRepository,
-        tokenHasher: TokenHasher,
-        emailSender: EmailSender,
-        resetTokenGenerator: ResetTokenGenerator,
-        passwordResetAuditLogger: PasswordResetAuditLogger,
-        envService: EnvService,
-      ) =>
-        new RequestPasswordResetUseCase(
-          usersRepository,
-          passwordResetTokensRepository,
-          tokenHasher,
-          emailSender,
-          resetTokenGenerator,
-          passwordResetAuditLogger,
-          envService.get("PASSWORD_RESET_PATH"),
-        ),
-      inject: [
-        UsersRepository,
-        PasswordResetTokensRepository,
-        TokenHasher,
-        EmailSender,
-        ResetTokenGenerator,
-        PasswordResetAuditLogger,
-        EnvService,
-      ],
-    },
-    {
-      provide: ResetPasswordWithTokenUseCase,
-      useFactory: (
-        usersRepository: UsersRepository,
-        passwordResetTokensRepository: PasswordResetTokensRepository,
-        sessionsRepository: SessionsRepository,
-        tokenHasher: TokenHasher,
-        hashGenerator: HashGenerator,
-        emailSender: EmailSender,
-        passwordResetAuditLogger: PasswordResetAuditLogger,
-        envService: EnvService,
-      ) =>
-        new ResetPasswordWithTokenUseCase(
-          usersRepository,
-          passwordResetTokensRepository,
-          sessionsRepository,
-          tokenHasher,
-          hashGenerator,
-          emailSender,
-          passwordResetAuditLogger,
-          envService.get("FRONTEND_URL"),
-        ),
-      inject: [
-        UsersRepository,
-        PasswordResetTokensRepository,
-        SessionsRepository,
-        TokenHasher,
-        HashGenerator,
-        EmailSender,
-        PasswordResetAuditLogger,
-        EnvService,
-      ],
-    },
+    RequestPasswordResetUseCase,
+    ResetPasswordWithTokenUseCase,
     RefreshSessionUseCase,
     SignOutUseCase,
     CompleteOnboardingUseCase,
