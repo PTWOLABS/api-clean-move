@@ -143,6 +143,57 @@ describe("List quotes", () => {
     });
   });
 
+  it("should sort quotes by creation date", async () => {
+    const establishment = makeEstablishment();
+    const oldestQuote = makeQuote({
+      establishmentId: establishment.id,
+      createdAt: new Date("2026-06-20T10:00:00.000Z"),
+    });
+    const middleQuote = makeQuote({
+      establishmentId: establishment.id,
+      createdAt: new Date("2026-06-21T10:00:00.000Z"),
+    });
+    const recentQuote = makeQuote({
+      establishmentId: establishment.id,
+      createdAt: new Date("2026-06-22T10:00:00.000Z"),
+    });
+
+    await establishmentsRepository.create(establishment);
+    await quotesRepository.create(middleQuote);
+    await quotesRepository.create(recentQuote);
+    await quotesRepository.create(oldestQuote);
+
+    const actor = {
+      userId: establishment.ownerId.toString(),
+      role: "ESTABLISHMENT" as const,
+    };
+
+    const recentResult = await sut.execute({
+      actor,
+    });
+    const oldestResult = await sut.execute({
+      actor,
+      filters: {
+        sort: "oldest",
+      },
+    });
+
+    expect(recentResult.isRight()).toBe(true);
+    expect(oldestResult.isRight()).toBe(true);
+    if (recentResult.isLeft()) throw recentResult.value;
+    if (oldestResult.isLeft()) throw oldestResult.value;
+    expect(recentResult.value.quotes).toEqual([
+      recentQuote,
+      middleQuote,
+      oldestQuote,
+    ]);
+    expect(oldestResult.value.quotes).toEqual([
+      oldestQuote,
+      middleQuote,
+      recentQuote,
+    ]);
+  });
+
   it("should not list quotes from another establishment", async () => {
     const establishment = makeEstablishment();
     const otherEstablishment = makeEstablishment();
