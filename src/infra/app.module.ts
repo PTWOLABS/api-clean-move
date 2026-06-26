@@ -28,6 +28,5 @@ import { AuthModule } from "./auth/auth.module";
       useClass: ThrottlerGuard,
     },
   ],
-  providers: [],
 })
 export class AppModule {}

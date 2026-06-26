@@ -146,7 +146,14 @@ import { GenerateQuotePdfController } from "./controllers/quote/generate-quote-p
 import { RegisterQuoteProspectAsCustomerController } from "./controllers/quote/register-quote-prospect-as-customer.controller";
 
 @Module({
-  imports: [AuthModule, DatabaseModule, StorageModule, MailModule, EnvModule, PdfModule],
+  imports: [
+    AuthModule,
+    DatabaseModule,
+    StorageModule,
+    MailModule,
+    EnvModule,
+    PdfModule,
+  ],
   controllers: [
     RegisterEstablishmentController,
     AuthenticateWithGoogleController,
@@ -339,7 +346,6 @@ import { RegisterQuoteProspectAsCustomerController } from "./controllers/quote/r
     UpdateEstablishmentUseCase,
     SessionCreationService,
     PasswordResetAuditLogger,
-    CreateDefaultServiceCategoriesOnEstablishmentRegistered,
   ],
 })
 export class HttpModule {}
