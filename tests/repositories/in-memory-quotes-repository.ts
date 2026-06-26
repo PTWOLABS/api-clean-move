@@ -1,5 +1,7 @@
 import {
   QuoteFilters,
+  QuoteListResult,
+  QuoteSummary,
   QuotesRepository,
 } from "../../src/modules/application/repositories/quotes-repository";
 import { Quote } from "../../src/modules/quotes/domain/entities/quote";
@@ -26,6 +28,56 @@ export class InMemoryQuotesRepository implements QuotesRepository {
 
   private static toDateOnly(value: Date) {
     return value.toISOString().slice(0, 10);
+  }
+
+  private static getUtcDayBounds(referenceDate: Date) {
+    const todayStart = new Date(
+      Date.UTC(
+        referenceDate.getUTCFullYear(),
+        referenceDate.getUTCMonth(),
+        referenceDate.getUTCDate(),
+      ),
+    );
+    const tomorrowStart = new Date(todayStart);
+    tomorrowStart.setUTCDate(todayStart.getUTCDate() + 1);
+
+    return { todayStart, tomorrowStart };
+  }
+
+  private static summarizeQuotes(
+    quotes: Quote[],
+    referenceDate: Date,
+  ): QuoteSummary {
+    const { todayStart, tomorrowStart } =
+      InMemoryQuotesRepository.getUtcDayBounds(referenceDate);
+
+    return quotes.reduce<QuoteSummary>(
+      (summary, quote) => {
+        if (quote.convertedAppointmentId) {
+          summary.approved += 1;
+          return summary;
+        }
+
+        if (!quote.expiresAt || quote.expiresAt >= tomorrowStart) {
+          summary.valid += 1;
+          return summary;
+        }
+
+        if (quote.expiresAt >= todayStart) {
+          summary.expiresToday += 1;
+          return summary;
+        }
+
+        summary.expired += 1;
+        return summary;
+      },
+      {
+        valid: 0,
+        expiresToday: 0,
+        approved: 0,
+        expired: 0,
+      },
+    );
   }
 
   private static matchesServiceFilters(quote: Quote, filters?: QuoteFilters) {
@@ -209,18 +261,28 @@ export class InMemoryQuotesRepository implements QuotesRepository {
   async findManyByEstablishmentId(
     establishmentId: string,
     filters?: QuoteFilters,
-  ): Promise<Quote[]> {
+    referenceDate = new Date(),
+  ): Promise<QuoteListResult> {
     const page = filters?.page ?? 1;
     const size = filters?.size ?? 20;
     const filteredQuotes = this.filterByEstablishmentId(
       establishmentId,
       filters,
     );
+    const totalItems = filteredQuotes.length;
+    const summary = InMemoryQuotesRepository.summarizeQuotes(
+      filteredQuotes,
+      referenceDate,
+    );
 
     const start = (page - 1) * size;
     const end = start + size;
 
-    return filteredQuotes.slice(start, end);
+    return {
+      quotes: filteredQuotes.slice(start, end),
+      totalItems,
+      summary,
+    };
   }
 
   async markAsConverted(
