@@ -91,6 +91,12 @@ export class PrismaQuotesRepository implements QuotesRepository {
     };
   }
 
+  private static buildOrderBy(filters?: QuoteFilters) {
+    return {
+      createdAt: filters?.sort === "oldest" ? "asc" : "desc",
+    } satisfies Prisma.QuoteOrderByWithRelationInput;
+  }
+
   private static buildTextWhere(
     filters?: QuoteFilters,
   ): Pick<Prisma.QuoteWhereInput, "AND"> {
@@ -296,9 +302,7 @@ export class PrismaQuotesRepository implements QuotesRepository {
           client.quote.findMany({
             where,
             include: quoteInclude,
-            orderBy: {
-              createdAt: "desc",
-            },
+            orderBy: PrismaQuotesRepository.buildOrderBy(filters),
             skip: (page - 1) * size,
             take: size,
           }),

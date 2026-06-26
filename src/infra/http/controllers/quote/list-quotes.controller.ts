@@ -49,6 +49,7 @@ const listQuotesQuerySchema = z.object({
   expiresTo: z.coerce.date().optional(),
   converted: booleanQuerySchema.optional(),
   createdAt: z.coerce.date().optional(),
+  sort: z.enum(["recent", "oldest"]).optional(),
   page: z.coerce.number().int().positive().optional(),
   size: z.coerce.number().int().positive().optional(),
 });
@@ -78,6 +79,13 @@ export class ListQuotesController {
   @ApiQuery({ name: "expiresTo", required: false, type: String })
   @ApiQuery({ name: "converted", required: false, type: Boolean })
   @ApiQuery({ name: "createdAt", required: false, type: String })
+  @ApiQuery({
+    name: "sort",
+    required: false,
+    enum: ["recent", "oldest"],
+    description:
+      "Sort quotes by creation date. Defaults to recent when omitted.",
+  })
   @ApiQuery({ name: "page", required: false, type: Number })
   @ApiQuery({ name: "size", required: false, type: Number })
   @ApiOkResponse({
@@ -119,6 +127,7 @@ export class ListQuotesController {
       ...(query.expiresTo !== undefined ? { expiresTo: query.expiresTo } : {}),
       ...(query.converted !== undefined ? { converted: query.converted } : {}),
       ...(query.createdAt !== undefined ? { createdAt: query.createdAt } : {}),
+      ...(query.sort !== undefined ? { sort: query.sort } : {}),
       ...(query.page !== undefined ? { page: query.page } : {}),
       ...(query.size !== undefined ? { size: query.size } : {}),
     };

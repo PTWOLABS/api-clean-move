@@ -2,6 +2,8 @@ import { PaginationParams } from "../../../shared/types/pagination-params";
 import { UniqueEntityId } from "../../../shared/entities/unique-entity-id";
 import { Quote } from "../../quotes/domain/entities/quote";
 
+export type QuoteSort = "recent" | "oldest";
+
 export type QuoteFilters = {
   search?: string;
   customerId?: string;
@@ -14,6 +16,7 @@ export type QuoteFilters = {
   expiresTo?: Date;
   converted?: boolean;
   createdAt?: Date;
+  sort?: QuoteSort;
 } & PaginationParams;
 
 export type QuoteSummary = {

@@ -166,13 +166,20 @@ export class InMemoryQuotesRepository implements QuotesRepository {
     );
   }
 
+  private static sortQuotes(quotes: Quote[], filters?: QuoteFilters) {
+    const sortMultiplier = filters?.sort === "oldest" ? 1 : -1;
+
+    return quotes.sort((a, b) => {
+      return sortMultiplier * (a.createdAt.getTime() - b.createdAt.getTime());
+    });
+  }
+
   private filterByEstablishmentId(
     establishmentId: string,
     filters?: QuoteFilters,
   ) {
-    return this.items
+    const filteredQuotes = this.items
       .slice()
-      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
       .filter((item) => item.establishmentId.toString() === establishmentId)
       .filter((item) => {
         const customerId = InMemoryQuotesRepository.normalizeTextFilter(
@@ -225,6 +232,8 @@ export class InMemoryQuotesRepository implements QuotesRepository {
 
         return InMemoryQuotesRepository.matchesTextFilters(item, filters);
       });
+
+    return InMemoryQuotesRepository.sortQuotes(filteredQuotes, filters);
   }
 
   async create(quote: Quote): Promise<void> {
