@@ -4,6 +4,7 @@ import { APP_GUARD } from "@nestjs/core";
 
 import { DatabaseModule } from "./database/database.module";
 import { EnvModule } from "./env/env.module";
+import { EventsModule } from "./events/events.module";
 import { HttpModule } from "./http/http.module";
 import { AuthModule } from "./auth/auth.module";
 
@@ -17,6 +18,7 @@ import { AuthModule } from "./auth/auth.module";
       },
     ]),
     DatabaseModule,
+    EventsModule,
     HttpModule,
     AuthModule,
   ],
@@ -26,5 +28,6 @@ import { AuthModule } from "./auth/auth.module";
       useClass: ThrottlerGuard,
     },
   ],
+  providers: [],
 })
 export class AppModule {}

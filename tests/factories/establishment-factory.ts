@@ -99,13 +99,15 @@ export class EstablishmentFactory {
   }: {
     ownerId: UniqueEntityId;
   }) {
-    const establishment = Establishment.createOAuthDraft({ ownerId });
+    let establishment: Establishment;
 
     await this.unitOfWork.execute(async () => {
+      establishment = Establishment.createOAuthDraft({ ownerId });
+
       await this.establishmentsRepository.create(establishment);
     });
 
-    return establishment;
+    return establishment!;
   }
 
   private async seedDefaultServiceCategories(establishmentId: UniqueEntityId) {

@@ -29,6 +29,21 @@ let inMemoryServicesRepository: InMemoryServicesRepository;
 let establishmentScope: EstablishmentScopeService;
 let sut: UpdateAppointmentUseCase;
 
+function makeAppointmentServiceSnapshot(
+  service: ReturnType<typeof makeService>,
+  priceInCents = service.priceSpecification.defaultChargePriceInCents,
+) {
+  return {
+    serviceId: service.id,
+    serviceName: service.serviceName.value,
+    category: service.category,
+    durationInMinutes: service.estimatedDuration?.upperBoundInMinutes,
+    priceSpecification: service.priceSpecification.toValue(),
+    priceInCents,
+    isActive: service.isActive,
+  };
+}
+
 describe("Update appointment", () => {
   beforeEach(() => {
     inMemoryAppointmentsRepository = new InMemoryAppointmentsRepository();
@@ -316,6 +331,189 @@ describe("Update appointment", () => {
     }
   });
 
+  it("should preserve service snapshots when catalog services changed and services are omitted", async () => {
+    const establishment = makeEstablishment();
+    const customer = makeCustomer({ establishmentId: establishment.id });
+    const service = makeService({
+      establishmentId: establishment.id,
+      priceSpecification: ServicePriceSpecification.create({
+        type: "FIXED",
+        fixedPriceInCents: 30000,
+      }),
+    });
+    const originalServiceSnapshot = makeAppointmentServiceSnapshot(service);
+    const appointment = makeAppointment({
+      establishmentId: establishment.id,
+      customerId: customer.id,
+      services: [originalServiceSnapshot],
+    });
+
+    await inMemoryEstablishmentsRepository.create(establishment);
+    await inMemoryCustomersRepository.create(customer);
+    await inMemoryServicesRepository.create(service);
+    await inMemoryAppointmentsRepository.create(appointment);
+
+    service.update({
+      serviceName: "Lavagem premium atualizada",
+      estimatedDuration: {
+        minInMinutes: 90,
+      },
+      priceSpecification: {
+        type: "FIXED",
+        fixedPriceInCents: 50000,
+      },
+    });
+
+    const result = await sut.execute({
+      actor: {
+        userId: establishment.ownerId.toString(),
+        role: "ESTABLISHMENT",
+      },
+      appointmentId: appointment.id.toString(),
+      description: "Atualizar somente observacao",
+    });
+
+    expect(result.isRight()).toBe(true);
+    if (result.isLeft()) {
+      throw result.value;
+    }
+
+    expect(result.value.appointment.description).toBe(
+      "Atualizar somente observacao",
+    );
+    expect(result.value.appointment.services).toEqual([
+      originalServiceSnapshot,
+    ]);
+  });
+
+  it("should replace a deleted booked service only when a new active service list is submitted", async () => {
+    const establishment = makeEstablishment();
+    const customer = makeCustomer({ establishmentId: establishment.id });
+    const deletedService = makeService({ establishmentId: establishment.id });
+    const replacementService = makeService({
+      establishmentId: establishment.id,
+      priceSpecification: ServicePriceSpecification.create({
+        type: "FIXED",
+        fixedPriceInCents: 45000,
+      }),
+    });
+    const appointment = makeAppointment({
+      establishmentId: establishment.id,
+      customerId: customer.id,
+      services: [makeAppointmentServiceSnapshot(deletedService)],
+    });
+    deletedService.softDelete(new Date("2026-06-20T10:00:00.000Z"));
+
+    await inMemoryEstablishmentsRepository.create(establishment);
+    await inMemoryCustomersRepository.create(customer);
+    await inMemoryServicesRepository.create(deletedService);
+    await inMemoryServicesRepository.create(replacementService);
+    await inMemoryAppointmentsRepository.create(appointment);
+
+    const metadataOnlyResult = await sut.execute({
+      actor: {
+        userId: establishment.ownerId.toString(),
+        role: "ESTABLISHMENT",
+      },
+      appointmentId: appointment.id.toString(),
+      description: "Mantem snapshot antigo",
+    });
+    const deletedServiceResult = await sut.execute({
+      actor: {
+        userId: establishment.ownerId.toString(),
+        role: "ESTABLISHMENT",
+      },
+      appointmentId: appointment.id.toString(),
+      serviceIds: [deletedService.id.toString()],
+    });
+    const replacementResult = await sut.execute({
+      actor: {
+        userId: establishment.ownerId.toString(),
+        role: "ESTABLISHMENT",
+      },
+      appointmentId: appointment.id.toString(),
+      serviceIds: [replacementService.id.toString()],
+    });
+
+    expect(metadataOnlyResult.isRight()).toBe(true);
+    expect(deletedServiceResult.isLeft()).toBe(true);
+    expect(deletedServiceResult.value).toBeInstanceOf(ResourceNotFoundError);
+    expect(replacementResult.isRight()).toBe(true);
+    if (replacementResult.isLeft()) {
+      throw replacementResult.value;
+    }
+    expect(replacementResult.value.appointment.services).toEqual([
+      makeAppointmentServiceSnapshot(replacementService),
+    ]);
+  });
+
+  it("should validate resubmitted services against the current service price policy", async () => {
+    const establishment = makeEstablishment();
+    const customer = makeCustomer({ establishmentId: establishment.id });
+    const service = makeService({
+      establishmentId: establishment.id,
+      priceSpecification: ServicePriceSpecification.create({
+        type: "STARTING_AT",
+        minPriceInCents: 25000,
+      }),
+    });
+    const appointment = makeAppointment({
+      establishmentId: establishment.id,
+      customerId: customer.id,
+      services: [makeAppointmentServiceSnapshot(service, 35000)],
+    });
+
+    await inMemoryEstablishmentsRepository.create(establishment);
+    await inMemoryCustomersRepository.create(customer);
+    await inMemoryServicesRepository.create(service);
+    await inMemoryAppointmentsRepository.create(appointment);
+
+    service.update({
+      priceSpecification: {
+        type: "RANGE",
+        minPriceInCents: 40000,
+        maxPriceInCents: 60000,
+      },
+    });
+
+    const stalePriceResult = await sut.execute({
+      actor: {
+        userId: establishment.ownerId.toString(),
+        role: "ESTABLISHMENT",
+      },
+      appointmentId: appointment.id.toString(),
+      services: [
+        {
+          serviceId: service.id.toString(),
+          priceInCents: 35000,
+        },
+      ],
+    });
+    const currentPolicyResult = await sut.execute({
+      actor: {
+        userId: establishment.ownerId.toString(),
+        role: "ESTABLISHMENT",
+      },
+      appointmentId: appointment.id.toString(),
+      services: [
+        {
+          serviceId: service.id.toString(),
+          priceInCents: 45000,
+        },
+      ],
+    });
+
+    expect(stalePriceResult.isLeft()).toBe(true);
+    expect(stalePriceResult.value).toBeInstanceOf(InvalidAppointmentInputError);
+    expect(currentPolicyResult.isRight()).toBe(true);
+    if (currentPolicyResult.isLeft()) {
+      throw currentPolicyResult.value;
+    }
+    expect(currentPolicyResult.value.appointment.services).toEqual([
+      makeAppointmentServiceSnapshot(service, 45000),
+    ]);
+  });
+
   it("should reject update with service charged price outside the catalog policy", async () => {
     const establishment = makeEstablishment();
     const customer = makeCustomer({ establishmentId: establishment.id });
@@ -353,6 +551,108 @@ describe("Update appointment", () => {
 
     expect(result.isLeft()).toBe(true);
     expect(result.value).toBeInstanceOf(InvalidAppointmentInputError);
+  });
+
+  it("should reject update discounts that are zero or greater than the appointment services total", async () => {
+    const establishment = makeEstablishment();
+    const customer = makeCustomer({ establishmentId: establishment.id });
+    const appointment = makeAppointment({
+      establishmentId: establishment.id,
+      customerId: customer.id,
+    });
+
+    await inMemoryEstablishmentsRepository.create(establishment);
+    await inMemoryCustomersRepository.create(customer);
+    await inMemoryAppointmentsRepository.create(appointment);
+
+    const zeroDiscountResult = await sut.execute({
+      actor: {
+        userId: establishment.ownerId.toString(),
+        role: "ESTABLISHMENT",
+      },
+      appointmentId: appointment.id.toString(),
+      discountInCents: 0,
+    });
+    const excessiveDiscountResult = await sut.execute({
+      actor: {
+        userId: establishment.ownerId.toString(),
+        role: "ESTABLISHMENT",
+      },
+      appointmentId: appointment.id.toString(),
+      discountInCents: 30001,
+    });
+
+    expect(zeroDiscountResult.isLeft()).toBe(true);
+    expect(zeroDiscountResult.value).toBeInstanceOf(
+      InvalidAppointmentInputError,
+    );
+    expect(excessiveDiscountResult.isLeft()).toBe(true);
+    expect(excessiveDiscountResult.value).toBeInstanceOf(
+      InvalidAppointmentInputError,
+    );
+    expect(appointment.discountInCents).toBeNull();
+  });
+
+  it("should calculate update discounts from appointment snapshot services unless services are replaced", async () => {
+    const establishment = makeEstablishment();
+    const customer = makeCustomer({ establishmentId: establishment.id });
+    const service = makeService({
+      establishmentId: establishment.id,
+      priceSpecification: ServicePriceSpecification.create({
+        type: "FIXED",
+        fixedPriceInCents: 10000,
+      }),
+    });
+    const appointment = makeAppointment({
+      establishmentId: establishment.id,
+      customerId: customer.id,
+      services: [makeAppointmentServiceSnapshot(service)],
+    });
+
+    await inMemoryEstablishmentsRepository.create(establishment);
+    await inMemoryCustomersRepository.create(customer);
+    await inMemoryServicesRepository.create(service);
+    await inMemoryAppointmentsRepository.create(appointment);
+
+    service.update({
+      priceSpecification: {
+        type: "FIXED",
+        fixedPriceInCents: 50000,
+      },
+    });
+
+    const snapshotTotalResult = await sut.execute({
+      actor: {
+        userId: establishment.ownerId.toString(),
+        role: "ESTABLISHMENT",
+      },
+      appointmentId: appointment.id.toString(),
+      discountInCents: 20000,
+    });
+    const replacedServicesResult = await sut.execute({
+      actor: {
+        userId: establishment.ownerId.toString(),
+        role: "ESTABLISHMENT",
+      },
+      appointmentId: appointment.id.toString(),
+      serviceIds: [service.id.toString()],
+      discountInCents: 20000,
+    });
+
+    expect(snapshotTotalResult.isLeft()).toBe(true);
+    expect(snapshotTotalResult.value).toBeInstanceOf(
+      InvalidAppointmentInputError,
+    );
+    expect(replacedServicesResult.isRight()).toBe(true);
+    if (replacedServicesResult.isLeft()) {
+      throw replacedServicesResult.value;
+    }
+    expect(replacedServicesResult.value.appointment.services).toEqual([
+      makeAppointmentServiceSnapshot(service),
+    ]);
+    expect(
+      replacedServicesResult.value.appointment.discountInCents?.amountInCents,
+    ).toBe(20000);
   });
 
   it("should reject inactive services", async () => {

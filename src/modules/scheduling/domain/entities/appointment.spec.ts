@@ -126,6 +126,24 @@ describe("Appointment", () => {
     expect(appointment.discountInCents?.amountInCents).toEqual(500);
   });
 
+  it("should not accept zero discount", () => {
+    expect(() =>
+      Appointment.create({
+        ...baseProps,
+        discountInCents: Money.create(0),
+      }),
+    ).toThrow(InvalidAppointmentInputError);
+  });
+
+  it("should not accept discount greater than total services price", () => {
+    expect(() =>
+      Appointment.create({
+        ...baseProps,
+        discountInCents: Money.create(3001),
+      }),
+    ).toThrow(InvalidAppointmentInputError);
+  });
+
   it("should rely on money validation for discounts", () => {
     expect(() => Money.create(-1)).toThrow(InvalidMoneyError);
   });

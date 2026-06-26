@@ -19,7 +19,6 @@ import {
   Phone,
 } from "../../../accounts/domain/value-objects/phone";
 import { Service } from "../../../catalog/domain/entities/services";
-import { InvalidEstimatedDurationTransitionError } from "../../../catalog/domain/errors/invalid-estimated-duration-transition-error";
 import {
   EstimatedDuration,
   InvalidEstimatedDurationError,
@@ -508,7 +507,6 @@ function isKnownOnboardingInputError(error: unknown): error is Error {
     error instanceof InvalidCustomerInputError ||
     error instanceof InvalidEmailError ||
     error instanceof InvalidEstimatedDurationError ||
-    error instanceof InvalidEstimatedDurationTransitionError ||
     error instanceof InvalidMoneyError ||
     error instanceof InvalidPhoneError ||
     error instanceof InvalidServiceNameError

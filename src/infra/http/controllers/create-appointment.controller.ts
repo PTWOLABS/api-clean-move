@@ -52,7 +52,7 @@ const createAppointmentBodySchema = z
     startsAt: z.coerce.date(),
     endsAt: z.coerce.date().optional().nullable(),
     description: z.string().trim().optional().nullable(),
-    discountInCents: z.number().int().nonnegative().optional().nullable(),
+    discountInCents: z.number().int().positive().optional().nullable(),
   })
   .refine(
     (value) =>

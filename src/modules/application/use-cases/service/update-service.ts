@@ -14,7 +14,6 @@ import {
   ServiceName,
 } from "../../../catalog/domain/value-objects/service-name";
 import { InvalidEstimatedDurationError } from "../../../catalog/domain/value-objects/estimated-duration";
-import { InvalidEstimatedDurationTransitionError } from "../../../catalog/domain/errors/invalid-estimated-duration-transition-error";
 import { UnexpectedDomainError } from "../../../../shared/errors/unexpected-domain-error";
 import {
   InvalidServicePriceSpecificationError,
@@ -176,8 +175,7 @@ export class UpdateServiceUseCase {
       if (
         error instanceof InvalidServiceNameError ||
         error instanceof InvalidEstimatedDurationError ||
-        error instanceof InvalidServicePriceSpecificationError ||
-        error instanceof InvalidEstimatedDurationTransitionError
+        error instanceof InvalidServicePriceSpecificationError
       ) {
         return left(new InvalidServiceUpdateInputError(error.message));
       }

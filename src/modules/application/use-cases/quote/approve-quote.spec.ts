@@ -15,8 +15,9 @@ import { InMemoryEstablishmentsRepository } from "../../../../../tests/repositor
 import { InMemoryQuotesRepository } from "../../../../../tests/repositories/in-memory-quotes-repository";
 import { InMemoryServicesRepository } from "../../../../../tests/repositories/in-memory-services-repository";
 import { InMemoryUnitOfWork } from "../../../../../tests/repositories/in-memory-unit-of-work";
+import { CreateAppointmentOnQuoteApproved } from "../../subscribers/create-appointment-on-quote-approved";
 import { EstablishmentScopeService } from "../../services/establishment-scope";
-import { CreateAppointmentFromQuoteUseCase } from "./create-appointment-from-quote";
+import { ApproveQuoteUseCase } from "./approve-quote";
 
 let quotesRepository: InMemoryQuotesRepository;
 let appointmentsRepository: InMemoryAppointmentsRepository;
@@ -27,9 +28,9 @@ let establishmentsRepository: InMemoryEstablishmentsRepository;
 let servicesRepository: InMemoryServicesRepository;
 let establishmentScope: EstablishmentScopeService;
 let inMemoryUnitOfWork: InMemoryUnitOfWork;
-let sut: CreateAppointmentFromQuoteUseCase;
+let sut: ApproveQuoteUseCase;
 
-describe("Create appointment from quote", () => {
+describe("Approve quote", () => {
   beforeEach(() => {
     quotesRepository = new InMemoryQuotesRepository();
     customersRepository = new InMemoryCustomersRepository();
@@ -48,17 +49,22 @@ describe("Create appointment from quote", () => {
     );
     inMemoryUnitOfWork = new InMemoryUnitOfWork();
 
-    sut = new CreateAppointmentFromQuoteUseCase(
+    new CreateAppointmentOnQuoteApproved(
       quotesRepository,
       appointmentsRepository,
       customersRepository,
       customerVehiclesRepository,
+    );
+
+    sut = new ApproveQuoteUseCase(
+      quotesRepository,
+      appointmentsRepository,
       establishmentScope,
       inMemoryUnitOfWork,
     );
   });
 
-  it("should convert a customer quote to an appointment", async () => {
+  it("should approve a customer quote and create an appointment", async () => {
     const establishment = makeEstablishment();
     const customer = makeCustomer({ establishmentId: establishment.id });
     const quote = makeQuote({
