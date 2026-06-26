@@ -20,16 +20,16 @@ import {
 } from "@nestjs/swagger";
 import z from "zod";
 
-import { GetQuoteUseCase } from "../../../modules/application/use-cases/quote/get-quote";
-import { NotAllowedError } from "../../../shared/errors/not-allowed-error";
-import { ResourceNotFoundError } from "../../../shared/errors/resource-not-found-error";
-import { AuthenticatedUser } from "../../auth/authenticated-user";
-import { CurrentUser } from "../../auth/current-user";
-import { EmployeeFeatures } from "../../auth/employee-features";
-import { Roles } from "../../auth/roles";
-import { QuoteResponseDto } from "../docs/domain-swagger.dto";
-import { ZodValidationPipe } from "../pipes/zod-validation.pipe";
-import { QuotePresenter } from "../presenters/quote-presenter";
+import { GetQuoteUseCase } from "../../../../modules/application/use-cases/quote/get-quote";
+import { NotAllowedError } from "../../../../shared/errors/not-allowed-error";
+import { ResourceNotFoundError } from "../../../../shared/errors/resource-not-found-error";
+import { AuthenticatedUser } from "../../../auth/authenticated-user";
+import { CurrentUser } from "../../../auth/current-user";
+import { EmployeeFeatures } from "../../../auth/employee-features";
+import { Roles } from "../../../auth/roles";
+import { QuoteResponseDto } from "../../docs/domain-swagger.dto";
+import { ZodValidationPipe } from "../../pipes/zod-validation.pipe";
+import { QuotePresenter } from "../../presenters/quote-presenter";
 
 const quoteIdParamSchema = z.uuid();
 
@@ -43,7 +43,8 @@ export class GetQuoteController {
 
   @Get()
   @ApiOperation({
-    summary: "Get a commercial quote by id for the authenticated establishment.",
+    summary:
+      "Get a commercial quote by id for the authenticated establishment.",
   })
   @ApiParam({ name: "quoteId", format: "uuid" })
   @ApiOkResponse({

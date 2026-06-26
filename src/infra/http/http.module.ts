@@ -75,7 +75,7 @@ import { CreateAppointmentController } from "./controllers/create-appointment.co
 import { DeleteAppointmentController } from "./controllers/delete-appointment.controller";
 import { CreateCustomerController } from "./controllers/create-customer.controller";
 import { CreateCustomerVehicleController } from "./controllers/create-customer-vehicle.controller";
-import { CreateQuoteController } from "./controllers/create-quote.controller";
+import { CreateQuoteController } from "./controllers/quote/create-quote.controller";
 import { CreateServiceCategoryController } from "./controllers/create-service-category.controller";
 import { DeleteServiceCategoryController } from "./controllers/delete-service-category.controller";
 import { ListServiceCategoriesController } from "./controllers/list-service-categories.controller";
@@ -98,9 +98,9 @@ import { DeleteEmployeeController } from "./controllers/delete-employee.controll
 
 import { GetEmployeeController } from "./controllers/get-employee.controller";
 import { GetEstablishmentController } from "./controllers/get-establishment.controller";
-import { GetQuoteController } from "./controllers/get-quote.controller";
+import { GetQuoteController } from "./controllers/quote/get-quote.controller";
 import { UpdateEstablishmentController } from "./controllers/update-establishment.controller";
-import { GetMeController } from "./controllers/get-me.controller";
+import { GetMeController } from "./controllers/quote/get-me.controller";
 import { UpdateUserController } from "./controllers/update-user.controller";
 import { ListAppointmentsController } from "./controllers/list-appointments.controller";
 import { ListCalendarAppointmentsController } from "./controllers/list-calendar-appointments.controller";
@@ -108,7 +108,7 @@ import { ListCustomerOptionsController } from "./controllers/list-customer-optio
 import { ListCustomerVehicleOptionsController } from "./controllers/list-customer-vehicle-options.controller";
 import { ListCustomersController } from "./controllers/list-customers.controller";
 import { ListCustomerVehiclesController } from "./controllers/list-customer-vehicles.controller";
-import { ListQuotesController } from "./controllers/list-quotes.controller";
+import { ListQuotesController } from "./controllers/quote/list-quotes.controller";
 import { ListVehiclesController } from "./controllers/list-vehicles.controller";
 import { ListEmployeesController } from "./controllers/list-employees.controller";
 import { LoginWithCredentialsController } from "./controllers/login-with-credentials.controller";

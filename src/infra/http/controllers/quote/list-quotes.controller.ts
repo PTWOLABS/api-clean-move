@@ -20,16 +20,16 @@ import {
 } from "@nestjs/swagger";
 import z from "zod";
 
-import { ListQuotesUseCase } from "../../../modules/application/use-cases/quote/list-quotes";
-import { NotAllowedError } from "../../../shared/errors/not-allowed-error";
-import { ResourceNotFoundError } from "../../../shared/errors/resource-not-found-error";
-import { AuthenticatedUser } from "../../auth/authenticated-user";
-import { CurrentUser } from "../../auth/current-user";
-import { EmployeeFeatures } from "../../auth/employee-features";
-import { Roles } from "../../auth/roles";
-import { ListQuotesResponseDto } from "../docs/domain-swagger.dto";
-import { ZodValidationPipe } from "../pipes/zod-validation.pipe";
-import { QuotePresenter } from "../presenters/quote-presenter";
+import { ListQuotesUseCase } from "../../../../modules/application/use-cases/quote/list-quotes";
+import { NotAllowedError } from "../../../../shared/errors/not-allowed-error";
+import { ResourceNotFoundError } from "../../../../shared/errors/resource-not-found-error";
+import { AuthenticatedUser } from "../../../auth/authenticated-user";
+import { CurrentUser } from "../../../auth/current-user";
+import { EmployeeFeatures } from "../../../auth/employee-features";
+import { Roles } from "../../../auth/roles";
+import { ListQuotesResponseDto } from "../../docs/domain-swagger.dto";
+import { ZodValidationPipe } from "../../pipes/zod-validation.pipe";
+import { QuotePresenter } from "../../presenters/quote-presenter";
 
 const booleanQuerySchema = z.preprocess((value) => {
   if (value === "true") return true;
@@ -99,7 +99,9 @@ export class ListQuotesController {
   ) {
     const filters = {
       ...(query.search !== undefined ? { search: query.search } : {}),
-      ...(query.customerId !== undefined ? { customerId: query.customerId } : {}),
+      ...(query.customerId !== undefined
+        ? { customerId: query.customerId }
+        : {}),
       ...(query.customerName !== undefined
         ? { customerName: query.customerName }
         : {}),
