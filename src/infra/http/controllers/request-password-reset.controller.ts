@@ -1,4 +1,11 @@
-import { Body, Controller, Post, Req, UsePipes } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  HttpCode,
+  Post,
+  Req,
+  UsePipes,
+} from "@nestjs/common";
 import { ApiBody, ApiOkResponse, ApiOperation, ApiTags } from "@nestjs/swagger";
 import { Throttle } from "@nestjs/throttler";
 import z from "zod";
@@ -40,6 +47,7 @@ export class RequestPasswordResetController {
   ) {}
 
   @Post("request")
+  @HttpCode(200)
   @Throttle({ default: { limit: 5, ttl: 60 * 60 * 1000 } })
   @UsePipes(new ZodValidationPipe(requestPasswordResetBodySchema))
   @ApiOperation({
