@@ -4,6 +4,7 @@ import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import z from "zod";
 
+import { CustomerFactory } from "../../../../../tests/factories/customer-factory";
 import { EstablishmentFactory } from "../../../../../tests/factories/establishment-factory";
 import { ServiceFactory } from "../../../../../tests/factories/service-factory";
 import { UserFactory } from "../../../../../tests/factories/user-factory";
@@ -14,6 +15,7 @@ import {
 } from "../../../../../tests/helpers/auth-session.e2e-helpers";
 import { HashGenerator } from "../../../../modules/application/repositories/hash-generator";
 import { ServiceName } from "../../../../modules/catalog/domain/value-objects/service-name";
+import { CustomerDocument } from "../../../../modules/customer/domain/value-objects/customer-document";
 import { AppModule } from "../../../app.module";
 import { PrismaService } from "../../../database/prisma/prisma.service";
 import { EnvService } from "../../../env/env.service";
@@ -111,6 +113,7 @@ describe("Quote controllers (e2e)", () => {
   let prisma: PrismaService;
   let userFactory: UserFactory;
   let establishmentFactory: EstablishmentFactory;
+  let customerFactory: CustomerFactory;
   let serviceFactory: ServiceFactory;
   let envService: EnvService;
 
@@ -125,6 +128,7 @@ describe("Quote controllers (e2e)", () => {
     prisma = moduleRef.get(PrismaService);
     userFactory = new UserFactory(prisma, moduleRef.get(HashGenerator));
     establishmentFactory = new EstablishmentFactory(prisma);
+    customerFactory = new CustomerFactory(prisma);
     serviceFactory = new ServiceFactory(prisma);
     envService = moduleRef.get(EnvService);
   });
@@ -380,5 +384,305 @@ describe("Quote controllers (e2e)", () => {
       });
 
     expect(approveResponse.status).toBe(201);
+  });
+
+  it("should isolate quote workflows by establishment", async () => {
+    const firstEstablishmentAuth = await makeEstablishmentAccessToken({
+      app,
+      prisma,
+      userFactory,
+      establishmentFactory,
+      envService,
+    });
+    const secondEstablishmentAuth = await makeEstablishmentAccessToken({
+      app,
+      prisma,
+      userFactory,
+      establishmentFactory,
+      envService,
+    });
+    const firstService = await serviceFactory.makePrismaService({
+      establishmentId: firstEstablishmentAuth.establishment.id,
+    });
+    const secondService = await serviceFactory.makePrismaService({
+      establishmentId: secondEstablishmentAuth.establishment.id,
+    });
+
+    const firstCreateResponse = await request(getHttpServer(app))
+      .post("/quotes")
+      .set("Authorization", `Bearer ${firstEstablishmentAuth.accessToken}`)
+      .send({
+        customer: { name: "Tenant One Prospect" },
+        vehicle: { brand: "Honda", model: "HR-V" },
+        serviceItems: [{ serviceId: firstService.id.toString() }],
+        paymentOptions: [{ method: "PIX", label: "Pix", installments: 1 }],
+      });
+    const firstQuoteId = quoteResponseSchema.parse(firstCreateResponse.body)
+      .quote.id;
+
+    const secondCreateResponse = await request(getHttpServer(app))
+      .post("/quotes")
+      .set("Authorization", `Bearer ${secondEstablishmentAuth.accessToken}`)
+      .send({
+        customer: { name: "Tenant Two Prospect" },
+        vehicle: { brand: "Toyota", model: "Corolla" },
+        serviceItems: [{ serviceId: secondService.id.toString() }],
+        paymentOptions: [{ method: "PIX", label: "Pix", installments: 1 }],
+      });
+    const secondQuoteId = quoteResponseSchema.parse(secondCreateResponse.body)
+      .quote.id;
+
+    expect(firstCreateResponse.status).toBe(201);
+    expect(secondCreateResponse.status).toBe(201);
+    expect(firstQuoteId).not.toBe(secondQuoteId);
+
+    const secondListResponse = await request(getHttpServer(app))
+      .get("/quotes")
+      .set("Authorization", `Bearer ${secondEstablishmentAuth.accessToken}`);
+    const secondListBody = listQuotesResponseSchema.parse(
+      secondListResponse.body,
+    );
+
+    expect(secondListResponse.status).toBe(200);
+    expect(secondListBody.quotes.map((quote) => quote.id)).toEqual([
+      secondQuoteId,
+    ]);
+
+    const secondSearchResponse = await request(getHttpServer(app))
+      .get("/quotes")
+      .set("Authorization", `Bearer ${secondEstablishmentAuth.accessToken}`)
+      .query({ search: "Tenant One" });
+    const secondSearchBody = listQuotesResponseSchema.parse(
+      secondSearchResponse.body,
+    );
+
+    expect(secondSearchResponse.status).toBe(200);
+    expect(secondSearchBody.quotes).toHaveLength(0);
+
+    await request(getHttpServer(app))
+      .get(`/quotes/${firstQuoteId}`)
+      .set("Authorization", `Bearer ${secondEstablishmentAuth.accessToken}`)
+      .expect(404);
+    await request(getHttpServer(app))
+      .get(`/quotes/${firstQuoteId}/pdf`)
+      .set("Authorization", `Bearer ${secondEstablishmentAuth.accessToken}`)
+      .expect(404);
+    await request(getHttpServer(app))
+      .post(`/quotes/${firstQuoteId}/register-customer`)
+      .set("Authorization", `Bearer ${secondEstablishmentAuth.accessToken}`)
+      .send({
+        email: "tenant-two@example.com",
+      })
+      .expect(404);
+    await request(getHttpServer(app))
+      .post(`/quotes/${firstQuoteId}/approve`)
+      .set("Authorization", `Bearer ${secondEstablishmentAuth.accessToken}`)
+      .send({
+        startsAt: "2026-06-01T10:00:00.000Z",
+        endsAt: "2026-06-01T12:00:00.000Z",
+      })
+      .expect(404);
+  });
+
+  it("should reject employee write workflows when required quote features are missing", async () => {
+    const establishmentAuth = await makeEstablishmentAccessToken({
+      app,
+      prisma,
+      userFactory,
+      establishmentFactory,
+      envService,
+    });
+    const employeeAuth = await makeEmployeeAccessToken({
+      app,
+      prisma,
+      userFactory,
+      establishmentFactory,
+      establishment: establishmentAuth.establishment,
+    });
+    const service = await serviceFactory.makePrismaService({
+      establishmentId: establishmentAuth.establishment.id,
+    });
+
+    const createResponse = await request(getHttpServer(app))
+      .post("/quotes")
+      .set("Authorization", `Bearer ${establishmentAuth.accessToken}`)
+      .send({
+        customer: { name: "Default Feature Employee Prospect" },
+        vehicle: { brand: "Honda", model: "HR-V" },
+        serviceItems: [{ serviceId: service.id.toString() }],
+        paymentOptions: [{ method: "PIX", label: "Pix", installments: 1 }],
+      });
+    const quoteId = quoteResponseSchema.parse(createResponse.body).quote.id;
+
+    const listResponse = await request(getHttpServer(app))
+      .get("/quotes")
+      .set("Authorization", `Bearer ${employeeAuth.accessToken}`);
+    const getResponse = await request(getHttpServer(app))
+      .get(`/quotes/${quoteId}`)
+      .set("Authorization", `Bearer ${employeeAuth.accessToken}`);
+
+    expect(createResponse.status).toBe(201);
+    expect(listResponse.status).toBe(200);
+    expect(getResponse.status).toBe(200);
+
+    await request(getHttpServer(app))
+      .post("/quotes")
+      .set("Authorization", `Bearer ${employeeAuth.accessToken}`)
+      .send({
+        customer: { name: "Forbidden Prospect" },
+        serviceItems: [{ serviceId: service.id.toString() }],
+        paymentOptions: [{ method: "PIX", label: "Pix", installments: 1 }],
+      })
+      .expect(403);
+    await request(getHttpServer(app))
+      .post(`/quotes/${quoteId}/register-customer`)
+      .set("Authorization", `Bearer ${employeeAuth.accessToken}`)
+      .send({
+        email: "forbidden-register@example.com",
+      })
+      .expect(403);
+    await request(getHttpServer(app))
+      .post(`/quotes/${quoteId}/approve`)
+      .set("Authorization", `Bearer ${employeeAuth.accessToken}`)
+      .send({
+        startsAt: "2026-06-01T10:00:00.000Z",
+        endsAt: "2026-06-01T12:00:00.000Z",
+      })
+      .expect(403);
+  });
+
+  it("should reject registering a prospect quote with a duplicated customer document", async () => {
+    const { accessToken, establishment } = await makeEstablishmentAccessToken({
+      app,
+      prisma,
+      userFactory,
+      establishmentFactory,
+      envService,
+    });
+    await customerFactory.makePrismaCustomer({
+      establishmentId: establishment.id,
+      cpfCnpj: CustomerDocument.create("52998224725"),
+    });
+    const service = await serviceFactory.makePrismaService({
+      establishmentId: establishment.id,
+    });
+
+    const createResponse = await request(getHttpServer(app))
+      .post("/quotes")
+      .set("Authorization", `Bearer ${accessToken}`)
+      .send({
+        customer: {
+          name: "Duplicated Document Prospect",
+          cpfCnpj: "52998224725",
+        },
+        vehicle: { brand: "Honda", model: "HR-V" },
+        serviceItems: [{ serviceId: service.id.toString() }],
+        paymentOptions: [{ method: "PIX", label: "Pix", installments: 1 }],
+      });
+    const quoteId = quoteResponseSchema.parse(createResponse.body).quote.id;
+
+    const registerResponse = await request(getHttpServer(app))
+      .post(`/quotes/${quoteId}/register-customer`)
+      .set("Authorization", `Bearer ${accessToken}`)
+      .send({
+        email: "duplicated-document@example.com",
+        createVehicleFromQuote: true,
+      });
+
+    expect(createResponse.status).toBe(201);
+    expect(registerResponse.status).toBe(409);
+    expect(registerResponse.body.message).toContain(
+      "Customer already registered.",
+    );
+  });
+
+  it("should reject approving a quote that was already converted", async () => {
+    const { accessToken, establishment } = await makeEstablishmentAccessToken({
+      app,
+      prisma,
+      userFactory,
+      establishmentFactory,
+      envService,
+    });
+    const service = await serviceFactory.makePrismaService({
+      establishmentId: establishment.id,
+    });
+    const createResponse = await request(getHttpServer(app))
+      .post("/quotes")
+      .set("Authorization", `Bearer ${accessToken}`)
+      .send({
+        customer: { name: "Already Converted Prospect" },
+        vehicle: { brand: "Honda", model: "HR-V" },
+        serviceItems: [{ serviceId: service.id.toString() }],
+        paymentOptions: [{ method: "PIX", label: "Pix", installments: 1 }],
+      });
+    const quoteId = quoteResponseSchema.parse(createResponse.body).quote.id;
+
+    const registerResponse = await request(getHttpServer(app))
+      .post(`/quotes/${quoteId}/register-customer`)
+      .set("Authorization", `Bearer ${accessToken}`)
+      .send({
+        email: "already-converted@example.com",
+        createVehicleFromQuote: true,
+      });
+
+    const firstApproveResponse = await request(getHttpServer(app))
+      .post(`/quotes/${quoteId}/approve`)
+      .set("Authorization", `Bearer ${accessToken}`)
+      .send({
+        startsAt: "2026-06-01T10:00:00.000Z",
+        endsAt: "2026-06-01T12:00:00.000Z",
+      });
+    const secondApproveResponse = await request(getHttpServer(app))
+      .post(`/quotes/${quoteId}/approve`)
+      .set("Authorization", `Bearer ${accessToken}`)
+      .send({
+        startsAt: "2026-06-02T10:00:00.000Z",
+        endsAt: "2026-06-02T12:00:00.000Z",
+      });
+
+    expect(registerResponse.status).toBe(201);
+    expect(firstApproveResponse.status).toBe(201);
+    expect(secondApproveResponse.status).toBe(400);
+    expect(secondApproveResponse.body.message).toContain(
+      "Quote is already converted.",
+    );
+  });
+
+  it("should reject creating a vehicle from a quote without vehicle snapshot", async () => {
+    const { accessToken, establishment } = await makeEstablishmentAccessToken({
+      app,
+      prisma,
+      userFactory,
+      establishmentFactory,
+      envService,
+    });
+    const service = await serviceFactory.makePrismaService({
+      establishmentId: establishment.id,
+    });
+
+    const createResponse = await request(getHttpServer(app))
+      .post("/quotes")
+      .set("Authorization", `Bearer ${accessToken}`)
+      .send({
+        customer: { name: "No Vehicle Prospect" },
+        serviceItems: [{ serviceId: service.id.toString() }],
+        paymentOptions: [{ method: "PIX", label: "Pix", installments: 1 }],
+      });
+    const quoteId = quoteResponseSchema.parse(createResponse.body).quote.id;
+
+    const registerResponse = await request(getHttpServer(app))
+      .post(`/quotes/${quoteId}/register-customer`)
+      .set("Authorization", `Bearer ${accessToken}`)
+      .send({
+        email: "no-vehicle@example.com",
+        createVehicleFromQuote: true,
+      });
+
+    expect(createResponse.status).toBe(201);
+    expect(registerResponse.status).toBe(400);
+    expect(registerResponse.body.message).toContain(
+      "Quote has no vehicle snapshot.",
+    );
   });
 });
