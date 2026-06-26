@@ -662,9 +662,7 @@ describe("Quote controllers (e2e)", () => {
     expect(secondApproveResponse.status).toBe(400);
     expect(
       errorResponseSchema.parse(secondApproveResponse.body).message,
-    ).toContain(
-      "Quote is already converted.",
-    );
+    ).toContain("Quote is already converted.");
   });
 
   it("should reject creating a vehicle from a quote without vehicle snapshot", async () => {

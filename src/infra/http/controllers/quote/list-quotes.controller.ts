@@ -142,7 +142,7 @@ export class ListQuotesController {
     }
 
     return {
-      quotes: result.value.quotes.map(QuotePresenter.toHTTP),
+      quotes: result.value.quotes.map((quote) => QuotePresenter.toHTTP(quote)),
     };
   }
 }
