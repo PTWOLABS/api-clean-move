@@ -123,9 +123,12 @@ export class ListQuotesController {
       ...(query.size !== undefined ? { size: query.size } : {}),
     };
 
+    const referenceDate = new Date();
+
     const result = await this.listQuotes.execute({
       actor: { userId: user.userId, role: user.role },
       filters,
+      referenceDate,
     });
 
     if (result.isLeft()) {
@@ -142,7 +145,11 @@ export class ListQuotesController {
     }
 
     return {
-      quotes: result.value.quotes.map((quote) => QuotePresenter.toHTTP(quote)),
+      quotes: result.value.quotes.map((quote) =>
+        QuotePresenter.toListItem(quote, referenceDate),
+      ),
+      totalItems: result.value.totalItems,
+      summary: result.value.summary,
     };
   }
 }
