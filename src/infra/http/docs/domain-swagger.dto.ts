@@ -2120,3 +2120,64 @@ export class ListQuotesResponseDto {
   @ApiProperty({ type: QuoteDto, isArray: true })
   quotes!: QuoteDto[];
 }
+
+export class RegisterQuoteProspectBodyDto {
+  @ApiProperty({ example: "cliente@example.com", format: "email" })
+  email!: string;
+
+  @ApiPropertyOptional({ example: "11999999999", minLength: 1 })
+  phone?: string;
+
+  @ApiPropertyOptional({
+    type: String,
+    nullable: true,
+    format: "date-time",
+    example: "1990-01-01T00:00:00.000Z",
+  })
+  birthDate?: string | null;
+
+  @ApiPropertyOptional({ type: String, nullable: true, example: "Robertinho" })
+  nickname?: string | null;
+
+  @ApiPropertyOptional({
+    example: true,
+    description:
+      "When true, creates a customer vehicle from the quote vehicle snapshot.",
+  })
+  createVehicleFromQuote?: boolean;
+}
+
+export class RegisterQuoteProspectResponseDto {
+  @ApiProperty({ type: CustomerDto })
+  customer!: CustomerDto;
+
+  @ApiPropertyOptional({ type: CustomerVehicleDto, nullable: true })
+  vehicle!: CustomerVehicleDto | null;
+
+  @ApiProperty({ type: QuoteDto })
+  quote!: QuoteDto;
+}
+
+export class ApproveQuoteBodyDto {
+  @ApiProperty({
+    example: "2026-06-01T10:00:00.000Z",
+    format: "date-time",
+  })
+  startsAt!: string;
+
+  @ApiPropertyOptional({
+    type: String,
+    nullable: true,
+    example: "2026-06-01T12:00:00.000Z",
+    format: "date-time",
+  })
+  endsAt?: string | null;
+}
+
+export class ApproveQuoteResponseDto {
+  @ApiProperty({ type: AppointmentDto })
+  appointment!: AppointmentDto;
+
+  @ApiProperty({ type: QuoteDto })
+  quote!: QuoteDto;
+}

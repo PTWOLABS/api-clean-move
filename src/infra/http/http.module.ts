@@ -31,9 +31,12 @@ import { ListEmployeesUseCase } from "../../modules/application/use-cases/employ
 import { RegisterEmployeeUseCase } from "../../modules/application/use-cases/employee/register-employee";
 import { UpdateEmployeeUseCase } from "../../modules/application/use-cases/employee/update-employee";
 import { CompleteOnboardingUseCase } from "../../modules/application/use-cases/onboarding/complete-onboarding";
+import { ApproveQuoteUseCase } from "../../modules/application/use-cases/quote/approve-quote";
 import { CreateQuoteUseCase } from "../../modules/application/use-cases/quote/create-quote";
+import { GenerateQuotePdfUseCase } from "../../modules/application/use-cases/quote/generate-quote-pdf";
 import { GetQuoteUseCase } from "../../modules/application/use-cases/quote/get-quote";
 import { ListQuotesUseCase } from "../../modules/application/use-cases/quote/list-quotes";
+import { RegisterQuoteProspectAsCustomerUseCase } from "../../modules/application/use-cases/quote/register-quote-prospect-as-customer";
 import { GetEstablishmentUseCase } from "../../modules/application/use-cases/establishment/get-establishment";
 import { GetEstablishmentAppointmentsCountUseCase } from "../../modules/application/use-cases/establishment/get-establishment-appointments-count";
 import { GetEstablishmentCancellationRateUseCase } from "../../modules/application/use-cases/establishment/get-establishment-cancellation-rate";
@@ -66,6 +69,7 @@ import { DatabaseModule } from "../database/database.module";
 import { PdfModule } from "../pdf/pdf.module";
 import { StorageModule } from "../storage/storage.module";
 import { AuthenticateWithGoogleController } from "./controllers/authenticate-with-google.controller";
+import { ApproveQuoteController } from "./controllers/quote/approve-quote.controller";
 import { CompleteOnboardingController } from "./controllers/complete-onboarding.controller";
 import { CreateAppointmentController } from "./controllers/create-appointment.controller";
 import { DeleteAppointmentController } from "./controllers/delete-appointment.controller";
@@ -91,6 +95,7 @@ import { DashboardMetricsTopCustomersController } from "./controllers/dashboard-
 import { DeleteCustomerController } from "./controllers/delete-customer.controller";
 import { DeleteCustomerVehicleController } from "./controllers/delete-customer-vehicle.controller";
 import { DeleteEmployeeController } from "./controllers/delete-employee.controller";
+
 import { GetEmployeeController } from "./controllers/get-employee.controller";
 import { GetEstablishmentController } from "./controllers/get-establishment.controller";
 import { GetQuoteController } from "./controllers/get-quote.controller";
@@ -111,6 +116,7 @@ import { SignOutController } from "./controllers/sign-out.controller";
 import { RefreshSessionController } from "./controllers/refresh-session.controller";
 import { RegisterEmployeeController } from "./controllers/register-employee.controller";
 import { RegisterEstablishmentController } from "./controllers/register-establishment.controller";
+
 import { UpdateAppointmentController } from "./controllers/update-appointment.controller";
 import { UpdateAppointmentStatusController } from "./controllers/update-appointment-status.controller";
 import { UpdateCustomerController } from "./controllers/update-customer.controller";
@@ -121,6 +127,8 @@ import { UploadVehicleImageController } from "./controllers/media/upload-vehicle
 import { DeleteUserProfileImageController } from "./controllers/delete-user-profile-image.controller";
 import { UploadUserProfileImageController } from "./controllers/upload-user-profile-image.controller";
 import { DeleteEstablishmentBannerImageController } from "./controllers/media/delete-establishment-banner-image.controller";
+import { GenerateQuotePdfController } from "./controllers/quote/generate-quote-pdf.controller";
+import { RegisterQuoteProspectAsCustomerController } from "./controllers/quote/register-quote-prospect-as-customer.controller";
 
 @Module({
   imports: [AuthModule, DatabaseModule, StorageModule, PdfModule],
@@ -162,6 +170,9 @@ import { DeleteEstablishmentBannerImageController } from "./controllers/media/de
     CreateQuoteController,
     ListQuotesController,
     GetQuoteController,
+    GenerateQuotePdfController,
+    RegisterQuoteProspectAsCustomerController,
+    ApproveQuoteController,
     CreateAppointmentController,
     DeleteAppointmentController,
     ListAppointmentsController,
@@ -210,6 +221,9 @@ import { DeleteEstablishmentBannerImageController } from "./controllers/media/de
     CreateQuoteUseCase,
     ListQuotesUseCase,
     GetQuoteUseCase,
+    GenerateQuotePdfUseCase,
+    RegisterQuoteProspectAsCustomerUseCase,
+    ApproveQuoteUseCase,
     CreateAppointmentUseCase,
     DeleteAppointmentUseCase,
     ListAppointmentsUseCase,
