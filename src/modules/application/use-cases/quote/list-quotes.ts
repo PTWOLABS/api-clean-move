@@ -6,6 +6,7 @@ import { ResourceNotFoundError } from "../../../../shared/errors/resource-not-fo
 import { Quote } from "../../../quotes/domain/entities/quote";
 import {
   QuoteFilters,
+  QuoteSummary,
   QuotesRepository,
 } from "../../repositories/quotes-repository";
 import {
@@ -16,12 +17,15 @@ import {
 type ListQuotesUseCaseRequest = {
   actor: EstablishmentScopeActor;
   filters?: QuoteFilters;
+  referenceDate?: Date;
 };
 
 type ListQuotesUseCaseResponse = Either<
   ResourceNotFoundError | NotAllowedError,
   {
     quotes: Quote[];
+    totalItems: number;
+    summary: QuoteSummary;
   }
 >;
 
@@ -35,15 +39,18 @@ export class ListQuotesUseCase {
   async execute({
     actor,
     filters,
+    referenceDate = new Date(),
   }: ListQuotesUseCaseRequest): Promise<ListQuotesUseCaseResponse> {
     const scope = await this.establishmentScope.resolve(actor);
     if (scope.isLeft()) return left(scope.value);
 
-    const quotes = await this.quotesRepository.findManyByEstablishmentId(
-      scope.value.establishment.id.toString(),
-      filters,
-    );
+    const { quotes, totalItems, summary } =
+      await this.quotesRepository.findManyByEstablishmentId(
+        scope.value.establishment.id.toString(),
+        filters,
+        referenceDate,
+      );
 
-    return right({ quotes });
+    return right({ quotes, totalItems, summary });
   }
 }

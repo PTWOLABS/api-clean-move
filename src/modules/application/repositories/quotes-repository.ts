@@ -16,6 +16,19 @@ export type QuoteFilters = {
   createdAt?: Date;
 } & PaginationParams;
 
+export type QuoteSummary = {
+  valid: number;
+  expiresToday: number;
+  approved: number;
+  expired: number;
+};
+
+export type QuoteListResult = {
+  quotes: Quote[];
+  totalItems: number;
+  summary: QuoteSummary;
+};
+
 export abstract class QuotesRepository {
   abstract create(quote: Quote): Promise<void>;
   abstract findById(id: string): Promise<Quote | null>;
@@ -26,7 +39,8 @@ export abstract class QuotesRepository {
   abstract findManyByEstablishmentId(
     establishmentId: string,
     filters?: QuoteFilters,
-  ): Promise<Quote[]>;
+    referenceDate?: Date,
+  ): Promise<QuoteListResult>;
   abstract markAsConverted(
     quote: Quote,
     appointmentId: UniqueEntityId,
