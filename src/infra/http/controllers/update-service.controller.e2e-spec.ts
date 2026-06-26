@@ -260,6 +260,61 @@ describe("UpdateServiceController (e2e)", () => {
     expect(row?.priceInCents).toBe(4500);
   });
 
+  it("should update estimated duration min above the previous max", async () => {
+    const { user, plainPassword } = await userFactory.makePrismaUser({
+      role: "ESTABLISHMENT",
+      plainPassword: "strong-password",
+    });
+    const establishment = await establishmentFactory.makePrismaEstablishment({
+      ownerId: user.id,
+    });
+    const category = await seedLavagemCategory(
+      prisma,
+      establishment.id.toString(),
+    );
+    const establishmentLogin = await loginUser({
+      app,
+      prisma,
+      userId: user.id.toString(),
+      email: user.email.toString(),
+      password: plainPassword ?? "",
+    });
+
+    const createResponse = await request(getHttpServer(app))
+      .post("/services")
+      .set(
+        "Authorization",
+        `Bearer ${establishmentLogin.loginBody.accessToken}`,
+      )
+      .send(makeCreateServicePayload(category.id));
+    const created = updateServiceResponseSchema.parse(createResponse.body);
+
+    const patchResponse = await request(getHttpServer(app))
+      .patch(`/services/${created.service.id}`)
+      .set(
+        "Authorization",
+        `Bearer ${establishmentLogin.loginBody.accessToken}`,
+      )
+      .send({
+        estimatedDuration: {
+          minInMinutes: 90,
+        },
+      });
+    const body = updateServiceResponseSchema.parse(patchResponse.body);
+
+    expect(patchResponse.status).toBe(200);
+    expect(body.service.estimatedDuration).toEqual({
+      minInMinutes: 90,
+      maxInMinutes: null,
+    });
+
+    const row = await prisma.service.findUnique({
+      where: { id: created.service.id },
+    });
+    expect(row?.estimatedDurationMinInMinutes).toBe(90);
+    expect(row?.estimatedDurationMaxInMinutes).toBeNull();
+  });
+
   it("should update a service price specification", async () => {
     const { user, plainPassword } = await userFactory.makePrismaUser({
       role: "ESTABLISHMENT",

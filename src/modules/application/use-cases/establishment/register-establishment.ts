@@ -146,16 +146,18 @@ export class RegisterEstablishmentUseCase {
 
     const user = User.create(userInputValues);
 
-    const establishment = Establishment.register({
-      ownerId: user.id,
-      cnpj,
-      tradeName,
-      legalBusinessName,
-      slug,
-    });
+    let establishment: Establishment;
 
     try {
       await this.unitOfWork.execute(async () => {
+        establishment = Establishment.register({
+          ownerId: user.id,
+          cnpj,
+          tradeName,
+          legalBusinessName,
+          slug,
+        });
+
         await this.usersRepository.create(user);
         await this.establishmentsRepository.create(establishment);
       });
@@ -174,7 +176,7 @@ export class RegisterEstablishmentUseCase {
     }
 
     return right({
-      establishment,
+      establishment: establishment!,
     });
   }
 }

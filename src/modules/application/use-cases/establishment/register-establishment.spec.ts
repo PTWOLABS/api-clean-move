@@ -21,6 +21,7 @@ let fakeHashGenerator: FakeHashGenerator;
 let inMemoryUnitOfWork: InMemoryUnitOfWork;
 
 let sut: RegisterEstablishmentUseCase;
+let defaultCategoriesSubscriber: CreateDefaultServiceCategoriesOnEstablishmentRegistered;
 
 describe("Register an establishment", () => {
   beforeEach(() => {
@@ -40,9 +41,10 @@ describe("Register an establishment", () => {
       inMemoryUnitOfWork,
     );
 
-    new CreateDefaultServiceCategoriesOnEstablishmentRegistered(
-      inMemoryServiceCategoriesRepository,
-    );
+    defaultCategoriesSubscriber =
+      new CreateDefaultServiceCategoriesOnEstablishmentRegistered(
+        inMemoryServiceCategoriesRepository,
+      );
   });
 
   it("should be able to register an establishment with valid data", async () => {
@@ -89,6 +91,38 @@ describe("Register an establishment", () => {
     const slug = result.value.establishment.slug;
     expect(slug).not.toBeNull();
     expect(slug!.value).toEqual("valid-establishment");
+  });
+
+  it("should stop creating default service categories after subscriber is unregistered", async () => {
+    defaultCategoriesSubscriber.onModuleDestroy();
+
+    const result = await sut.execute({
+      name: "Jon Doe",
+      address: {
+        city: "city-1",
+        country: "country-1",
+        state: "state-1",
+        street: "street-1",
+        zipCode: "11111-111",
+      },
+      cnpj: "18472512000116",
+      tradeName: "No Subscriber Establishment",
+      legalBusinessName: "NO SUBSCRIBER TEST LTDA",
+      email: "no-subscriber@example.com",
+      password: "jondoe@123",
+      phone: "11987654321",
+    });
+
+    expect(result.isRight()).toBe(true);
+
+    if (result.isLeft()) {
+      throw result.value;
+    }
+
+    expect(inMemoryEstablishmentsRepository.items[0]).toBe(
+      result.value.establishment,
+    );
+    expect(inMemoryServiceCategoriesRepository.items).toHaveLength(0);
   });
 
   it("not should be able to register an establishment with duplicated email", async () => {

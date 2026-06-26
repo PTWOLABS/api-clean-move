@@ -2,7 +2,6 @@ import { AggregateRoot } from "../../../../shared/entities/aggregate-root";
 import { UniqueEntityId } from "../../../../shared/entities/unique-entity-id";
 import { Optional } from "../../../../shared/types/optional";
 import { ServiceAlreadyDeletedError } from "../errors/service-already-deleted-error";
-import { InvalidEstimatedDurationTransitionError } from "../errors/invalid-estimated-duration-transition-error";
 import { EstimatedDuration } from "../value-objects/estimated-duration";
 import { Money } from "../value-objects/money";
 import { ServiceCategoryRef } from "../value-objects/service-category-ref";
@@ -209,14 +208,6 @@ export class Service extends AggregateRoot<ServiceProps> {
 
   changeEstimatedDuration(estimatedDuration: EstimatedDuration) {
     if (this.estimatedDuration?.equals(estimatedDuration)) return;
-
-    if (
-      this.estimatedDuration &&
-      this.estimatedDuration.maxInMinutes &&
-      estimatedDuration.minInMinutes > this.estimatedDuration.maxInMinutes
-    ) {
-      throw new InvalidEstimatedDurationTransitionError();
-    }
 
     this.props.estimatedDuration = estimatedDuration;
     this.touch();

@@ -13,12 +13,12 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from "@nestjs/swagger";
-import { GetMeUseCase } from "../../../modules/application/use-cases/user/get-me";
-import { ResourceNotFoundError } from "../../../shared/errors/resource-not-found-error";
-import { AuthenticatedUser } from "../../auth/authenticated-user";
-import { CurrentUser } from "../../auth/current-user";
-import { GetMeResponseDto } from "../docs/user-swagger.dto";
-import { UserPresenter } from "../presenters/user-presenter";
+import { GetMeUseCase } from "../../../../modules/application/use-cases/user/get-me";
+import { ResourceNotFoundError } from "../../../../shared/errors/resource-not-found-error";
+import { AuthenticatedUser } from "../../../auth/authenticated-user";
+import { CurrentUser } from "../../../auth/current-user";
+import { GetMeResponseDto } from "../../docs/user-swagger.dto";
+import { UserPresenter } from "../../presenters/user-presenter";
 
 @ApiTags("user")
 @ApiBearerAuth("access-token")

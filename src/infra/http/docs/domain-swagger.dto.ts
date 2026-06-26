@@ -735,8 +735,8 @@ export class CreateAppointmentBodyDto {
     type: Number,
     example: 500,
     nullable: true,
-    minimum: 0,
-    description: "Optional non-negative integer discount in cents.",
+    minimum: 1,
+    description: "Optional positive integer discount in cents.",
   })
   discountInCents?: number | null;
 }
@@ -805,9 +805,9 @@ export class UpdateAppointmentBodyDto {
     type: Number,
     example: 500,
     nullable: true,
-    minimum: 0,
+    minimum: 1,
     description:
-      "Optional non-negative integer discount in cents. Send null to clear it.",
+      "Optional positive integer discount in cents. Send null to clear it.",
   })
   discountInCents?: number | null;
 }
@@ -981,8 +981,8 @@ export class AppointmentDto {
     type: Number,
     example: 500,
     nullable: true,
-    minimum: 0,
-    description: "Applied non-negative integer discount in cents.",
+    minimum: 1,
+    description: "Applied positive integer discount in cents.",
   })
   discountInCents!: number | null;
 
@@ -1377,8 +1377,8 @@ export class CompleteOnboardingAppointmentBodyDto {
     type: Number,
     example: 500,
     nullable: true,
-    minimum: 0,
-    description: "Optional non-negative integer discount in cents.",
+    minimum: 1,
+    description: "Optional positive integer discount in cents.",
   })
   discountInCents?: number | null;
 }
@@ -1893,4 +1893,291 @@ export class ServiceCategoryOptionDto {
 export class ServiceCategoryOptionsResponseDto {
   @ApiProperty({ type: ServiceCategoryOptionDto, isArray: true })
   categories!: ServiceCategoryOptionDto[];
+}
+
+export class QuoteAddressDto {
+  @ApiPropertyOptional({ type: String, nullable: true, example: "Rua A" })
+  street!: string | null;
+
+  @ApiPropertyOptional({ type: String, nullable: true, example: "Brasil" })
+  country!: string | null;
+
+  @ApiPropertyOptional({ type: String, nullable: true, example: "SP" })
+  state!: string | null;
+
+  @ApiPropertyOptional({ type: String, nullable: true, example: "01001-000" })
+  zipCode!: string | null;
+
+  @ApiPropertyOptional({ type: String, nullable: true, example: "Sao Paulo" })
+  city!: string | null;
+
+  @ApiPropertyOptional({ type: String, nullable: true, example: "Sala 12" })
+  complement!: string | null;
+}
+
+export class QuoteEstablishmentDto {
+  @ApiProperty({ example: "Studio Clean Move" })
+  name!: string;
+
+  @ApiProperty({ example: "Studio Clean Move LTDA" })
+  legalBusinessName!: string;
+
+  @ApiProperty({ example: "50224464000150" })
+  cnpj!: string;
+
+  @ApiPropertyOptional({ type: QuoteAddressDto, nullable: true })
+  address!: QuoteAddressDto | null;
+
+  @ApiPropertyOptional({
+    type: String,
+    nullable: true,
+    example: "https://cdn.example.com/banner.png",
+  })
+  bannerImageUrl!: string | null;
+}
+
+export class QuoteCustomerDto {
+  @ApiProperty({ example: "Robertinho Contador" })
+  name!: string;
+
+  @ApiPropertyOptional({ type: String, nullable: true, example: "11999999999" })
+  phone!: string | null;
+
+  @ApiPropertyOptional({ type: String, nullable: true, example: "52998224725" })
+  cpfCnpj!: string | null;
+
+  @ApiPropertyOptional({ type: QuoteAddressDto, nullable: true })
+  address!: QuoteAddressDto | null;
+}
+
+export class QuoteVehicleDto {
+  @ApiPropertyOptional({ type: String, nullable: true, example: "ABC1D23" })
+  plate!: string | null;
+
+  @ApiPropertyOptional({ type: String, nullable: true, example: "Honda" })
+  brand!: string | null;
+
+  @ApiPropertyOptional({ type: String, nullable: true, example: "HR-V" })
+  model!: string | null;
+
+  @ApiPropertyOptional({ type: String, nullable: true, example: "Branco" })
+  color!: string | null;
+
+  @ApiPropertyOptional({ type: Number, nullable: true, example: 2025 })
+  year!: number | null;
+}
+
+export class QuoteServiceDto {
+  @ApiProperty({ example: "2e11b57c-b96a-490a-9ae6-64ef2966fd84" })
+  id!: string;
+
+  @ApiProperty({ example: "Lavagem detalhada" })
+  name!: string;
+
+  @ApiProperty({ type: ServiceCategoryRefDto, nullable: true })
+  category!: ServiceCategoryRefDto | null;
+
+  @ApiPropertyOptional({ type: Number, nullable: true, example: 60 })
+  durationInMinutes!: number | null;
+
+  @ApiProperty({ example: 32500 })
+  priceInCents!: number;
+
+  @ApiProperty({ example: false })
+  isCourtesy!: boolean;
+}
+
+export class QuotePaymentOptionDto {
+  @ApiProperty({ enum: ["CASH", "PIX", "CARD", "OTHER"] })
+  method!: string;
+
+  @ApiProperty({ example: "A vista no Pix" })
+  label!: string;
+
+  @ApiProperty({ type: Number, example: 1 })
+  installments!: number;
+
+  @ApiProperty({ example: true })
+  interestFree!: boolean;
+
+  @ApiPropertyOptional({ enum: ["PERCENTAGE", "AMOUNT"], nullable: true })
+  discountType!: string | null;
+
+  @ApiPropertyOptional({ type: Number, nullable: true, example: 10 })
+  discountValue!: number | null;
+
+  @ApiProperty({ example: 29250 })
+  totalInCents!: number;
+}
+
+export class QuoteDto {
+  @ApiProperty({ example: "2e11b57c-b96a-490a-9ae6-64ef2966fd84" })
+  id!: string;
+
+  @ApiProperty({ example: "2e11b57c-b96a-490a-9ae6-64ef2966fd84" })
+  establishmentId!: string;
+
+  @ApiPropertyOptional({ type: String, nullable: true })
+  customerId!: string | null;
+
+  @ApiPropertyOptional({ type: String, nullable: true })
+  vehicleId!: string | null;
+
+  @ApiPropertyOptional({ type: String, nullable: true })
+  convertedAppointmentId!: string | null;
+
+  @ApiPropertyOptional({
+    type: String,
+    nullable: true,
+    format: "date-time",
+  })
+  convertedAt!: string | null;
+
+  @ApiProperty({ type: QuoteEstablishmentDto })
+  establishment!: QuoteEstablishmentDto;
+
+  @ApiProperty({ type: QuoteCustomerDto })
+  customer!: QuoteCustomerDto;
+
+  @ApiPropertyOptional({ type: QuoteVehicleDto, nullable: true })
+  vehicle!: QuoteVehicleDto | null;
+
+  @ApiProperty({ type: QuoteServiceDto, isArray: true })
+  services!: QuoteServiceDto[];
+
+  @ApiProperty({ type: QuotePaymentOptionDto, isArray: true })
+  paymentOptions!: QuotePaymentOptionDto[];
+
+  @ApiProperty({ example: 32500 })
+  subtotalInCents!: number;
+
+  @ApiProperty({ example: 40000 })
+  totalCourtesyValueInCents!: number;
+
+  @ApiPropertyOptional({
+    type: String,
+    nullable: true,
+    example: "Avaliar pintura antes da execucao.",
+  })
+  description!: string | null;
+
+  @ApiPropertyOptional({
+    type: String,
+    nullable: true,
+    example: "Orcamento valido por 10 dias.",
+  })
+  termsAndConditions!: string | null;
+
+  @ApiPropertyOptional({
+    type: String,
+    nullable: true,
+    format: "date-time",
+  })
+  expiresAt!: string | null;
+
+  @ApiProperty({ example: "2026-05-22T10:00:00.000Z" })
+  createdAt!: string;
+
+  @ApiProperty({ example: "2026-05-22T10:00:00.000Z" })
+  updatedAt!: string;
+}
+
+export class CreateQuoteBodyDto {
+  @ApiPropertyOptional({ type: String, nullable: true })
+  customerId?: string | null;
+
+  @ApiPropertyOptional({ type: Object })
+  customer?: Record<string, unknown>;
+
+  @ApiPropertyOptional({ type: String, nullable: true })
+  vehicleId?: string | null;
+
+  @ApiPropertyOptional({ type: Object, nullable: true })
+  vehicle?: Record<string, unknown> | null;
+
+  @ApiProperty({ type: Object, isArray: true })
+  serviceItems!: Array<{ serviceId: string; isCourtesy?: boolean }>;
+
+  @ApiProperty({ type: Object, isArray: true })
+  paymentOptions!: Array<Record<string, unknown>>;
+
+  @ApiPropertyOptional({ type: String, nullable: true })
+  description?: string | null;
+
+  @ApiPropertyOptional({ type: String, nullable: true })
+  termsAndConditions?: string | null;
+
+  @ApiPropertyOptional({ type: String, nullable: true, format: "date-time" })
+  expiresAt?: string | null;
+}
+
+export class QuoteResponseDto {
+  @ApiProperty({ type: QuoteDto })
+  quote!: QuoteDto;
+}
+
+export class ListQuotesResponseDto {
+  @ApiProperty({ type: QuoteDto, isArray: true })
+  quotes!: QuoteDto[];
+}
+
+export class RegisterQuoteProspectBodyDto {
+  @ApiProperty({ example: "cliente@example.com", format: "email" })
+  email!: string;
+
+  @ApiPropertyOptional({ example: "11999999999", minLength: 1 })
+  phone?: string;
+
+  @ApiPropertyOptional({
+    type: String,
+    nullable: true,
+    format: "date-time",
+    example: "1990-01-01T00:00:00.000Z",
+  })
+  birthDate?: string | null;
+
+  @ApiPropertyOptional({ type: String, nullable: true, example: "Robertinho" })
+  nickname?: string | null;
+
+  @ApiPropertyOptional({
+    example: true,
+    description:
+      "When true, creates a customer vehicle from the quote vehicle snapshot.",
+  })
+  createVehicleFromQuote?: boolean;
+}
+
+export class RegisterQuoteProspectResponseDto {
+  @ApiProperty({ type: CustomerDto })
+  customer!: CustomerDto;
+
+  @ApiPropertyOptional({ type: CustomerVehicleDto, nullable: true })
+  vehicle!: CustomerVehicleDto | null;
+
+  @ApiProperty({ type: QuoteDto })
+  quote!: QuoteDto;
+}
+
+export class ApproveQuoteBodyDto {
+  @ApiProperty({
+    example: "2026-06-01T10:00:00.000Z",
+    format: "date-time",
+  })
+  startsAt!: string;
+
+  @ApiPropertyOptional({
+    type: String,
+    nullable: true,
+    example: "2026-06-01T12:00:00.000Z",
+    format: "date-time",
+  })
+  endsAt?: string | null;
+}
+
+export class ApproveQuoteResponseDto {
+  @ApiProperty({ type: AppointmentDto })
+  appointment!: AppointmentDto;
+
+  @ApiProperty({ type: QuoteDto })
+  quote!: QuoteDto;
 }

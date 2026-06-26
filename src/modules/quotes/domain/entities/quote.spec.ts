@@ -1,6 +1,7 @@
 import { UniqueEntityId } from "../../../../shared/entities/unique-entity-id";
 import { makeServiceCategoryRef } from "../../../../../tests/helpers/service-category-ref";
 import { InvalidQuoteInputError } from "../errors/invalid-quote-input-error";
+import { QuoteApprovedEvent } from "../events/quote-approved-event";
 
 const washCategory = makeServiceCategoryRef("Lavagem");
 const protectionCategory = makeServiceCategoryRef("Proteção");
@@ -379,6 +380,45 @@ describe("Quote", () => {
     expect(quote.updatedAt.getTime()).toBeGreaterThanOrEqual(
       convertedAt.getTime(),
     );
+  });
+
+  it("should approve a customer quote and emit a domain event", () => {
+    const quote = Quote.create({
+      ...baseProps,
+      customerId: new UniqueEntityId("customer-1"),
+    });
+    const startsAt = new Date("2026-06-01T10:00:00.000Z");
+    const endsAt = new Date("2026-06-01T12:00:00.000Z");
+
+    quote.approve({ startsAt, endsAt });
+
+    expect(quote.domainEvents).toHaveLength(1);
+    expect(quote.domainEvents[0]).toBeInstanceOf(QuoteApprovedEvent);
+    expect(quote.convertedAppointmentId).toBeNull();
+  });
+
+  it("should reject approval for prospect quotes", () => {
+    const quote = Quote.create(baseProps);
+
+    expect(() =>
+      quote.approve({
+        startsAt: new Date("2026-06-01T10:00:00.000Z"),
+      }),
+    ).toThrow(InvalidQuoteInputError);
+  });
+
+  it("should reject approval with invalid scheduling range", () => {
+    const quote = Quote.create({
+      ...baseProps,
+      customerId: new UniqueEntityId("customer-1"),
+    });
+
+    expect(() =>
+      quote.approve({
+        startsAt: new Date("2026-06-01T12:00:00.000Z"),
+        endsAt: new Date("2026-06-01T10:00:00.000Z"),
+      }),
+    ).toThrow(InvalidQuoteInputError);
   });
 
   it("should not accept invalid conversion reference date", () => {

@@ -183,11 +183,52 @@ describe("Update a service", () => {
     expect(result.value).toBeInstanceOf(InvalidServiceUpdateInputError);
   });
 
-  it("should not be able to update a service with a valid establishment and invalid estimatedDuration", async () => {
+  it("should update estimated duration min above the previous max when the new duration is valid", async () => {
     const establishment = makeEstablishment();
 
     await inMemoryEstablishmentsRepository.create(establishment);
     await seedProtectionCategory(establishment.id);
+
+    const service = makeService({
+      establishmentId: establishment.id,
+      serviceName: ServiceName.create("Service to update"),
+      estimatedDuration: EstimatedDuration.create({
+        minInMinutes: 10,
+        maxInMinutes: 30,
+      }),
+    });
+
+    await inMemoryServicesRepository.create(service);
+
+    const result = await sut.execute({
+      establishmentOwnerId: establishment.ownerId.toString(),
+      serviceId: service.id.toString(),
+      data: {
+        serviceName: "Service updated",
+        price: 1,
+        categoryId: protectionCategoryId.toString(),
+        description: "Service updated description",
+        estimatedDuration: {
+          minInMinutes: 35,
+        },
+      },
+    });
+
+    expect(result.isRight()).toBe(true);
+    if (result.isLeft()) {
+      throw result.value;
+    }
+
+    expect(result.value.service.estimatedDuration?.minInMinutes).toBe(35);
+    expect(result.value.service.estimatedDuration?.maxInMinutes).toBeNull();
+    expect(result.value.service.estimatedDuration?.formatted).toEqual("35 min");
+    expect(result.value.service.serviceName.value).toEqual("Service updated");
+  });
+
+  it("should reject estimated duration when the new min is greater than the new max", async () => {
+    const establishment = makeEstablishment();
+
+    await inMemoryEstablishmentsRepository.create(establishment);
 
     const service = makeService({
       establishmentId: establishment.id,
@@ -207,11 +248,9 @@ describe("Update a service", () => {
       serviceId: service.id.toString(),
       data: {
         serviceName: "Service updated",
-        price: 1,
-        categoryId: protectionCategoryId.toString(),
-        description: "Service updated description",
         estimatedDuration: {
-          minInMinutes: 35,
+          minInMinutes: 60,
+          maxInMinutes: 30,
         },
       },
     });

@@ -5,7 +5,6 @@ import { ResourceAlreadyExistsError } from "../../../../shared/errors/resource-a
 import { UnexpectedDomainError } from "../../../../shared/errors/unexpected-domain-error";
 import { UniqueEntityId } from "../../../../shared/entities/unique-entity-id";
 import { Service } from "../../../catalog/domain/entities/services";
-import { InvalidEstimatedDurationTransitionError } from "../../../catalog/domain/errors/invalid-estimated-duration-transition-error";
 import {
   EstimatedDuration,
   InvalidEstimatedDurationError,
@@ -134,8 +133,7 @@ export class CreateServiceUseCase {
       if (
         error instanceof InvalidServiceNameError ||
         error instanceof InvalidEstimatedDurationError ||
-        error instanceof InvalidServicePriceSpecificationError ||
-        error instanceof InvalidEstimatedDurationTransitionError
+        error instanceof InvalidServicePriceSpecificationError
       ) {
         return left(new InvalidServiceUpdateInputError(error.message));
       }
