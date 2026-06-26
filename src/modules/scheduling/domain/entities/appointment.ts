@@ -337,6 +337,25 @@ export class Appointment extends AggregateRoot<AppointmentProps> {
       });
     }
 
+    if (this.props.discountInCents) {
+      const discountInCents = this.props.discountInCents.amountInCents;
+      const totalServicesPriceInCents = Appointment.totalServicesPriceInCents(
+        this.props.services,
+      );
+
+      if (discountInCents <= 0) {
+        throw new InvalidAppointmentInputError(
+          "discountInCents must be greater than zero.",
+        );
+      }
+
+      if (discountInCents > totalServicesPriceInCents) {
+        throw new InvalidAppointmentInputError(
+          "discountInCents must be less than or equal to total services price.",
+        );
+      }
+    }
+
     if (
       this.props.endsAt &&
       this.props.endsAt.getTime() <= this.props.startsAt.getTime()

@@ -735,8 +735,8 @@ export class CreateAppointmentBodyDto {
     type: Number,
     example: 500,
     nullable: true,
-    minimum: 0,
-    description: "Optional non-negative integer discount in cents.",
+    minimum: 1,
+    description: "Optional positive integer discount in cents.",
   })
   discountInCents?: number | null;
 }
@@ -805,9 +805,9 @@ export class UpdateAppointmentBodyDto {
     type: Number,
     example: 500,
     nullable: true,
-    minimum: 0,
+    minimum: 1,
     description:
-      "Optional non-negative integer discount in cents. Send null to clear it.",
+      "Optional positive integer discount in cents. Send null to clear it.",
   })
   discountInCents?: number | null;
 }
@@ -981,8 +981,8 @@ export class AppointmentDto {
     type: Number,
     example: 500,
     nullable: true,
-    minimum: 0,
-    description: "Applied non-negative integer discount in cents.",
+    minimum: 1,
+    description: "Applied positive integer discount in cents.",
   })
   discountInCents!: number | null;
 
@@ -1377,8 +1377,8 @@ export class CompleteOnboardingAppointmentBodyDto {
     type: Number,
     example: 500,
     nullable: true,
-    minimum: 0,
-    description: "Optional non-negative integer discount in cents.",
+    minimum: 1,
+    description: "Optional positive integer discount in cents.",
   })
   discountInCents?: number | null;
 }
