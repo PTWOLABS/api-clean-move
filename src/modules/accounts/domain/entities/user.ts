@@ -1,6 +1,7 @@
 import { AggregateRoot } from "../../../../shared/entities/aggregate-root";
 import { UniqueEntityId } from "../../../../shared/entities/unique-entity-id";
 import { Optional } from "../../../../shared/types/optional";
+import { UserPasswordChangedEvent } from "../events/user-password-changed-event";
 import { ProfileAlreadyCompleteError } from "../errors/profile-already-complete-error";
 import { Address, AddressCreateInput } from "../value-objects/address";
 import { Email } from "../value-objects/email";
@@ -115,6 +116,7 @@ export class User extends AggregateRoot<UserProps> {
   changePassword(hashedPassword: string) {
     this.props.hashedPassword = hashedPassword;
     this.touch();
+    this.addDomainEvent(new UserPasswordChangedEvent(this));
   }
 
   linkSocialAccount(provider: OAuthProvider, subjectId: string) {

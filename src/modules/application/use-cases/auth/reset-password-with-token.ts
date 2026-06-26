@@ -1,15 +1,12 @@
 import { Injectable } from "@nestjs/common";
 
-import { EnvService } from "../../../../infra/env/env.service";
 import { Either, left, right } from "../../../../shared/either";
 import { InvalidOrExpiredPasswordResetTokenError } from "../../../../shared/errors/invalid-or-expired-password-reset-token-error";
 import { User } from "../../../accounts/domain/entities/user";
-import { buildPasswordChangedEmail } from "../../mail/templates/password-changed-email";
-import { EmailSender } from "../../gateways/email-sender";
 import { HashGenerator } from "../../repositories/hash-generator";
 import { PasswordResetTokensRepository } from "../../repositories/password-reset-tokens-repository";
-import { SessionsRepository } from "../../repositories/sessions-repository";
 import { TokenHasher } from "../../repositories/token-hasher";
+import { UnitOfWork } from "../../repositories/unit-of-work";
 import { UsersRepository } from "../../repositories/users-repository";
 import {
   PasswordResetAuditContext,
@@ -31,12 +28,10 @@ export class ResetPasswordWithTokenUseCase {
   constructor(
     private usersRepository: UsersRepository,
     private passwordResetTokensRepository: PasswordResetTokensRepository,
-    private sessionsRepository: SessionsRepository,
     private tokenHasher: TokenHasher,
     private hashGenerator: HashGenerator,
-    private emailSender: EmailSender,
     private passwordResetAuditLogger: PasswordResetAuditLogger,
-    private readonly envService: EnvService,
+    private unitOfWork: UnitOfWork,
   ) {}
 
   async execute({
@@ -78,33 +73,13 @@ export class ResetPasswordWithTokenUseCase {
     }
 
     const hashedPassword = await this.hashGenerator.hash(newPassword);
-    user.changePassword(hashedPassword);
 
-    await this.usersRepository.save(user);
-    await this.passwordResetTokensRepository.deleteByUserId(user.id.toString());
-
-    const sessions = await this.sessionsRepository.findManyByUserId(
-      user.id.toString(),
-    );
-
-    for (const session of sessions) {
-      if (session.isRevoked()) {
-        continue;
-      }
-
-      session.revoke();
-      await this.sessionsRepository.save(session);
-    }
-
-    const emailContent = buildPasswordChangedEmail({
-      loginUrl: this.envService.get("FRONTEND_URL"),
-    });
-
-    await this.emailSender.send({
-      to: user.email.getValue(),
-      subject: emailContent.subject,
-      html: emailContent.html,
-      text: emailContent.text,
+    await this.unitOfWork.execute(async () => {
+      user.changePassword(hashedPassword);
+      await this.usersRepository.save(user);
+      await this.passwordResetTokensRepository.deleteByUserId(
+        user.id.toString(),
+      );
     });
 
     this.passwordResetAuditLogger.log({

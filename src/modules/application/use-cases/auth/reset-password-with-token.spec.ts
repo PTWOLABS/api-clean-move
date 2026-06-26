@@ -11,12 +11,16 @@ import { FakePasswordResetAuditLogger } from "../../../../../tests/repositories/
 import { FakeTokenHasher } from "../../../../../tests/repositories/fake-token-hasher";
 import { InMemoryPasswordResetTokensRepository } from "../../../../../tests/repositories/in-memory-password-reset-tokens-repository";
 import { InMemorySessionsRepository } from "../../../../../tests/repositories/in-memory-sessions-repository";
+import { InMemoryUnitOfWork } from "../../../../../tests/repositories/in-memory-unit-of-work";
 import { InMemoryUsersRepository } from "../../../../../tests/repositories/in-memory-users-repository";
+import { RevokeSessionsOnUserPasswordChanged } from "../../subscribers/revoke-sessions-on-user-password-changed";
+import { SendPasswordChangedEmailOnUserPasswordChanged } from "../../subscribers/send-password-changed-email-on-user-password-changed";
 import { ResetPasswordWithTokenUseCase } from "./reset-password-with-token";
 
 let inMemoryUsersRepository: InMemoryUsersRepository;
 let inMemoryTokensRepository: InMemoryPasswordResetTokensRepository;
 let inMemorySessionsRepository: InMemorySessionsRepository;
+let inMemoryUnitOfWork: InMemoryUnitOfWork;
 let fakeTokenHasher: FakeTokenHasher;
 let fakeHashGenerator: FakeHashGenerator;
 let fakeEmailSender: FakeEmailSender;
@@ -29,12 +33,15 @@ type EnvReader = {
 let envService: EnvReader;
 
 let sut: ResetPasswordWithTokenUseCase;
+let revokeSessionsSubscriber: RevokeSessionsOnUserPasswordChanged;
+let sendPasswordChangedEmailSubscriber: SendPasswordChangedEmailOnUserPasswordChanged;
 
 describe("Reset password with token", () => {
   beforeEach(() => {
     inMemoryUsersRepository = new InMemoryUsersRepository();
     inMemoryTokensRepository = new InMemoryPasswordResetTokensRepository();
     inMemorySessionsRepository = new InMemorySessionsRepository();
+    inMemoryUnitOfWork = new InMemoryUnitOfWork();
     fakeTokenHasher = new FakeTokenHasher();
     fakeHashGenerator = new FakeHashGenerator();
     fakeEmailSender = new FakeEmailSender();
@@ -52,13 +59,26 @@ describe("Reset password with token", () => {
     sut = new ResetPasswordWithTokenUseCase(
       inMemoryUsersRepository,
       inMemoryTokensRepository,
-      inMemorySessionsRepository,
       fakeTokenHasher,
       fakeHashGenerator,
-      fakeEmailSender,
       fakePasswordResetAuditLogger,
-      envService as EnvService,
+      inMemoryUnitOfWork,
     );
+
+    revokeSessionsSubscriber = new RevokeSessionsOnUserPasswordChanged(
+      inMemorySessionsRepository,
+    );
+    sendPasswordChangedEmailSubscriber =
+      new SendPasswordChangedEmailOnUserPasswordChanged(
+        inMemoryUsersRepository,
+        fakeEmailSender,
+        envService as EnvService,
+      );
+  });
+
+  afterEach(() => {
+    revokeSessionsSubscriber.onModuleDestroy();
+    sendPasswordChangedEmailSubscriber.onModuleDestroy();
   });
 
   it("should reject when token is unknown", async () => {
