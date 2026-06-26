@@ -3,7 +3,7 @@ import { UniqueEntityId } from "../../../../shared/entities/unique-entity-id";
 
 export type PasswordResetTokenProps = {
   userId: UniqueEntityId;
-  hashedCode: string;
+  hashedToken: string;
   expiresAt: Date;
 };
 
@@ -12,8 +12,8 @@ export class PasswordResetToken extends Entity<PasswordResetTokenProps> {
     return this.props.userId;
   }
 
-  get hashedCode() {
-    return this.props.hashedCode;
+  get hashedToken() {
+    return this.props.hashedToken;
   }
 
   get expiresAt() {

@@ -12,6 +12,8 @@ import { AppointmentResourceStatusResolver } from "../../modules/application/ser
 import { EstablishmentScopeService } from "../../modules/application/services/establishment-scope";
 import { UserEstablishmentResolver } from "../../modules/application/services/user-establishment-resolver";
 import { LoginWithCredentialsUseCase } from "../../modules/application/use-cases/auth/login-with-credentials";
+import { RequestPasswordResetUseCase } from "../../modules/application/use-cases/auth/request-password-reset";
+import { ResetPasswordWithTokenUseCase } from "../../modules/application/use-cases/auth/reset-password-with-token";
 import { RefreshSessionUseCase } from "../../modules/application/use-cases/auth/refresh-session";
 import { SignOutUseCase } from "../../modules/application/use-cases/auth/sign-out";
 import { CreateCustomerUseCase } from "../../modules/application/use-cases/customer/create-customer";
@@ -64,8 +66,11 @@ import { DeleteServiceUseCase } from "../../modules/application/use-cases/servic
 import { GetMeUseCase } from "../../modules/application/use-cases/user/get-me";
 import { UpdateUserUseCase } from "../../modules/application/use-cases/user/update-user";
 import { SessionCreationService } from "../../modules/accounts/domain/services/session-creation-service";
+import { PasswordResetAuditLogger } from "../../modules/application/services/password-reset-audit-logger";
 import { AuthModule } from "../auth/auth.module";
 import { DatabaseModule } from "../database/database.module";
+import { EnvModule } from "../env/env.module";
+import { MailModule } from "../mail/mail.module";
 import { PdfModule } from "../pdf/pdf.module";
 import { StorageModule } from "../storage/storage.module";
 import { AuthenticateWithGoogleController } from "./controllers/authenticate-with-google.controller";
@@ -112,6 +117,8 @@ import { ListQuotesController } from "./controllers/quote/list-quotes.controller
 import { ListVehiclesController } from "./controllers/list-vehicles.controller";
 import { ListEmployeesController } from "./controllers/list-employees.controller";
 import { LoginWithCredentialsController } from "./controllers/login-with-credentials.controller";
+import { RequestPasswordResetController } from "./controllers/request-password-reset.controller";
+import { ResetPasswordWithTokenController } from "./controllers/reset-password-with-token.controller";
 import { SignOutController } from "./controllers/sign-out.controller";
 import { RefreshSessionController } from "./controllers/refresh-session.controller";
 import { RegisterEmployeeController } from "./controllers/register-employee.controller";
@@ -131,11 +138,20 @@ import { GenerateQuotePdfController } from "./controllers/quote/generate-quote-p
 import { RegisterQuoteProspectAsCustomerController } from "./controllers/quote/register-quote-prospect-as-customer.controller";
 
 @Module({
-  imports: [AuthModule, DatabaseModule, StorageModule, PdfModule],
+  imports: [
+    AuthModule,
+    DatabaseModule,
+    StorageModule,
+    MailModule,
+    EnvModule,
+    PdfModule,
+  ],
   controllers: [
     RegisterEstablishmentController,
     AuthenticateWithGoogleController,
     LoginWithCredentialsController,
+    RequestPasswordResetController,
+    ResetPasswordWithTokenController,
     RefreshSessionController,
     SignOutController,
     CompleteOnboardingController,
@@ -247,6 +263,8 @@ import { RegisterQuoteProspectAsCustomerController } from "./controllers/quote/r
     EstablishmentScopeService,
     UserEstablishmentResolver,
     LoginWithCredentialsUseCase,
+    RequestPasswordResetUseCase,
+    ResetPasswordWithTokenUseCase,
     RefreshSessionUseCase,
     SignOutUseCase,
     CompleteOnboardingUseCase,
@@ -258,6 +276,7 @@ import { RegisterQuoteProspectAsCustomerController } from "./controllers/quote/r
     GetEstablishmentUseCase,
     UpdateEstablishmentUseCase,
     SessionCreationService,
+    PasswordResetAuditLogger,
   ],
 })
 export class HttpModule {}

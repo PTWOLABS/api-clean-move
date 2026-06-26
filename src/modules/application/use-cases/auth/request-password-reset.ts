@@ -1,61 +1,109 @@
-import { PasswordResetToken } from "../../../accounts/domain/entities/password-reset-token";
-import { Email } from "../../../accounts/domain/value-objects/email";
-import { Either, left, right } from "../../../../shared/either";
-import { ResourceNotFoundError } from "../../../../shared/errors/resource-not-found-error";
-import { HashGenerator } from "../../repositories/hash-generator";
-import { MailSender } from "../../gateways/mail-sender";
-import { PasswordResetTokensRepository } from "../../repositories/password-reset-tokens-repository";
-import { ResetCodeGenerator } from "../../repositories/reset-code-generator";
-import { UsersRepository } from "../../repositories/users-repository";
+import { Injectable } from "@nestjs/common";
 
-const DEFAULT_CODE_TTL_MS = 15 * 60 * 1000;
+import { EnvService } from "../../../../infra/env/env.service";
+import { PasswordResetToken } from "../../../accounts/domain/entities/password-reset-token";
+import {
+  Email,
+  InvalidEmailError,
+} from "../../../accounts/domain/value-objects/email";
+import { buildPasswordResetEmail } from "../../mail/templates/password-reset-email";
+import { EmailSender } from "../../gateways/email-sender";
+import { PasswordResetTokensRepository } from "../../repositories/password-reset-tokens-repository";
+import { ResetTokenGenerator } from "../../repositories/reset-token-generator";
+import { TokenHasher } from "../../repositories/token-hasher";
+import { UsersRepository } from "../../repositories/users-repository";
+import {
+  PasswordResetAuditContext,
+  PasswordResetAuditLogger,
+} from "../../services/password-reset-audit-logger";
+
+const DEFAULT_TOKEN_TTL_MS = 15 * 60 * 1000;
 
 type RequestPasswordResetUseCaseRequest = {
-  email: Email;
-};
+  email: string;
+} & PasswordResetAuditContext;
 
-type RequestPasswordResetUseCaseResponse = Either<
-  ResourceNotFoundError,
-  undefined
->;
-
+@Injectable()
 export class RequestPasswordResetUseCase {
   constructor(
     private usersRepository: UsersRepository,
     private passwordResetTokensRepository: PasswordResetTokensRepository,
-    private hashGenerator: HashGenerator,
-    private mailSender: MailSender,
-    private resetCodeGenerator: ResetCodeGenerator,
-    private codeTtlMs: number = DEFAULT_CODE_TTL_MS,
+    private tokenHasher: TokenHasher,
+    private emailSender: EmailSender,
+    private resetTokenGenerator: ResetTokenGenerator,
+    private passwordResetAuditLogger: PasswordResetAuditLogger,
+    private readonly envService: EnvService,
   ) {}
 
   async execute({
     email,
-  }: RequestPasswordResetUseCaseRequest): Promise<RequestPasswordResetUseCaseResponse> {
-    const user = await this.usersRepository.findByEmail(email.toString());
+    ipAddress = null,
+    userAgent = null,
+  }: RequestPasswordResetUseCaseRequest): Promise<void> {
+    let parsedEmail: Email;
 
-    if (!user) {
-      return left(new ResourceNotFoundError({ resource: "user" }));
+    try {
+      parsedEmail = new Email(email);
+    } catch (error) {
+      if (error instanceof InvalidEmailError) {
+        return;
+      }
+
+      throw error;
     }
 
-    const plainCode = this.resetCodeGenerator.generate();
-    const hashedCode = await this.hashGenerator.hash(plainCode);
+    this.passwordResetAuditLogger.log({
+      event: "password_reset.requested",
+      outcome: "success",
+      ipAddress,
+      userAgent,
+    });
+
+    const user = await this.usersRepository.findByEmail(parsedEmail.toString());
+
+    if (!user) {
+      this.passwordResetAuditLogger.log({
+        event: "password_reset.requested",
+        outcome: "skipped",
+        reason: "user_not_found",
+        ipAddress,
+        userAgent,
+      });
+
+      return;
+    }
+
+    const plainToken = this.resetTokenGenerator.generate();
+    const hashedToken = await this.tokenHasher.hash(plainToken);
     const now = new Date();
-    const expiresAt = new Date(now.getTime() + this.codeTtlMs);
+    const expiresAt = new Date(now.getTime() + DEFAULT_TOKEN_TTL_MS);
 
     const token = PasswordResetToken.create({
       userId: user.id,
-      hashedCode,
+      hashedToken,
       expiresAt,
     });
 
     await this.passwordResetTokensRepository.upsert(token);
 
-    await this.mailSender.sendPasswordResetCode({
-      to: user.email.getValue(),
-      code: plainCode,
+    const emailContent = buildPasswordResetEmail({
+      resetPath: this.envService.get("PASSWORD_RESET_PATH"),
+      token: plainToken,
     });
 
-    return right(undefined);
+    await this.emailSender.send({
+      to: user.email.getValue(),
+      subject: emailContent.subject,
+      html: emailContent.html,
+      text: emailContent.text,
+    });
+
+    this.passwordResetAuditLogger.log({
+      event: "password_reset.token_issued",
+      outcome: "success",
+      userId: user.id.toString(),
+      ipAddress,
+      userAgent,
+    });
   }
 }

@@ -6,7 +6,7 @@ describe("PasswordResetToken", () => {
     const expiresAt = new Date("2030-01-01T00:00:00.000Z");
     const token = PasswordResetToken.create({
       userId: new UniqueEntityId(),
-      hashedCode: "x",
+      hashedToken: "x",
       expiresAt,
     });
 
@@ -17,7 +17,7 @@ describe("PasswordResetToken", () => {
     const expiresAt = new Date("2030-01-01T00:00:00.000Z");
     const token = PasswordResetToken.create({
       userId: new UniqueEntityId(),
-      hashedCode: "x",
+      hashedToken: "x",
       expiresAt,
     });
 
