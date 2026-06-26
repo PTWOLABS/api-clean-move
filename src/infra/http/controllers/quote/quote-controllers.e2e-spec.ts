@@ -1,6 +1,7 @@
 import { INestApplication } from "@nestjs/common";
 import { Test } from "@nestjs/testing";
 import request from "supertest";
+import type SuperAgentResponse from "superagent/lib/node/response";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import z from "zod";
 
@@ -108,6 +109,29 @@ const approveQuoteResponseSchema = z.object({
   quote: quoteResponseSchema.shape.quote,
 });
 
+const errorResponseSchema = z.object({
+  message: z.string(),
+});
+
+function collectPdfResponseBody(
+  res: SuperAgentResponse,
+  callback: (error: Error | null, body: Buffer) => void,
+) {
+  const chunks: Buffer[] = [];
+
+  res.on("data", (chunk: unknown) => {
+    if (Buffer.isBuffer(chunk)) {
+      chunks.push(chunk);
+      return;
+    }
+
+    if (chunk instanceof Uint8Array || typeof chunk === "string") {
+      chunks.push(Buffer.from(chunk));
+    }
+  });
+  res.on("end", () => callback(null, Buffer.concat(chunks)));
+}
+
 describe("Quote controllers (e2e)", () => {
   let app: INestApplication;
   let prisma: PrismaService;
@@ -161,9 +185,7 @@ describe("Quote controllers (e2e)", () => {
           color: "Branco",
           year: 2025,
         },
-        serviceItems: [
-          { serviceId: service.id.toString(), isCourtesy: false },
-        ],
+        serviceItems: [{ serviceId: service.id.toString(), isCourtesy: false }],
         paymentOptions: [
           {
             method: "PIX",
@@ -181,9 +203,7 @@ describe("Quote controllers (e2e)", () => {
     expect(createResponse.status).toBe(201);
     const quoteId = createBody.quote.id;
     expect(createBody.quote.customerId).toBeNull();
-    expect(createBody.quote.paymentOptions[0]?.totalInCents).toBeGreaterThan(
-      0,
-    );
+    expect(createBody.quote.paymentOptions[0]?.totalInCents).toBeGreaterThan(0);
 
     const listResponse = await request(getHttpServer(app))
       .get("/quotes")
@@ -206,11 +226,7 @@ describe("Quote controllers (e2e)", () => {
       .get(`/quotes/${quoteId}/pdf`)
       .set("Authorization", `Bearer ${accessToken}`)
       .buffer()
-      .parse((res, callback) => {
-        const chunks: Buffer[] = [];
-        res.on("data", (chunk) => chunks.push(Buffer.from(chunk)));
-        res.on("end", () => callback(null, Buffer.concat(chunks)));
-      });
+      .parse(collectPdfResponseBody);
 
     expect(pdfResponse.status).toBe(200);
     expect(pdfResponse.headers["content-type"]).toContain("application/pdf");
@@ -281,7 +297,7 @@ describe("Quote controllers (e2e)", () => {
       });
 
     expect(response.status).toBe(400);
-    expect(response.body.message).toContain(
+    expect(errorResponseSchema.parse(response.body).message).toContain(
       "Quote must be linked to a customer before conversion.",
     );
   });
@@ -591,7 +607,7 @@ describe("Quote controllers (e2e)", () => {
 
     expect(createResponse.status).toBe(201);
     expect(registerResponse.status).toBe(409);
-    expect(registerResponse.body.message).toContain(
+    expect(errorResponseSchema.parse(registerResponse.body).message).toContain(
       "Customer already registered.",
     );
   });
@@ -644,7 +660,9 @@ describe("Quote controllers (e2e)", () => {
     expect(registerResponse.status).toBe(201);
     expect(firstApproveResponse.status).toBe(201);
     expect(secondApproveResponse.status).toBe(400);
-    expect(secondApproveResponse.body.message).toContain(
+    expect(
+      errorResponseSchema.parse(secondApproveResponse.body).message,
+    ).toContain(
       "Quote is already converted.",
     );
   });
@@ -681,7 +699,7 @@ describe("Quote controllers (e2e)", () => {
 
     expect(createResponse.status).toBe(201);
     expect(registerResponse.status).toBe(400);
-    expect(registerResponse.body.message).toContain(
+    expect(errorResponseSchema.parse(registerResponse.body).message).toContain(
       "Quote has no vehicle snapshot.",
     );
   });
