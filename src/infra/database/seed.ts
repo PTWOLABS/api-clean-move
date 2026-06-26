@@ -7,9 +7,12 @@ import {
   AppointmentStatus,
   Prisma,
   PrismaClient,
+  QuoteDiscountType,
+  QuotePaymentMethod,
   UserRole,
 } from "../../generated/prisma/client";
 import { DEFAULT_SERVICE_CATEGORY_NAMES } from "../../modules/catalog/domain/constants/default-service-categories";
+import { EmployeeFeaturesPolicy } from "../../modules/employees/domain/policies/employee-features-policy";
 
 const databaseUrl = process.env.DATABASE_URL;
 
@@ -269,6 +272,7 @@ const EMPLOYEE_SEED_DATA: EmployeeSeedData[] = [
       "create:appointments",
       "update:appointments",
       "update:customers",
+      "create:quotes",
     ],
   },
   {
@@ -278,7 +282,12 @@ const EMPLOYEE_SEED_DATA: EmployeeSeedData[] = [
     cpf: "10000000002",
     birthDate: new Date("1989-08-09T00:00:00.000Z"),
     profileImageUrl: null,
-    features: ["create:customers", "update:customers", "create:appointments"],
+    features: [
+      "create:customers",
+      "update:customers",
+      "create:appointments",
+      "create:quotes",
+    ],
   },
   {
     name: "Carla Mendes",
@@ -315,6 +324,8 @@ const EMPLOYEE_SEED_DATA: EmployeeSeedData[] = [
       "update:customers",
       "update:appointments",
       "create:services",
+      "create:quotes",
+      "approve:quotes",
     ],
   },
 ];
@@ -450,12 +461,20 @@ async function main() {
     establishment.id,
     customers,
   );
-  const appointmentsCreated = await seedAppointments({
+  const { appointments, count: appointmentsCreated } = await seedAppointments({
     establishmentId: establishment.id,
     customers,
     vehiclesByCustomerId,
     services,
     categoryNameById,
+  });
+  const quotesCreated = await seedQuotes({
+    establishment,
+    customers,
+    vehiclesByCustomerId,
+    services,
+    categoryNameById,
+    appointments,
   });
 
   console.log("Database seed completed successfully.");
@@ -467,6 +486,7 @@ async function main() {
       `customers=${customers.length}`,
       `vehicles=${vehicles.length}`,
       `appointments=${appointmentsCreated}`,
+      `quotes=${quotesCreated}`,
     ].join(" | "),
   );
 }
@@ -500,7 +520,7 @@ async function seedEmployees({
         name: employeeData.name,
         cpf: employeeData.cpf,
         birthDate: employeeData.birthDate,
-        features: employeeData.features,
+        features: EmployeeFeaturesPolicy.build(employeeData.features),
       },
     });
 
@@ -605,6 +625,7 @@ async function seedCustomers(establishmentId: string) {
 type SeededCustomerVehicle = Awaited<
   ReturnType<typeof prisma.customerVehicle.create>
 >;
+type SeededAppointment = Awaited<ReturnType<typeof prisma.appointment.create>>;
 
 function resolveVehicleCountForCustomer(
   customerIndex: number,
@@ -705,6 +726,7 @@ async function seedAppointments({
 }) {
   let createdAppointments = 0;
   let appointmentIndex = 0;
+  const appointments: SeededAppointment[] = [];
 
   for (let dayOffset = -210; dayOffset <= 21; dayOffset += 1) {
     const appointmentsForDay = resolveAppointmentsForDay(dayOffset);
@@ -747,7 +769,7 @@ async function seedAppointments({
         appointmentIndex,
       );
 
-      await prisma.appointment.create({
+      const appointment = await prisma.appointment.create({
         data: {
           establishmentId,
           customerId: customer.id,
@@ -792,12 +814,310 @@ async function seedAppointments({
         },
       });
 
+      appointments.push(appointment);
       appointmentIndex += 1;
       createdAppointments += 1;
     }
   }
 
-  return createdAppointments;
+  return {
+    appointments,
+    count: createdAppointments,
+  };
+}
+
+async function seedQuotes({
+  establishment,
+  customers,
+  vehiclesByCustomerId,
+  services,
+  categoryNameById,
+  appointments,
+}: {
+  establishment: Awaited<ReturnType<typeof prisma.establishment.create>>;
+  customers: Awaited<ReturnType<typeof prisma.customer.create>>[];
+  vehiclesByCustomerId: Map<string, SeededCustomerVehicle[]>;
+  services: SeededService[];
+  categoryNameById: Map<string, string>;
+  appointments: SeededAppointment[];
+}) {
+  const approvedAppointments = appointments
+    .filter((appointment) => appointment.vehicleId)
+    .slice(0, 4);
+  const approvedQuoteIndexes = new Set([3, 9, 14, 17]);
+  let approvedQuoteIndex = 0;
+  let createdQuotes = 0;
+
+  for (let quoteIndex = 0; quoteIndex < 18; quoteIndex += 1) {
+    const isApproved = approvedQuoteIndexes.has(quoteIndex);
+    let approvedAppointment: SeededAppointment | null = null;
+
+    if (isApproved) {
+      approvedAppointment = approvedAppointments[approvedQuoteIndex] ?? null;
+
+      if (!approvedAppointment) {
+        throw new Error("Not enough appointments to seed approved quotes.");
+      }
+
+      approvedQuoteIndex += 1;
+    }
+
+    const customer =
+      approvedAppointment !== null
+        ? findSeedCustomerById(customers, approvedAppointment.customerId)
+        : customers[(quoteIndex * 5) % customers.length]!;
+    const customerVehicles = vehiclesByCustomerId.get(customer.id) ?? [];
+    const fallbackVehicle =
+      customerVehicles[(quoteIndex + 1) % Math.max(customerVehicles.length, 1)];
+    const isProspect = !isApproved && quoteIndex % 4 === 1;
+    const vehicle =
+      approvedAppointment !== null
+        ? buildQuoteVehicleFromAppointment(approvedAppointment)
+        : quoteIndex % 5 === 0
+          ? null
+          : buildQuoteVehicleFromCustomerVehicle(fallbackVehicle);
+    const vehicleId = isProspect
+      ? null
+      : (approvedAppointment?.vehicleId ??
+        (vehicle !== null ? (fallbackVehicle?.id ?? null) : null));
+    const selectedServices = selectQuoteServices(services, quoteIndex);
+    const subtotalInCents = selectedServices.reduce((total, item) => {
+      return total + (item.isCourtesy ? 0 : item.service.priceInCents);
+    }, 0);
+    const createdAt = setTime(
+      addDays(REFERENCE_DATE, -24 + quoteIndex),
+      TIME_SLOTS[quoteIndex % TIME_SLOTS.length]!,
+    );
+    const convertedAt =
+      approvedAppointment !== null ? addHours(createdAt, 3) : null;
+
+    await prisma.quote.create({
+      data: {
+        establishmentId: establishment.id,
+        customerId: isProspect ? null : customer.id,
+        vehicleId,
+        convertedAppointmentId: approvedAppointment?.id ?? null,
+        convertedAt,
+        establishmentName:
+          establishment.tradeName ?? "Clean Move Estetica Automotiva",
+        establishmentLegalBusinessName:
+          establishment.legalBusinessName ??
+          "Clean Move Servicos Automotivos LTDA",
+        establishmentCnpj: establishment.cnpj ?? "61911322000187",
+        establishmentAddress: buildQuoteEstablishmentAddress(),
+        establishmentBannerImageUrl: establishment.bannerImageUrl,
+        customerName: isProspect
+          ? buildProspectName(quoteIndex)
+          : customer.fullName,
+        customerPhone: isProspect
+          ? buildPhone(400 + quoteIndex)
+          : customer.phone,
+        customerCpfCnpj: isProspect ? null : customer.cpfCnpj,
+        customerAddress: Prisma.JsonNull,
+        vehiclePlate: vehicle?.plate ?? null,
+        vehicleBrand: vehicle?.brand ?? null,
+        vehicleModel: vehicle?.model ?? null,
+        vehicleColor: vehicle?.color ?? null,
+        vehicleYear: vehicle?.year ?? null,
+        description: resolveQuoteDescription(quoteIndex),
+        termsAndConditions: "Orcamento valido conforme data de expiracao.",
+        expiresAt: resolveQuoteExpiresAt(quoteIndex, isApproved),
+        createdAt,
+        updatedAt: convertedAt ?? createdAt,
+        services: {
+          create: selectedServices.map(({ service, isCourtesy }, position) => ({
+            serviceId: service.id,
+            serviceName: service.serviceName,
+            serviceCategoryId: service.categoryId,
+            serviceCategoryName: service.categoryId
+              ? (categoryNameById.get(service.categoryId) ?? null)
+              : null,
+            serviceDurationInMinutes:
+              resolveBookedServiceDurationInMinutes(service),
+            servicePriceInCents: service.priceInCents,
+            isCourtesy,
+            position,
+          })),
+        },
+        paymentOptions: {
+          create: buildQuotePaymentOptions(subtotalInCents, quoteIndex),
+        },
+      },
+    });
+
+    createdQuotes += 1;
+  }
+
+  return createdQuotes;
+}
+
+function findSeedCustomerById(
+  customers: Awaited<ReturnType<typeof prisma.customer.create>>[],
+  customerId: string,
+) {
+  const customer = customers.find((item) => item.id === customerId);
+
+  if (!customer) {
+    throw new Error(`Customer ${customerId} not found for quote seed.`);
+  }
+
+  return customer;
+}
+
+function buildQuoteEstablishmentAddress() {
+  return {
+    street: "Estrada Farmaceutico Oswaldo Paiva",
+    country: "Brasil",
+    state: "SP",
+    zipCode: "13963060",
+    city: "Socorro",
+    complement: null,
+  };
+}
+
+function buildQuoteVehicleFromCustomerVehicle(
+  vehicle: SeededCustomerVehicle | undefined,
+) {
+  if (!vehicle) {
+    return null;
+  }
+
+  return {
+    plate: vehicle.plate,
+    brand: vehicle.brand,
+    model: vehicle.model,
+    color: vehicle.color,
+    year: vehicle.year,
+  };
+}
+
+function buildQuoteVehicleFromAppointment(appointment: SeededAppointment) {
+  return {
+    plate: appointment.vehiclePlate,
+    brand: appointment.vehicleBrand,
+    model: appointment.vehicleModel,
+    color: appointment.vehicleColor,
+    year: appointment.vehicleYear,
+  };
+}
+
+function selectQuoteServices(services: SeededService[], quoteIndex: number) {
+  const selectedServiceIds = new Set<string>();
+  const preferredServiceIndex =
+    SERVICE_SELECTION_SEQUENCE[
+      (quoteIndex * 3) % SERVICE_SELECTION_SEQUENCE.length
+    ]!;
+  const serviceCount = quoteIndex % 6 === 0 ? 3 : quoteIndex % 3 === 0 ? 2 : 1;
+
+  return Array.from({ length: serviceCount }, (_, index) => {
+    const service = findActiveService(
+      services,
+      preferredServiceIndex + index * 4,
+      selectedServiceIds,
+    );
+
+    selectedServiceIds.add(service.id);
+
+    return {
+      service,
+      isCourtesy:
+        serviceCount > 1 && index === serviceCount - 1 && quoteIndex % 4 === 0,
+    };
+  });
+}
+
+function buildQuotePaymentOptions(subtotalInCents: number, quoteIndex: number) {
+  const pixDiscountType =
+    quoteIndex % 3 === 0 ? QuoteDiscountType.PERCENTAGE : null;
+  const pixDiscountValue = pixDiscountType ? 5 : null;
+  const cardInstallments = quoteIndex % 2 === 0 ? 3 : 6;
+
+  return [
+    {
+      method: QuotePaymentMethod.PIX,
+      label: pixDiscountType ? "Pix com 5% de desconto" : "Pix a vista",
+      installments: 1,
+      interestFree: true,
+      discountType: pixDiscountType,
+      discountValue: pixDiscountValue,
+      totalInCents: calculateQuotePaymentTotal(
+        subtotalInCents,
+        pixDiscountType,
+        pixDiscountValue,
+      ),
+      position: 0,
+    },
+    {
+      method: QuotePaymentMethod.CARD,
+      label: `Cartao em ate ${cardInstallments}x sem juros`,
+      installments: cardInstallments,
+      interestFree: true,
+      discountType: null,
+      discountValue: null,
+      totalInCents: subtotalInCents,
+      position: 1,
+    },
+  ];
+}
+
+function calculateQuotePaymentTotal(
+  subtotalInCents: number,
+  discountType: QuoteDiscountType | null,
+  discountValue: number | null,
+) {
+  if (!discountType || !discountValue) {
+    return subtotalInCents;
+  }
+
+  if (discountType === QuoteDiscountType.PERCENTAGE) {
+    return Math.max(
+      0,
+      subtotalInCents - Math.floor((subtotalInCents * discountValue) / 100),
+    );
+  }
+
+  return Math.max(0, subtotalInCents - discountValue);
+}
+
+function resolveQuoteExpiresAt(quoteIndex: number, isApproved: boolean) {
+  if (isApproved) {
+    return addDays(REFERENCE_DATE, -2);
+  }
+
+  switch (quoteIndex % 4) {
+    case 0:
+      return addDays(REFERENCE_DATE, 8);
+    case 1:
+      return setTime(REFERENCE_DATE, { hour: 23, minute: 59 });
+    case 2:
+      return addDays(REFERENCE_DATE, -3);
+    default:
+      return null;
+  }
+}
+
+function resolveQuoteDescription(quoteIndex: number) {
+  if (quoteIndex % 5 === 0) {
+    return "Cliente pediu avaliacao detalhada antes da execucao.";
+  }
+
+  if (quoteIndex % 7 === 0) {
+    return "Verificar disponibilidade de agenda antes de confirmar.";
+  }
+
+  return null;
+}
+
+function buildProspectName(quoteIndex: number) {
+  const prospectNames = [
+    "Marcos Almeida Prospect",
+    "Camila Rocha Prospect",
+    "Rodrigo Nunes Prospect",
+    "Fernanda Lopes Prospect",
+    "Lucas Vieira Prospect",
+  ];
+
+  return prospectNames[quoteIndex % prospectNames.length]!;
 }
 
 function selectAppointmentServices(
