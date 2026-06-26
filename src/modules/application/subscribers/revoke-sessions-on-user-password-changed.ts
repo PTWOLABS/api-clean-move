@@ -11,17 +11,11 @@ export class RevokeSessionsOnUserPasswordChanged implements OnModuleDestroy {
   }
 
   private setupSubscriptions() {
-    DomainEvents.register(
-      this.revokeSessions,
-      UserPasswordChangedEvent.name,
-    );
+    DomainEvents.register(this.revokeSessions, UserPasswordChangedEvent.name);
   }
 
   onModuleDestroy() {
-    DomainEvents.unregister(
-      this.revokeSessions,
-      UserPasswordChangedEvent.name,
-    );
+    DomainEvents.unregister(this.revokeSessions, UserPasswordChangedEvent.name);
   }
 
   private revokeSessions = async (event: UserPasswordChangedEvent) => {
