@@ -10,12 +10,6 @@ export class InMemoryPasswordResetTokensRepository implements PasswordResetToken
     this.items.push(token);
   }
 
-  async findByUserId(userId: string): Promise<PasswordResetToken | null> {
-    const token = this.items.find((t) => t.userId.toString() === userId);
-
-    return token ?? null;
-  }
-
   async findByTokenHash(
     hashedToken: string,
   ): Promise<PasswordResetToken | null> {

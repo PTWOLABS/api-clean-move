@@ -30,26 +30,6 @@ export class PrismaPasswordResetTokensRepository implements PasswordResetTokensR
     }
   }
 
-  async findByUserId(userId: string): Promise<PasswordResetToken | null> {
-    try {
-      const token = await PrismaUnitOfWork.getClient(
-        this.prisma,
-      ).passwordResetToken.findUnique({
-        where: {
-          userId,
-        },
-      });
-
-      if (!token) {
-        return null;
-      }
-
-      return PrismaPasswordResetTokenMapper.toDomain(token);
-    } catch (error) {
-      rethrowPrismaRepositoryError(error);
-    }
-  }
-
   async findByTokenHash(
     hashedToken: string,
   ): Promise<PasswordResetToken | null> {
