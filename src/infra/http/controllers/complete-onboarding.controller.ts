@@ -105,7 +105,7 @@ const onboardingBodySchema = z
         startsAt: z.coerce.date().optional(),
         endsAt: z.coerce.date().optional().nullable(),
         description: z.string().trim().optional().nullable(),
-        discountInCents: z.number().int().nonnegative().optional().nullable(),
+        discountInCents: z.number().int().positive().optional().nullable(),
       })
       .strict()
       .optional(),
