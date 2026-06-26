@@ -86,8 +86,30 @@ const quoteResponseSchema = z.object({
   }),
 });
 
+const quoteListItemResponseSchema = z.object({
+  id: z.uuid(),
+  code: z.string().optional(),
+  customerName: z.string().min(1),
+  customerKind: z.enum(["CUSTOMER", "PROSPECT"]),
+  vehicleLabel: z.string().nullable(),
+  vehiclePlate: z.string().nullable(),
+  totalInCents: z.number().int().nonnegative(),
+  status: z.enum(["VALID", "EXPIRES_TODAY", "EXPIRED", "APPROVED"]),
+  approvedAt: z.string().nullable(),
+  expiresAt: z.string().nullable(),
+  createdAt: z.string(),
+  servicesCount: z.number().int().nonnegative().optional(),
+});
+
 const listQuotesResponseSchema = z.object({
-  quotes: z.array(quoteResponseSchema.shape.quote),
+  quotes: z.array(quoteListItemResponseSchema),
+  totalItems: z.number().int().nonnegative(),
+  summary: z.object({
+    valid: z.number().int().nonnegative(),
+    expiresToday: z.number().int().nonnegative(),
+    approved: z.number().int().nonnegative(),
+    expired: z.number().int().nonnegative(),
+  }),
 });
 
 const registerQuoteProspectResponseSchema = z.object({
@@ -213,6 +235,26 @@ describe("Quote controllers (e2e)", () => {
 
     expect(listResponse.status).toBe(200);
     expect(listBody.quotes).toHaveLength(1);
+    expect(listBody.totalItems).toBe(1);
+    expect(listBody.summary).toEqual({
+      valid: 1,
+      expiresToday: 0,
+      approved: 0,
+      expired: 0,
+    });
+    expect(listBody.quotes[0]).toMatchObject({
+      id: quoteId,
+      customerName: "Robertinho Contador",
+      customerKind: "PROSPECT",
+      vehicleLabel: "Honda HR-V 2025",
+      vehiclePlate: null,
+      status: "VALID",
+      approvedAt: null,
+      servicesCount: 1,
+    });
+    expect(listBody.quotes[0]?.totalInCents).toBe(
+      createBody.quote.paymentOptions[0]?.totalInCents,
+    );
 
     const getResponse = await request(getHttpServer(app))
       .get(`/quotes/${quoteId}`)
@@ -264,6 +306,21 @@ describe("Quote controllers (e2e)", () => {
     expect(approveBody.quote.convertedAppointmentId).toBe(
       approveBody.appointment.id,
     );
+
+    const approvedListResponse = await request(getHttpServer(app))
+      .get("/quotes")
+      .set("Authorization", `Bearer ${accessToken}`)
+      .query({ search: "robertinho" });
+    const approvedListBody = listQuotesResponseSchema.parse(
+      approvedListResponse.body,
+    );
+
+    expect(approvedListResponse.status).toBe(200);
+    expect(approvedListBody.quotes[0]).toMatchObject({
+      id: quoteId,
+      status: "APPROVED",
+      approvedAt: approveBody.quote.convertedAt,
+    });
   });
 
   it("should reject approving a prospect quote before registration", async () => {
