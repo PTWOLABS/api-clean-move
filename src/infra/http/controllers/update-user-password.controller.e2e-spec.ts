@@ -125,6 +125,18 @@ describe("UpdateUserPasswordController (e2e)", () => {
       .send({ newPassword: "short" });
 
     expect(response.status).toBe(400);
+    expect(response.body).toMatchObject({
+      statusCode: 400,
+      message: "Validation failed",
+      target: "body",
+    });
+    expect(response.body.issues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          path: "newPassword",
+        }),
+      ]),
+    );
   });
 
   it("should allow OAuth user to set the first local password and login with credentials", async () => {
@@ -264,5 +276,37 @@ describe("UpdateUserPasswordController (e2e)", () => {
 
     expect(loginWithNewPasswordResponse.status).toBe(200);
     authResponseSchema.parse(loginWithNewPasswordResponse.body);
+  });
+
+  it("should return a specific error when current password is incorrect", async () => {
+    const { user, plainPassword } = await userFactory.makePrismaUser({
+      role: "CUSTOMER",
+      plainPassword: "correct-password",
+    });
+    const { loginBody } = await loginUser({
+      app,
+      prisma,
+      userId: user.id.toString(),
+      email: user.email.toString(),
+      password: plainPassword ?? "",
+    });
+
+    const response = await request(getHttpServer(app))
+      .post("/user/me/password")
+      .set("Authorization", `Bearer ${loginBody.accessToken}`)
+      .send({
+        currentPassword: "wrong-password",
+        newPassword: "new-password-1",
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      statusCode: 400,
+      error: "Bad Request",
+      message:
+        "The current password you entered is incorrect. Check the password and try again.",
+      code: "INVALID_CURRENT_PASSWORD",
+      field: "currentPassword",
+    });
   });
 });

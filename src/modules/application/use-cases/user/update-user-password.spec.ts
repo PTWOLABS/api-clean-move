@@ -165,6 +165,13 @@ describe("Update user password", () => {
     }
 
     expect(result.value).toBeInstanceOf(InvalidCurrentPasswordError);
+    if (!(result.value instanceof InvalidCurrentPasswordError)) {
+      throw result.value;
+    }
+
+    expect(result.value.code).toBe("INVALID_CURRENT_PASSWORD");
+    expect(result.value.field).toBe("currentPassword");
+    expect(result.value.message).toContain("current password");
   });
 
   it("should not update password for unknown user", async () => {

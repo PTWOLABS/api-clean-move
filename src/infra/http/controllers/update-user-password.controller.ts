@@ -3,9 +3,9 @@ import {
   Body,
   Controller,
   HttpCode,
+  HttpStatus,
   NotFoundException,
   Post,
-  UsePipes,
 } from "@nestjs/common";
 import {
   ApiBadRequestResponse,
@@ -48,7 +48,6 @@ export class UpdateUserPasswordController {
   @Post("me/password")
   @HttpCode(200)
   @Throttle({ default: { limit: 10, ttl: 15 * 60 * 1000 } })
-  @UsePipes(new ZodValidationPipe(updateUserPasswordBodySchema))
   @ApiOperation({
     summary:
       "Set the first local password or update an existing local password.",
@@ -68,7 +67,8 @@ export class UpdateUserPasswordController {
   @ApiNotFoundResponse({ description: "User not found." })
   async handle(
     @CurrentUser() authenticatedUser: AuthenticatedUser,
-    @Body() body: UpdateUserPasswordBodySchema,
+    @Body(new ZodValidationPipe(updateUserPasswordBodySchema))
+    body: UpdateUserPasswordBodySchema,
   ) {
     const result = await this.updateUserPassword.execute({
       userId: authenticatedUser.userId,
@@ -93,6 +93,16 @@ export class UpdateUserPasswordController {
   ): never {
     if (error instanceof ResourceNotFoundError) {
       throw new NotFoundException(error.message);
+    }
+
+    if (error instanceof InvalidCurrentPasswordError) {
+      throw new BadRequestException({
+        statusCode: HttpStatus.BAD_REQUEST,
+        error: "Bad Request",
+        message: error.message,
+        code: error.code,
+        field: error.field,
+      });
     }
 
     throw new BadRequestException(error.message);
