@@ -31,7 +31,7 @@ export class UserPresenter {
         subjectId: link.subjectId,
       })),
       profileComplete: user.isProfileComplete(),
-      hasLocalPassword: user.hashedPassword !== null,
+      hasPassword: user.hashedPassword !== null,
       createdAt: user.createdAt?.toISOString() ?? null,
       updatedAt: user.updatedAt?.toISOString() ?? null,
     };

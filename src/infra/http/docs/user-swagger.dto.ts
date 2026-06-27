@@ -80,9 +80,9 @@ export class GetMeUserResponseDto {
 
   @ApiProperty({
     example: true,
-    description: "True when the user has a local password set.",
+    description: "True when the user has a password set.",
   })
-  hasLocalPassword!: boolean;
+  hasPassword!: boolean;
 
   @ApiPropertyOptional({
     type: String,
