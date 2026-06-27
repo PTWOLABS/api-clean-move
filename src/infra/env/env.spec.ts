@@ -35,6 +35,7 @@ function baseEnv(
     AWS_REGION: "auto",
     AWS_S3_BUCKET: "my-bucket",
     AWS_S3_PUBLIC_BASE_URL: "https://cdn.example.com",
+    EMAIL_LOGO_URL: "https://cdn.example.com/brand/logo.png",
     PASSWORD_RESET_PATH: "https://app.example.com/reset-password",
     ...overrides,
   };

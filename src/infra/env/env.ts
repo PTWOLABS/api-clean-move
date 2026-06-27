@@ -84,6 +84,7 @@ export const envSchema = z
     ),
     RESEND_API_KEY: optionalNonEmptyStringSchema,
     RESEND_FROM_EMAIL: optionalNonEmptyStringSchema,
+    EMAIL_LOGO_URL: z.url(),
     PASSWORD_RESET_PATH: z.url(),
   })
   .superRefine(

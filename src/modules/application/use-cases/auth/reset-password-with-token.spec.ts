@@ -52,6 +52,10 @@ describe("Reset password with token", () => {
           return "https://app.example.com/login" as Env[T];
         }
 
+        if (key === "EMAIL_LOGO_URL") {
+          return "https://cdn.example.com/brand/logo.png" as Env[T];
+        }
+
         throw new Error(`Unexpected env key requested: ${String(key)}`);
       },
     };

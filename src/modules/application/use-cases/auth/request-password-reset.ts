@@ -89,6 +89,7 @@ export class RequestPasswordResetUseCase {
     const emailContent = buildPasswordResetEmail({
       resetPath: this.envService.get("PASSWORD_RESET_PATH"),
       token: plainToken,
+      logoUrl: this.envService.get("EMAIL_LOGO_URL"),
     });
 
     await this.emailSender.send({

@@ -1,6 +1,9 @@
+import { renderPasswordResetEmailTemplate } from "./password-reset-email.template";
+
 type BuildPasswordResetEmailInput = {
   resetPath: string;
   token: string;
+  logoUrl: string;
 };
 
 type PasswordResetEmailContent = {
@@ -19,22 +22,32 @@ function buildResetUrl(resetPath: string, token: string): string {
 export function buildPasswordResetEmail({
   resetPath,
   token,
+  logoUrl,
 }: BuildPasswordResetEmailInput): PasswordResetEmailContent {
   const resetUrl = buildResetUrl(resetPath, token);
 
   return {
     subject: "Redefinição de senha",
-    html: `
-      <p>Você solicitou a redefinição da sua senha.</p>
-      <p><a href="${resetUrl}">Clique aqui para redefinir sua senha</a></p>
-      <p>Se você não fez essa solicitação, ignore este e-mail.</p>
-      <p>Este link expira em breve.</p>
-    `.trim(),
+    html: renderPasswordResetEmailTemplate({ resetUrl, logoUrl }),
     text: [
-      "Você solicitou a redefinição da sua senha.",
-      `Acesse o link para redefinir: ${resetUrl}`,
-      "Se você não fez essa solicitação, ignore este e-mail.",
-      "Este link expira em breve.",
+      "Redefinição de senha — Clean Move",
+      "",
+      "Olá,",
+      "",
+      "Recebemos uma solicitação para redefinir a senha da sua conta.",
+      "Clique no link abaixo para criar uma nova senha com segurança:",
+      "",
+      resetUrl,
+      "",
+      "Se você não solicitou esta alteração, ignore este e-mail.",
+      "Sua senha permanecerá a mesma.",
+      "Este link expira em 15 minutos.",
+      "",
+      "Segurança: nunca compartilhe este link.",
+      "Nossa equipe nunca solicitará sua senha.",
+      "",
+      "Atenciosamente,",
+      "Equipe Clean Move",
     ].join("\n"),
   };
 }
