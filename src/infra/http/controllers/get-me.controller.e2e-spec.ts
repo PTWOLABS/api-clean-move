@@ -41,6 +41,7 @@ const getMeResponseSchema = z.object({
       }),
     ),
     profileComplete: z.boolean(),
+    hasLocalPassword: z.boolean(),
     createdAt: z.string().nullable(),
     updatedAt: z.string().nullable(),
   }),
@@ -102,6 +103,7 @@ describe("GetMeController (e2e)", () => {
 
     expect(JSON.stringify(response.body)).not.toContain("hashedPassword");
     expect("hashedPassword" in body.user).toBe(false);
+    expect(body.user.hasLocalPassword).toBe(true);
     expect(body.user.establishmentId).toBeNull();
     expect(body.user.onboardingCompletedAt).toBeNull();
   });
