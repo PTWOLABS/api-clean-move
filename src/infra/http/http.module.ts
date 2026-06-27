@@ -65,6 +65,7 @@ import { UpdateServiceUseCase } from "../../modules/application/use-cases/servic
 import { DeleteServiceUseCase } from "../../modules/application/use-cases/service/delete-service";
 import { GetMeUseCase } from "../../modules/application/use-cases/user/get-me";
 import { UpdateUserUseCase } from "../../modules/application/use-cases/user/update-user";
+import { UpdateUserPasswordUseCase } from "../../modules/application/use-cases/user/update-user-password";
 import { SessionCreationService } from "../../modules/accounts/domain/services/session-creation-service";
 import { PasswordResetAuditLogger } from "../../modules/application/services/password-reset-audit-logger";
 import { AuthModule } from "../auth/auth.module";
@@ -107,6 +108,7 @@ import { GetQuoteController } from "./controllers/quote/get-quote.controller";
 import { UpdateEstablishmentController } from "./controllers/update-establishment.controller";
 import { GetMeController } from "./controllers/quote/get-me.controller";
 import { UpdateUserController } from "./controllers/update-user.controller";
+import { UpdateUserPasswordController } from "./controllers/update-user-password.controller";
 import { ListAppointmentsController } from "./controllers/list-appointments.controller";
 import { ListCalendarAppointmentsController } from "./controllers/list-calendar-appointments.controller";
 import { ListCustomerOptionsController } from "./controllers/list-customer-options.controller";
@@ -157,6 +159,7 @@ import { RegisterQuoteProspectAsCustomerController } from "./controllers/quote/r
     CompleteOnboardingController,
     GetMeController,
     UpdateUserController,
+    UpdateUserPasswordController,
     UploadUserProfileImageController,
     DeleteUserProfileImageController,
     GetEstablishmentController,
@@ -270,6 +273,7 @@ import { RegisterQuoteProspectAsCustomerController } from "./controllers/quote/r
     CompleteOnboardingUseCase,
     GetMeUseCase,
     UpdateUserUseCase,
+    UpdateUserPasswordUseCase,
     UploadUserProfileImageUseCase,
     DeleteUserProfileImageUseCase,
     DeleteEstablishmentBannerImageUseCase,

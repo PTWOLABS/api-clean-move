@@ -78,6 +78,12 @@ export class GetMeUserResponseDto {
   })
   profileComplete!: boolean;
 
+  @ApiProperty({
+    example: true,
+    description: "True when the user has a local password set.",
+  })
+  hasLocalPassword!: boolean;
+
   @ApiPropertyOptional({
     type: String,
     format: "date-time",
@@ -115,4 +121,23 @@ export class UpdateUserBodyDto {
 export class UpdateUserResponseDto {
   @ApiProperty({ type: GetMeUserResponseDto })
   user!: GetMeUserResponseDto;
+}
+
+export class UpdateUserPasswordBodyDto {
+  @ApiProperty({
+    example: "new-strong-password",
+    description: "New local password.",
+    minLength: 8,
+    maxLength: 72,
+  })
+  newPassword!: string;
+
+  @ApiPropertyOptional({
+    example: "current-password",
+    description:
+      "Current local password. Required when the user already has a local password.",
+    minLength: 1,
+    maxLength: 72,
+  })
+  currentPassword?: string;
 }
