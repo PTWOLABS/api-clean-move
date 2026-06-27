@@ -140,25 +140,30 @@ export class RegisterEmployeeUseCase {
       return left(new UnexpectedDomainError());
     }
 
-    const user = User.create({
-      name,
-      email,
-      hashedPassword,
-      role: userRole,
-      phone: null,
-      address: null,
-    });
-
     let employee: Employee;
 
     try {
-      employee = Employee.create({
-        establishmentId: establishment.id,
-        userId: user.id,
-        name,
-        cpf,
-        birthDate,
-        extraFeatures,
+      await this.unitOfWork.execute(async () => {
+        const user = User.register({
+          name,
+          email,
+          hashedPassword,
+          role: userRole,
+          phone: null,
+          address: null,
+        });
+
+        employee = Employee.create({
+          establishmentId: establishment.id,
+          userId: user.id,
+          name,
+          cpf,
+          birthDate,
+          extraFeatures,
+        });
+
+        await this.usersRepository.create(user);
+        await this.employeesRepository.create(employee);
       });
     } catch (error) {
       if (
@@ -170,15 +175,6 @@ export class RegisterEmployeeUseCase {
         return left(new InvalidRegisterEmployeeInputError(error.message));
       }
 
-      return left(new UnexpectedDomainError());
-    }
-
-    try {
-      await this.unitOfWork.execute(async () => {
-        await this.usersRepository.create(user);
-        await this.employeesRepository.create(employee);
-      });
-    } catch (error) {
       if (error instanceof UniqueConstraintViolationError) {
         return left(
           new ResourceAlreadyExistsError("Employee already registered."),
@@ -193,7 +189,7 @@ export class RegisterEmployeeUseCase {
     }
 
     return right({
-      employee,
+      employee: employee!,
     });
   }
 }

@@ -28,7 +28,7 @@ export class PrismaUserMapper {
         ? null
         : Address.create(addressSchema.parse(raw.address));
 
-    return User.create(
+    return User.restore(
       {
         name: raw.name,
         email: new Email(raw.email),

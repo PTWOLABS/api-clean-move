@@ -30,6 +30,21 @@ const authenticateWithGoogleResponseSchema = z.object({
   onboardingCompletedAt: z.string().nullable(),
 });
 
+const validationErrorResponseSchema = z.object({
+  statusCode: z.literal(400),
+  message: z.literal("Validation failed"),
+  error: z.literal("Bad Request"),
+  issues: z.array(
+    z.object({
+      code: z.string(),
+      message: z.string(),
+      path: z.string(),
+    }),
+  ),
+  parameter: z.null(),
+  target: z.literal("body"),
+});
+
 describe("UpdateUserPasswordController (e2e)", () => {
   let app: INestApplication;
   let prisma: PrismaService;
@@ -125,12 +140,10 @@ describe("UpdateUserPasswordController (e2e)", () => {
       .send({ newPassword: "short" });
 
     expect(response.status).toBe(400);
-    expect(response.body).toMatchObject({
-      statusCode: 400,
-      message: "Validation failed",
-      target: "body",
-    });
-    expect(response.body.issues).toEqual(
+
+    const responseBody = validationErrorResponseSchema.parse(response.body);
+
+    expect(responseBody.issues).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           path: "newPassword",
