@@ -86,8 +86,30 @@ const quoteResponseSchema = z.object({
   }),
 });
 
+const quoteListItemResponseSchema = z.object({
+  id: z.uuid(),
+  code: z.string().optional(),
+  customerName: z.string().min(1),
+  customerKind: z.enum(["CUSTOMER", "PROSPECT"]),
+  vehicleLabel: z.string().nullable(),
+  vehiclePlate: z.string().nullable(),
+  totalInCents: z.number().int().nonnegative(),
+  status: z.enum(["VALID", "EXPIRES_TODAY", "EXPIRED", "APPROVED"]),
+  approvedAt: z.string().nullable(),
+  expiresAt: z.string().nullable(),
+  createdAt: z.string(),
+  servicesCount: z.number().int().nonnegative().optional(),
+});
+
 const listQuotesResponseSchema = z.object({
-  quotes: z.array(quoteResponseSchema.shape.quote),
+  quotes: z.array(quoteListItemResponseSchema),
+  totalItems: z.number().int().nonnegative(),
+  summary: z.object({
+    valid: z.number().int().nonnegative(),
+    expiresToday: z.number().int().nonnegative(),
+    approved: z.number().int().nonnegative(),
+    expired: z.number().int().nonnegative(),
+  }),
 });
 
 const registerQuoteProspectResponseSchema = z.object({
@@ -213,6 +235,26 @@ describe("Quote controllers (e2e)", () => {
 
     expect(listResponse.status).toBe(200);
     expect(listBody.quotes).toHaveLength(1);
+    expect(listBody.totalItems).toBe(1);
+    expect(listBody.summary).toEqual({
+      valid: 1,
+      expiresToday: 0,
+      approved: 0,
+      expired: 0,
+    });
+    expect(listBody.quotes[0]).toMatchObject({
+      id: quoteId,
+      customerName: "Robertinho Contador",
+      customerKind: "PROSPECT",
+      vehicleLabel: "Honda HR-V 2025",
+      vehiclePlate: null,
+      status: "VALID",
+      approvedAt: null,
+      servicesCount: 1,
+    });
+    expect(listBody.quotes[0]?.totalInCents).toBe(
+      createBody.quote.paymentOptions[0]?.totalInCents,
+    );
 
     const getResponse = await request(getHttpServer(app))
       .get(`/quotes/${quoteId}`)
@@ -264,6 +306,246 @@ describe("Quote controllers (e2e)", () => {
     expect(approveBody.quote.convertedAppointmentId).toBe(
       approveBody.appointment.id,
     );
+
+    const approvedListResponse = await request(getHttpServer(app))
+      .get("/quotes")
+      .set("Authorization", `Bearer ${accessToken}`)
+      .query({ search: "robertinho" });
+    const approvedListBody = listQuotesResponseSchema.parse(
+      approvedListResponse.body,
+    );
+
+    expect(approvedListResponse.status).toBe(200);
+    expect(approvedListBody.quotes[0]).toMatchObject({
+      id: quoteId,
+      status: "APPROVED",
+      approvedAt: approveBody.quote.convertedAt,
+    });
+  });
+
+  it("should filter, paginate, and sort listed quotes", async () => {
+    const { accessToken, establishment } = await makeEstablishmentAccessToken({
+      app,
+      prisma,
+      userFactory,
+      establishmentFactory,
+      envService,
+    });
+    const customer = await prisma.customer.create({
+      data: {
+        establishmentId: establishment.id.toString(),
+        fullName: "Filtro Cliente Especial",
+        phone: "11988887777",
+      },
+    });
+    const vehicle = await prisma.customerVehicle.create({
+      data: {
+        establishmentId: establishment.id.toString(),
+        customerId: customer.id,
+        plate: "ZZZ9A99",
+        brand: "Tesla",
+        model: "Model 3",
+      },
+    });
+    const polishingService = await serviceFactory.makePrismaService({
+      establishmentId: establishment.id,
+      serviceName: ServiceName.create("Filtro Polimento"),
+    });
+    const ceramicService = await serviceFactory.makePrismaService({
+      establishmentId: establishment.id,
+      serviceName: ServiceName.create("Filtro Vitrificacao"),
+    });
+    const todayStart = new Date();
+    todayStart.setUTCHours(0, 0, 0, 0);
+    const todayNoon = new Date(todayStart);
+    todayNoon.setUTCHours(12, 0, 0, 0);
+    const yesterdayNoon = new Date(todayNoon);
+    yesterdayNoon.setUTCDate(todayNoon.getUTCDate() - 1);
+    const tomorrowNoon = new Date(todayNoon);
+    tomorrowNoon.setUTCDate(todayNoon.getUTCDate() + 1);
+
+    async function createQuote(input: {
+      customerName?: string;
+      vehiclePlate?: string;
+      vehicleBrand?: string;
+      vehicleModel?: string;
+      customerId?: string;
+      vehicleId?: string;
+      serviceId: string;
+      expiresAt: Date;
+      createdAt: Date;
+    }) {
+      const response = await request(getHttpServer(app))
+        .post("/quotes")
+        .set("Authorization", `Bearer ${accessToken}`)
+        .send({
+          ...(input.customerId
+            ? { customerId: input.customerId }
+            : {
+                customer: {
+                  name: input.customerName,
+                },
+              }),
+          ...(input.vehicleId
+            ? { vehicleId: input.vehicleId }
+            : {
+                vehicle: {
+                  plate: input.vehiclePlate,
+                  brand: input.vehicleBrand,
+                  model: input.vehicleModel,
+                },
+              }),
+          serviceItems: [{ serviceId: input.serviceId }],
+          paymentOptions: [{ method: "PIX", label: "Pix", installments: 1 }],
+          expiresAt: input.expiresAt.toISOString(),
+        });
+      const body = quoteResponseSchema.parse(response.body);
+
+      expect(response.status).toBe(201);
+
+      await prisma.quote.update({
+        where: {
+          id: body.quote.id,
+        },
+        data: {
+          createdAt: input.createdAt,
+          updatedAt: input.createdAt,
+        },
+      });
+
+      return body.quote.id;
+    }
+
+    async function listQuotes(
+      query: Record<string, string | number | boolean>,
+    ) {
+      const response = await request(getHttpServer(app))
+        .get("/quotes")
+        .set("Authorization", `Bearer ${accessToken}`)
+        .query(query);
+
+      expect(response.status).toBe(200);
+
+      return listQuotesResponseSchema.parse(response.body);
+    }
+
+    const oldestQuoteId = await createQuote({
+      customerId: customer.id,
+      vehicleId: vehicle.id,
+      serviceId: polishingService.id.toString(),
+      expiresAt: tomorrowNoon,
+      createdAt: new Date("2026-06-20T12:00:00.000Z"),
+    });
+    const middleQuoteId = await createQuote({
+      customerName: "Filtro Prospect Hoje",
+      vehiclePlate: "MID1D23",
+      vehicleBrand: "Honda",
+      vehicleModel: "Civic",
+      serviceId: ceramicService.id.toString(),
+      expiresAt: todayNoon,
+      createdAt: new Date("2026-06-21T12:00:00.000Z"),
+    });
+    const recentQuoteId = await createQuote({
+      customerName: "Filtro Prospect Expirado",
+      vehiclePlate: "OLD1D23",
+      vehicleBrand: "Toyota",
+      vehicleModel: "Corolla",
+      serviceId: polishingService.id.toString(),
+      expiresAt: yesterdayNoon,
+      createdAt: new Date("2026-06-22T12:00:00.000Z"),
+    });
+
+    const approveResponse = await request(getHttpServer(app))
+      .post(`/quotes/${oldestQuoteId}/approve`)
+      .set("Authorization", `Bearer ${accessToken}`)
+      .send({
+        startsAt: tomorrowNoon.toISOString(),
+      });
+
+    expect(approveResponse.status).toBe(201);
+
+    const recentList = await listQuotes({});
+    const oldestList = await listQuotes({ sort: "oldest" });
+    const paginatedList = await listQuotes({
+      sort: "oldest",
+      page: 2,
+      size: 1,
+    });
+
+    expect(recentList.quotes.map((quote) => quote.id)).toEqual([
+      recentQuoteId,
+      middleQuoteId,
+      oldestQuoteId,
+    ]);
+    expect(oldestList.quotes.map((quote) => quote.id)).toEqual([
+      oldestQuoteId,
+      middleQuoteId,
+      recentQuoteId,
+    ]);
+    expect(paginatedList.totalItems).toBe(3);
+    expect(paginatedList.quotes.map((quote) => quote.id)).toEqual([
+      middleQuoteId,
+    ]);
+    expect(recentList.summary).toEqual({
+      valid: 0,
+      expiresToday: 1,
+      approved: 1,
+      expired: 1,
+    });
+    expect(
+      Object.fromEntries(
+        recentList.quotes.map((quote) => [quote.id, quote.status]),
+      ),
+    ).toEqual({
+      [recentQuoteId]: "EXPIRED",
+      [middleQuoteId]: "EXPIRES_TODAY",
+      [oldestQuoteId]: "APPROVED",
+    });
+
+    await expect(
+      listQuotes({ customerId: customer.id }),
+    ).resolves.toMatchObject({
+      quotes: [{ id: oldestQuoteId }],
+    });
+    await expect(
+      listQuotes({ customerName: "Filtro Cliente" }),
+    ).resolves.toMatchObject({
+      quotes: [{ id: oldestQuoteId }],
+    });
+    await expect(listQuotes({ vehicleId: vehicle.id })).resolves.toMatchObject({
+      quotes: [{ id: oldestQuoteId }],
+    });
+    await expect(
+      listQuotes({ vehiclePlate: "ZZZ-9A99" }),
+    ).resolves.toMatchObject({
+      quotes: [{ id: oldestQuoteId }],
+    });
+    await expect(
+      listQuotes({ serviceId: ceramicService.id.toString() }),
+    ).resolves.toMatchObject({
+      quotes: [{ id: middleQuoteId }],
+    });
+    await expect(
+      listQuotes({ serviceName: "Vitrificacao" }),
+    ).resolves.toMatchObject({
+      quotes: [{ id: middleQuoteId }],
+    });
+    await expect(
+      listQuotes({
+        expiresFrom: todayStart.toISOString(),
+        expiresTo: todayNoon.toISOString(),
+      }),
+    ).resolves.toMatchObject({
+      quotes: [{ id: middleQuoteId }],
+    });
+    await expect(listQuotes({ converted: true })).resolves.toMatchObject({
+      quotes: [{ id: oldestQuoteId }],
+    });
+    await expect(
+      listQuotes({ createdAt: "2026-06-21T12:00:00.000Z" }),
+    ).resolves.toMatchObject({
+      quotes: [{ id: middleQuoteId }],
+    });
   });
 
   it("should reject approving a prospect quote before registration", async () => {

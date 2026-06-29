@@ -71,4 +71,35 @@ export type QuoteItemDTO = {
 };
 
 export type QuoteSingleResponseDTO = { quote: QuoteItemDTO };
-export type QuoteListDTO = { quotes: QuoteItemDTO[] };
+
+export type QuoteCustomerKind = "CUSTOMER" | "PROSPECT";
+
+export type QuoteStatus = "VALID" | "EXPIRES_TODAY" | "EXPIRED" | "APPROVED";
+
+export type QuoteListItemDTO = {
+  id: string;
+  code?: string;
+  customerName: string;
+  customerKind: QuoteCustomerKind;
+  vehicleLabel: string | null;
+  vehiclePlate: string | null;
+  totalInCents: number;
+  status: QuoteStatus;
+  approvedAt: string | null;
+  expiresAt: string | null;
+  createdAt: string;
+  servicesCount?: number;
+};
+
+export type QuoteSummaryDTO = {
+  valid: number;
+  expiresToday: number;
+  approved: number;
+  expired: number;
+};
+
+export type QuoteListDTO = {
+  quotes: QuoteListItemDTO[];
+  totalItems: number;
+  summary: QuoteSummaryDTO;
+};

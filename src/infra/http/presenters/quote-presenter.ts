@@ -1,7 +1,64 @@
 import { Quote } from "../../../modules/quotes/domain/entities/quote";
-import { QuoteItemDTO } from "../contracts/quote.dto";
+import {
+  QuoteItemDTO,
+  QuoteListItemDTO,
+  QuoteStatus,
+} from "../contracts/quote.dto";
 
 export class QuotePresenter {
+  private static getUtcDayBounds(referenceDate: Date) {
+    const todayStart = new Date(
+      Date.UTC(
+        referenceDate.getUTCFullYear(),
+        referenceDate.getUTCMonth(),
+        referenceDate.getUTCDate(),
+      ),
+    );
+    const tomorrowStart = new Date(todayStart);
+    tomorrowStart.setUTCDate(todayStart.getUTCDate() + 1);
+
+    return { todayStart, tomorrowStart };
+  }
+
+  private static getListStatus(quote: Quote, referenceDate: Date): QuoteStatus {
+    if (quote.convertedAppointmentId) {
+      return "APPROVED";
+    }
+
+    if (!quote.expiresAt) {
+      return "VALID";
+    }
+
+    const { todayStart, tomorrowStart } =
+      QuotePresenter.getUtcDayBounds(referenceDate);
+
+    if (quote.expiresAt < todayStart) {
+      return "EXPIRED";
+    }
+
+    if (quote.expiresAt < tomorrowStart) {
+      return "EXPIRES_TODAY";
+    }
+
+    return "VALID";
+  }
+
+  private static getVehicleLabel(quote: Quote) {
+    if (!quote.vehicle) {
+      return null;
+    }
+
+    const label = [
+      quote.vehicle.brand,
+      quote.vehicle.model,
+      quote.vehicle.year?.toString(),
+    ]
+      .filter(Boolean)
+      .join(" ");
+
+    return label || null;
+  }
+
   static toHTTP(quote: Quote): QuoteItemDTO {
     return {
       id: quote.id.toString(),
@@ -42,6 +99,26 @@ export class QuotePresenter {
       expiresAt: quote.expiresAt?.toISOString() ?? null,
       createdAt: quote.createdAt.toISOString(),
       updatedAt: quote.updatedAt.toISOString(),
+    };
+  }
+
+  static toListItem(
+    quote: Quote,
+    referenceDate: Date = new Date(),
+  ): QuoteListItemDTO {
+    return {
+      id: quote.id.toString(),
+      customerName: quote.customer.name,
+      customerKind: quote.customerId ? "CUSTOMER" : "PROSPECT",
+      vehicleLabel: QuotePresenter.getVehicleLabel(quote),
+      vehiclePlate: quote.vehicle?.plate ?? null,
+      totalInCents:
+        quote.paymentOptions.at(0)?.totalInCents ?? quote.subtotalInCents,
+      status: QuotePresenter.getListStatus(quote, referenceDate),
+      approvedAt: quote.convertedAt?.toISOString() ?? null,
+      expiresAt: quote.expiresAt?.toISOString() ?? null,
+      createdAt: quote.createdAt.toISOString(),
+      servicesCount: quote.services.length,
     };
   }
 }

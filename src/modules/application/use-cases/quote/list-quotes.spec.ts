@@ -4,6 +4,7 @@ import { InMemoryEmployeesRepository } from "../../../../../tests/repositories/i
 import { InMemoryEstablishmentsRepository } from "../../../../../tests/repositories/in-memory-establishment-repository";
 import { InMemoryQuotesRepository } from "../../../../../tests/repositories/in-memory-quotes-repository";
 import { InMemoryServicesRepository } from "../../../../../tests/repositories/in-memory-services-repository";
+import { UniqueEntityId } from "../../../../shared/entities/unique-entity-id";
 import { EstablishmentScopeService } from "../../services/establishment-scope";
 import { ListQuotesUseCase } from "./list-quotes";
 
@@ -65,11 +66,132 @@ describe("List quotes", () => {
         vehiclePlate: "ABC-1D23",
         createdAt: new Date("2026-05-22T00:00:00.000Z"),
       },
+      referenceDate: new Date("2026-05-22T12:00:00.000Z"),
     });
 
     expect(result.isRight()).toBe(true);
     if (result.isLeft()) throw result.value;
     expect(result.value.quotes).toEqual([matchingQuote]);
+    expect(result.value.totalItems).toBe(1);
+    expect(result.value.summary).toEqual({
+      valid: 1,
+      expiresToday: 0,
+      approved: 0,
+      expired: 0,
+    });
+  });
+
+  it("should return totalItems and summary across all pages", async () => {
+    const establishment = makeEstablishment();
+    const referenceDate = new Date("2026-06-26T12:00:00.000Z");
+    const validQuote = makeQuote({
+      establishmentId: establishment.id,
+      expiresAt: new Date("2026-06-28T23:59:59.000Z"),
+      createdAt: new Date("2026-06-26T10:00:00.000Z"),
+    });
+    const noExpirationQuote = makeQuote({
+      establishmentId: establishment.id,
+      expiresAt: null,
+      createdAt: new Date("2026-06-25T10:00:00.000Z"),
+    });
+    const expiresTodayQuote = makeQuote({
+      establishmentId: establishment.id,
+      expiresAt: new Date("2026-06-26T23:59:59.000Z"),
+      createdAt: new Date("2026-06-24T10:00:00.000Z"),
+    });
+    const expiredQuote = makeQuote({
+      establishmentId: establishment.id,
+      expiresAt: new Date("2026-06-25T23:59:59.000Z"),
+      createdAt: new Date("2026-06-23T10:00:00.000Z"),
+    });
+    const approvedQuote = makeQuote({
+      establishmentId: establishment.id,
+      convertedAppointmentId: new UniqueEntityId(),
+      convertedAt: new Date("2026-06-25T10:00:00.000Z"),
+      expiresAt: new Date("2026-06-25T23:59:59.000Z"),
+      createdAt: new Date("2026-06-22T10:00:00.000Z"),
+    });
+
+    await establishmentsRepository.create(establishment);
+    await quotesRepository.create(validQuote);
+    await quotesRepository.create(noExpirationQuote);
+    await quotesRepository.create(expiresTodayQuote);
+    await quotesRepository.create(expiredQuote);
+    await quotesRepository.create(approvedQuote);
+
+    const result = await sut.execute({
+      actor: {
+        userId: establishment.ownerId.toString(),
+        role: "ESTABLISHMENT",
+      },
+      filters: {
+        page: 1,
+        size: 2,
+      },
+      referenceDate,
+    });
+
+    expect(result.isRight()).toBe(true);
+    if (result.isLeft()) throw result.value;
+    expect(result.value.quotes).toEqual([validQuote, noExpirationQuote]);
+    expect(result.value.totalItems).toBe(5);
+    expect(result.value.summary).toEqual({
+      valid: 2,
+      expiresToday: 1,
+      approved: 1,
+      expired: 1,
+    });
+  });
+
+  it("should sort quotes by creation date", async () => {
+    const establishment = makeEstablishment();
+    const oldestQuote = makeQuote({
+      establishmentId: establishment.id,
+      createdAt: new Date("2026-06-20T10:00:00.000Z"),
+    });
+    const middleQuote = makeQuote({
+      establishmentId: establishment.id,
+      createdAt: new Date("2026-06-21T10:00:00.000Z"),
+    });
+    const recentQuote = makeQuote({
+      establishmentId: establishment.id,
+      createdAt: new Date("2026-06-22T10:00:00.000Z"),
+    });
+
+    await establishmentsRepository.create(establishment);
+    await quotesRepository.create(middleQuote);
+    await quotesRepository.create(recentQuote);
+    await quotesRepository.create(oldestQuote);
+
+    const actor = {
+      userId: establishment.ownerId.toString(),
+      role: "ESTABLISHMENT" as const,
+    };
+
+    const recentResult = await sut.execute({
+      actor,
+    });
+    const oldestResult = await sut.execute({
+      actor,
+      filters: {
+        sort: "oldest",
+      },
+    });
+
+    expect(recentResult.isRight()).toBe(true);
+    expect(oldestResult.isRight()).toBe(true);
+    if (recentResult.isLeft()) throw recentResult.value;
+    if (oldestResult.isLeft()) throw oldestResult.value;
+    expect(recentResult.value.quotes).toEqual([
+      recentQuote,
+      middleQuote,
+      oldestQuote,
+    ]);
+    expect(oldestResult.value.quotes).toEqual([
+      oldestQuote,
+      middleQuote,
+      recentQuote,
+    ]);
   });
 
   it("should not list quotes from another establishment", async () => {

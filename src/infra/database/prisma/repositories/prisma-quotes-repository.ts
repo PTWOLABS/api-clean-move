@@ -2,6 +2,7 @@ import { Injectable } from "@nestjs/common";
 
 import {
   QuoteFilters,
+  QuoteListResult,
   QuotesRepository,
 } from "../../../../modules/application/repositories/quotes-repository";
 import { Quote } from "../../../../modules/quotes/domain/entities/quote";
@@ -65,6 +66,35 @@ export class PrismaQuotesRepository implements QuotesRepository {
         lt: nextDay,
       },
     };
+  }
+
+  private static getUtcDayBounds(referenceDate: Date) {
+    const todayStart = new Date(
+      Date.UTC(
+        referenceDate.getUTCFullYear(),
+        referenceDate.getUTCMonth(),
+        referenceDate.getUTCDate(),
+      ),
+    );
+    const tomorrowStart = new Date(todayStart);
+    tomorrowStart.setUTCDate(todayStart.getUTCDate() + 1);
+
+    return { todayStart, tomorrowStart };
+  }
+
+  private static withStatusWhere(
+    where: Prisma.QuoteWhereInput,
+    statusWhere: Prisma.QuoteWhereInput,
+  ): Prisma.QuoteWhereInput {
+    return {
+      AND: [where, statusWhere],
+    };
+  }
+
+  private static buildOrderBy(filters?: QuoteFilters) {
+    return {
+      createdAt: filters?.sort === "oldest" ? "asc" : "desc",
+    } satisfies Prisma.QuoteOrderByWithRelationInput;
   }
 
   private static buildTextWhere(
@@ -256,24 +286,77 @@ export class PrismaQuotesRepository implements QuotesRepository {
   async findManyByEstablishmentId(
     establishmentId: string,
     filters?: QuoteFilters,
-  ): Promise<Quote[]> {
+    referenceDate = new Date(),
+  ): Promise<QuoteListResult> {
     const page = filters?.page ?? 1;
     const size = filters?.size ?? 20;
+    const where = PrismaQuotesRepository.buildWhere(establishmentId, filters);
+    const { todayStart, tomorrowStart } =
+      PrismaQuotesRepository.getUtcDayBounds(referenceDate);
 
     try {
-      const quotes = await PrismaUnitOfWork.getClient(
-        this.prisma,
-      ).quote.findMany({
-        where: PrismaQuotesRepository.buildWhere(establishmentId, filters),
-        include: quoteInclude,
-        orderBy: {
-          createdAt: "desc",
-        },
-        skip: (page - 1) * size,
-        take: size,
-      });
+      const client = PrismaUnitOfWork.getClient(this.prisma);
+      const [totalItems, quotes, approved, expiresToday, expired, valid] =
+        await Promise.all([
+          client.quote.count({ where }),
+          client.quote.findMany({
+            where,
+            include: quoteInclude,
+            orderBy: PrismaQuotesRepository.buildOrderBy(filters),
+            skip: (page - 1) * size,
+            take: size,
+          }),
+          client.quote.count({
+            where: PrismaQuotesRepository.withStatusWhere(where, {
+              convertedAppointmentId: {
+                not: null,
+              },
+            }),
+          }),
+          client.quote.count({
+            where: PrismaQuotesRepository.withStatusWhere(where, {
+              convertedAppointmentId: null,
+              expiresAt: {
+                gte: todayStart,
+                lt: tomorrowStart,
+              },
+            }),
+          }),
+          client.quote.count({
+            where: PrismaQuotesRepository.withStatusWhere(where, {
+              convertedAppointmentId: null,
+              expiresAt: {
+                lt: todayStart,
+              },
+            }),
+          }),
+          client.quote.count({
+            where: PrismaQuotesRepository.withStatusWhere(where, {
+              convertedAppointmentId: null,
+              OR: [
+                {
+                  expiresAt: null,
+                },
+                {
+                  expiresAt: {
+                    gte: tomorrowStart,
+                  },
+                },
+              ],
+            }),
+          }),
+        ]);
 
-      return quotes.map((quote) => PrismaQuoteMapper.toDomain(quote));
+      return {
+        quotes: quotes.map((quote) => PrismaQuoteMapper.toDomain(quote)),
+        totalItems,
+        summary: {
+          valid,
+          expiresToday,
+          approved,
+          expired,
+        },
+      };
     } catch (error) {
       rethrowPrismaRepositoryError(error);
     }

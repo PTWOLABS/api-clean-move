@@ -2116,9 +2116,90 @@ export class QuoteResponseDto {
   quote!: QuoteDto;
 }
 
+export class QuoteListItemDto {
+  @ApiProperty({ example: "2e11b57c-b96a-490a-9ae6-64ef2966fd84" })
+  id!: string;
+
+  @ApiPropertyOptional({ example: "Q-2026-0001" })
+  code?: string;
+
+  @ApiProperty({ example: "Robertinho Contador" })
+  customerName!: string;
+
+  @ApiProperty({ enum: ["CUSTOMER", "PROSPECT"], example: "PROSPECT" })
+  customerKind!: "CUSTOMER" | "PROSPECT";
+
+  @ApiPropertyOptional({
+    type: String,
+    nullable: true,
+    example: "Honda HR-V 2025",
+  })
+  vehicleLabel!: string | null;
+
+  @ApiPropertyOptional({ type: String, nullable: true, example: "ABC1D23" })
+  vehiclePlate!: string | null;
+
+  @ApiProperty({ example: 29250 })
+  totalInCents!: number;
+
+  @ApiProperty({
+    enum: ["VALID", "EXPIRES_TODAY", "EXPIRED", "APPROVED"],
+    example: "VALID",
+  })
+  status!: "VALID" | "EXPIRES_TODAY" | "EXPIRED" | "APPROVED";
+
+  @ApiPropertyOptional({
+    type: String,
+    nullable: true,
+    format: "date-time",
+    description: "Date and time when the quote was approved/converted.",
+  })
+  approvedAt!: string | null;
+
+  @ApiPropertyOptional({
+    type: String,
+    nullable: true,
+    format: "date-time",
+  })
+  expiresAt!: string | null;
+
+  @ApiProperty({ example: "2026-05-22T10:00:00.000Z" })
+  createdAt!: string;
+
+  @ApiPropertyOptional({
+    example: 2,
+    description: "Number of services included in the quote.",
+  })
+  servicesCount?: number;
+}
+
+export class QuoteSummaryDto {
+  @ApiProperty({ example: 8 })
+  valid!: number;
+
+  @ApiProperty({ example: 2 })
+  expiresToday!: number;
+
+  @ApiProperty({ example: 3 })
+  approved!: number;
+
+  @ApiProperty({ example: 1 })
+  expired!: number;
+}
+
 export class ListQuotesResponseDto {
-  @ApiProperty({ type: QuoteDto, isArray: true })
-  quotes!: QuoteDto[];
+  @ApiProperty({ type: QuoteListItemDto, isArray: true })
+  quotes!: QuoteListItemDto[];
+
+  @ApiProperty({
+    example: 14,
+    description:
+      "Total number of quotes matching the current filters (across all pages).",
+  })
+  totalItems!: number;
+
+  @ApiProperty({ type: QuoteSummaryDto })
+  summary!: QuoteSummaryDto;
 }
 
 export class RegisterQuoteProspectBodyDto {
