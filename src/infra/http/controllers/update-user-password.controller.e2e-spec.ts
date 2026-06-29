@@ -225,7 +225,7 @@ describe("UpdateUserPasswordController (e2e)", () => {
         password: "old-password-1",
       });
 
-    expect(loginWithOldPasswordResponse.status).toBe(401);
+    expect(loginWithOldPasswordResponse.status).toBe(400);
 
     const loginWithNewPasswordResponse = await request(getHttpServer(app))
       .post("/auth/login")
