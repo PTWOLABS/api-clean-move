@@ -1,7 +1,8 @@
+import { createHash, randomUUID } from "node:crypto";
 import { INestApplication } from "@nestjs/common";
 import { Test } from "@nestjs/testing";
 import request from "supertest";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import z from "zod";
 
 import { EmailSender } from "../../../modules/application/gateways/email-sender";
@@ -18,8 +19,13 @@ import {
   authResponseSchema,
   getHttpServer,
   loginUser,
+  makeRefreshTokenCookieHeader,
 } from "../../../../tests/helpers/auth-session.e2e-helpers";
-import { CapturingEmailSender } from "../../../../tests/helpers/password-reset.e2e-helpers";
+import {
+  CapturingEmailSender,
+  extractPasswordChangeConfirmationCodeFromEmail,
+  passwordChangeConfirmationCodeSentMessage,
+} from "../../../../tests/helpers/password-reset.e2e-helpers";
 import { expectSingleMessageResponseWithoutIssues } from "../../../../tests/helpers/http-response-assertions";
 
 const passwordUpdatedMessage = "Password updated successfully.";
@@ -44,6 +50,97 @@ const validationErrorResponseSchema = z.object({
   parameter: z.null(),
   target: z.literal("body"),
 });
+
+type PasswordChangePayload = {
+  newPassword: string;
+  currentPassword?: string;
+};
+
+function hashPasswordChangeConfirmationCode(code: string): string {
+  return createHash("sha256").update(code).digest("hex");
+}
+
+async function seedPasswordChangeConfirmationCode(
+  prisma: PrismaService,
+  userId: string,
+  plainCode: string,
+  expiresAt: Date,
+) {
+  await prisma.passwordChangeConfirmationCode.upsert({
+    where: { userId },
+    create: {
+      id: randomUUID(),
+      userId,
+      hashedCode: hashPasswordChangeConfirmationCode(plainCode),
+      expiresAt,
+    },
+    update: {
+      hashedCode: hashPasswordChangeConfirmationCode(plainCode),
+      expiresAt,
+    },
+  });
+}
+
+async function requestPasswordChangeConfirmationCode({
+  app,
+  accessToken,
+  payload,
+}: {
+  app: INestApplication;
+  accessToken: string;
+  payload: PasswordChangePayload;
+}) {
+  const response = await request(getHttpServer(app))
+    .post("/user/me/password/confirmation-code")
+    .set("Authorization", `Bearer ${accessToken}`)
+    .send(payload);
+
+  return response;
+}
+
+async function confirmPasswordChange({
+  app,
+  accessToken,
+  capturingEmailSender,
+  payload,
+}: {
+  app: INestApplication;
+  accessToken: string;
+  capturingEmailSender: CapturingEmailSender;
+  payload: PasswordChangePayload;
+}) {
+  const requestResponse = await requestPasswordChangeConfirmationCode({
+    app,
+    accessToken,
+    payload,
+  });
+
+  expect(requestResponse.status).toBe(200);
+  expectSingleMessageResponseWithoutIssues(
+    requestResponse.body,
+    passwordChangeConfirmationCodeSentMessage,
+  );
+
+  const confirmationEmail = capturingEmailSender.sent.at(-1);
+
+  if (!confirmationEmail?.html) {
+    throw new Error("Expected password change confirmation email HTML.");
+  }
+
+  const confirmationCode = extractPasswordChangeConfirmationCodeFromEmail(
+    confirmationEmail.html,
+  );
+
+  const response = await request(getHttpServer(app))
+    .post("/user/me/password")
+    .set("Authorization", `Bearer ${accessToken}`)
+    .send({
+      confirmationCode,
+      ...payload,
+    });
+
+  return response;
+}
 
 describe("UpdateUserPasswordController (e2e)", () => {
   let app: INestApplication;
@@ -109,6 +206,10 @@ describe("UpdateUserPasswordController (e2e)", () => {
     userFactory = new UserFactory(prisma, hashGenerator);
   });
 
+  beforeEach(() => {
+    capturingEmailSender.clear();
+  });
+
   afterAll(async () => {
     await app.close();
   });
@@ -116,12 +217,15 @@ describe("UpdateUserPasswordController (e2e)", () => {
   it("should reject password update requests without an access token", async () => {
     const response = await request(getHttpServer(app))
       .post("/user/me/password")
-      .send({ newPassword: "new-password" });
+      .send({
+        confirmationCode: "123456",
+        newPassword: "new-password-1",
+      });
 
     expect(response.status).toBe(401);
   });
 
-  it("should reject invalid password payloads", async () => {
+  it("should reject invalid password payloads on confirmation", async () => {
     const { user, plainPassword } = await userFactory.makePrismaUser({
       role: "CUSTOMER",
       plainPassword: "old-password",
@@ -137,7 +241,11 @@ describe("UpdateUserPasswordController (e2e)", () => {
     const response = await request(getHttpServer(app))
       .post("/user/me/password")
       .set("Authorization", `Bearer ${loginBody.accessToken}`)
-      .send({ newPassword: "short" });
+      .send({
+        confirmationCode: "123456",
+        newPassword: "short",
+        currentPassword: "old-password",
+      });
 
     expect(response.status).toBe(400);
 
@@ -147,6 +255,40 @@ describe("UpdateUserPasswordController (e2e)", () => {
       expect.arrayContaining([
         expect.objectContaining({
           path: "newPassword",
+        }),
+      ]),
+    );
+  });
+
+  it("should reject password confirmation without confirmation code", async () => {
+    const { user, plainPassword } = await userFactory.makePrismaUser({
+      role: "CUSTOMER",
+      plainPassword: "old-password",
+    });
+    const { loginBody } = await loginUser({
+      app,
+      prisma,
+      userId: user.id.toString(),
+      email: user.email.toString(),
+      password: plainPassword ?? "",
+    });
+
+    const response = await request(getHttpServer(app))
+      .post("/user/me/password")
+      .set("Authorization", `Bearer ${loginBody.accessToken}`)
+      .send({
+        newPassword: "new-password-1",
+        currentPassword: "old-password",
+      });
+
+    expect(response.status).toBe(400);
+
+    const responseBody = validationErrorResponseSchema.parse(response.body);
+
+    expect(responseBody.issues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          path: "confirmationCode",
         }),
       ]),
     );
@@ -163,10 +305,14 @@ describe("UpdateUserPasswordController (e2e)", () => {
       googleResponse.body,
     );
 
-    const setPasswordResponse = await request(getHttpServer(app))
-      .post("/user/me/password")
-      .set("Authorization", `Bearer ${googleBody.accessToken}`)
-      .send({ newPassword: "first-local-password" });
+    const setPasswordResponse = await confirmPasswordChange({
+      app,
+      accessToken: googleBody.accessToken,
+      capturingEmailSender,
+      payload: {
+        newPassword: "first-local-password",
+      },
+    });
 
     expect(setPasswordResponse.status).toBe(200);
     expectSingleMessageResponseWithoutIssues(
@@ -196,7 +342,7 @@ describe("UpdateUserPasswordController (e2e)", () => {
       role: "CUSTOMER",
       plainPassword: "old-password-1",
     });
-    const { loginBody } = await loginUser({
+    const { loginBody, refreshToken } = await loginUser({
       app,
       prisma,
       userId: user.id.toString(),
@@ -204,19 +350,27 @@ describe("UpdateUserPasswordController (e2e)", () => {
       password: plainPassword ?? "",
     });
 
-    const updatePasswordResponse = await request(getHttpServer(app))
-      .post("/user/me/password")
-      .set("Authorization", `Bearer ${loginBody.accessToken}`)
-      .send({
+    const updatePasswordResponse = await confirmPasswordChange({
+      app,
+      accessToken: loginBody.accessToken,
+      capturingEmailSender,
+      payload: {
         currentPassword: "old-password-1",
         newPassword: "new-password-1",
-      });
+      },
+    });
 
     expect(updatePasswordResponse.status).toBe(200);
     expectSingleMessageResponseWithoutIssues(
       updatePasswordResponse.body,
       passwordUpdatedMessage,
     );
+
+    const refreshResponse = await request(getHttpServer(app))
+      .post("/auth/refresh")
+      .set("Cookie", makeRefreshTokenCookieHeader(refreshToken));
+
+    expect(refreshResponse.status).toBe(401);
 
     const loginWithOldPasswordResponse = await request(getHttpServer(app))
       .post("/auth/login")
@@ -249,10 +403,14 @@ describe("UpdateUserPasswordController (e2e)", () => {
       googleResponse.body,
     );
 
-    const firstPasswordResponse = await request(getHttpServer(app))
-      .post("/user/me/password")
-      .set("Authorization", `Bearer ${googleBody.accessToken}`)
-      .send({ newPassword: "hybrid-password-1" });
+    const firstPasswordResponse = await confirmPasswordChange({
+      app,
+      accessToken: googleBody.accessToken,
+      capturingEmailSender,
+      payload: {
+        newPassword: "hybrid-password-1",
+      },
+    });
 
     expect(firstPasswordResponse.status).toBe(200);
 
@@ -266,13 +424,15 @@ describe("UpdateUserPasswordController (e2e)", () => {
     expect(loginAfterFirstPassword.status).toBe(200);
     const loginBody = authResponseSchema.parse(loginAfterFirstPassword.body);
 
-    const changePasswordResponse = await request(getHttpServer(app))
-      .post("/user/me/password")
-      .set("Authorization", `Bearer ${loginBody.accessToken}`)
-      .send({
+    const changePasswordResponse = await confirmPasswordChange({
+      app,
+      accessToken: loginBody.accessToken,
+      capturingEmailSender,
+      payload: {
         currentPassword: "hybrid-password-1",
         newPassword: "hybrid-password-2",
-      });
+      },
+    });
 
     expect(changePasswordResponse.status).toBe(200);
     expectSingleMessageResponseWithoutIssues(
@@ -308,6 +468,7 @@ describe("UpdateUserPasswordController (e2e)", () => {
       .post("/user/me/password")
       .set("Authorization", `Bearer ${loginBody.accessToken}`)
       .send({
+        confirmationCode: "123456",
         currentPassword: "wrong-password",
         newPassword: "new-password-1",
       });
@@ -320,6 +481,120 @@ describe("UpdateUserPasswordController (e2e)", () => {
         "The current password you entered is incorrect. Check the password and try again.",
       code: "INVALID_CURRENT_PASSWORD",
       field: "currentPassword",
+    });
+  });
+
+  it("should reject same password when requesting confirmation code", async () => {
+    const { user, plainPassword } = await userFactory.makePrismaUser({
+      role: "CUSTOMER",
+      plainPassword: "same-password",
+    });
+    const { loginBody } = await loginUser({
+      app,
+      prisma,
+      userId: user.id.toString(),
+      email: user.email.toString(),
+      password: plainPassword ?? "",
+    });
+
+    const response = await requestPasswordChangeConfirmationCode({
+      app,
+      accessToken: loginBody.accessToken,
+      payload: {
+        currentPassword: "same-password",
+        newPassword: "same-password",
+      },
+    });
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      statusCode: 400,
+      error: "Bad Request",
+      message: "The new password must be different from your current password.",
+      code: "SAME_AS_CURRENT_PASSWORD",
+      field: "newPassword",
+    });
+  });
+
+  it("should reject invalid confirmation code", async () => {
+    const { user, plainPassword } = await userFactory.makePrismaUser({
+      role: "CUSTOMER",
+      plainPassword: "old-password",
+    });
+    const { loginBody } = await loginUser({
+      app,
+      prisma,
+      userId: user.id.toString(),
+      email: user.email.toString(),
+      password: plainPassword ?? "",
+    });
+
+    await seedPasswordChangeConfirmationCode(
+      prisma,
+      user.id.toString(),
+      "123456",
+      new Date("2030-01-01T00:00:00.000Z"),
+    );
+
+    const response = await request(getHttpServer(app))
+      .post("/user/me/password")
+      .set("Authorization", `Bearer ${loginBody.accessToken}`)
+      .send({
+        confirmationCode: "999999",
+        currentPassword: "old-password",
+        newPassword: "new-password-1",
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      statusCode: 400,
+      error: "Bad Request",
+      message:
+        "The confirmation code is invalid or has expired. Request a new code and try again.",
+      code: "INVALID_PASSWORD_CONFIRMATION_CODE",
+      field: "confirmationCode",
+    });
+  });
+
+  it("should reject expired confirmation code", async () => {
+    const { user, plainPassword } = await userFactory.makePrismaUser({
+      role: "CUSTOMER",
+      plainPassword: "old-password",
+    });
+    const { loginBody } = await loginUser({
+      app,
+      prisma,
+      userId: user.id.toString(),
+      email: user.email.toString(),
+      password: plainPassword ?? "",
+    });
+
+    const confirmationCode = "123456";
+
+    await seedPasswordChangeConfirmationCode(
+      prisma,
+      user.id.toString(),
+      confirmationCode,
+      new Date("2020-01-01T00:00:00.000Z"),
+    );
+
+    const response = await request(getHttpServer(app))
+      .post("/user/me/password")
+      .set("Authorization", `Bearer ${loginBody.accessToken}`)
+      .send({
+        confirmationCode,
+        currentPassword: "old-password",
+        newPassword: "new-password-1",
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      statusCode: 400,
+      error: "Bad Request",
+      message:
+        "The confirmation code is invalid or has expired. Request a new code and try again.",
+      code: "INVALID_PASSWORD_CONFIRMATION_CODE",
+      field: "confirmationCode",
     });
   });
 });

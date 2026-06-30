@@ -8,7 +8,9 @@ import { EmployeeSessionAccessService } from "../../modules/application/services
 import { GoogleIdTokenVerifier } from "./google-id-token-verifier";
 import { TokenHasher } from "../../modules/application/repositories/token-hasher";
 import { ResetTokenGenerator } from "../../modules/application/repositories/reset-token-generator";
+import { ConfirmationCodeGenerator } from "../../modules/application/repositories/confirmation-code-generator";
 import { SecureResetTokenGenerator } from "./secure-reset-token-generator";
+import { SecureConfirmationCodeGenerator } from "./secure-confirmation-code-generator";
 import { EnvModule } from "../env/env.module";
 import { EnvService } from "../env/env.service";
 import { AccessSessionGuard } from "./access-session.guard";
@@ -56,6 +58,10 @@ import { EmployeeFeaturesGuard } from "./employee-features.guard";
     { provide: OAuthIdTokenVerifier, useClass: GoogleIdTokenVerifier },
     { provide: TokenHasher, useExisting: Sha256TokenHasher },
     { provide: ResetTokenGenerator, useClass: SecureResetTokenGenerator },
+    {
+      provide: ConfirmationCodeGenerator,
+      useClass: SecureConfirmationCodeGenerator,
+    },
   ],
   exports: [
     AuthService,
@@ -65,6 +71,7 @@ import { EmployeeFeaturesGuard } from "./employee-features.guard";
     RefreshTokenCookieService,
     TokenHasher,
     ResetTokenGenerator,
+    ConfirmationCodeGenerator,
     EmployeeSessionAccessService,
   ],
 })

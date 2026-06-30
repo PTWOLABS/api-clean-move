@@ -2,15 +2,20 @@ import { Injectable } from "@nestjs/common";
 
 import { Either, left, right } from "../../../../shared/either";
 import { InvalidCurrentPasswordError } from "../../../../shared/errors/invalid-current-password-error";
+import { InvalidPasswordConfirmationCodeError } from "../../../../shared/errors/invalid-password-confirmation-code-error";
 import { ResourceNotFoundError } from "../../../../shared/errors/resource-not-found-error";
+import { SamePasswordError } from "../../../../shared/errors/same-password-error";
 import { User } from "../../../accounts/domain/entities/user";
-import { HashComparer } from "../../repositories/hash-comparer";
 import { HashGenerator } from "../../repositories/hash-generator";
+import { PasswordChangeConfirmationCodesRepository } from "../../repositories/password-change-confirmation-codes-repository";
+import { TokenHasher } from "../../repositories/token-hasher";
 import { UnitOfWork } from "../../repositories/unit-of-work";
 import { UsersRepository } from "../../repositories/users-repository";
+import { PasswordChangeValidator } from "../../services/password-change-validator";
 
 type UpdateUserPasswordUseCaseRequest = {
   userId: string;
+  confirmationCode: string;
   newPassword: string;
   currentPassword?: string;
 };
@@ -25,7 +30,9 @@ export class InvalidUserPasswordUpdateInputError extends Error {
 type UpdateUserPasswordUseCaseResponse = Either<
   | ResourceNotFoundError
   | InvalidUserPasswordUpdateInputError
-  | InvalidCurrentPasswordError,
+  | InvalidCurrentPasswordError
+  | SamePasswordError
+  | InvalidPasswordConfirmationCodeError,
   { user: User }
 >;
 
@@ -33,13 +40,16 @@ type UpdateUserPasswordUseCaseResponse = Either<
 export class UpdateUserPasswordUseCase {
   constructor(
     private usersRepository: UsersRepository,
+    private passwordChangeConfirmationCodesRepository: PasswordChangeConfirmationCodesRepository,
     private hashGenerator: HashGenerator,
-    private hashComparer: HashComparer,
+    private tokenHasher: TokenHasher,
+    private passwordChangeValidator: PasswordChangeValidator,
     private unitOfWork: UnitOfWork,
   ) {}
 
   async execute({
     userId,
+    confirmationCode,
     newPassword,
     currentPassword,
   }: UpdateUserPasswordUseCaseRequest): Promise<UpdateUserPasswordUseCaseResponse> {
@@ -49,31 +59,28 @@ export class UpdateUserPasswordUseCase {
       return left(new ResourceNotFoundError({ resource: "user" }));
     }
 
-    if (user.hashedPassword === null) {
-      if (currentPassword !== undefined) {
-        return left(
-          new InvalidUserPasswordUpdateInputError(
-            "Current password must not be provided when setting the first local password.",
-          ),
-        );
-      }
-    } else {
-      if (currentPassword === undefined) {
-        return left(
-          new InvalidUserPasswordUpdateInputError(
-            "Current password is required to update an existing local password.",
-          ),
-        );
-      }
+    const validationResult = await this.passwordChangeValidator.validate({
+      user,
+      newPassword,
+      ...(currentPassword !== undefined ? { currentPassword } : {}),
+    });
 
-      const isCurrentPasswordValid = await this.hashComparer.compare(
-        currentPassword,
-        user.hashedPassword,
-      );
+    if (validationResult.isLeft()) {
+      return left(validationResult.value);
+    }
 
-      if (!isCurrentPasswordValid) {
-        return left(new InvalidCurrentPasswordError());
-      }
+    const storedCode =
+      await this.passwordChangeConfirmationCodesRepository.findByUserId(userId);
+
+    const hashedConfirmationCode =
+      await this.tokenHasher.hash(confirmationCode);
+
+    if (
+      !storedCode ||
+      storedCode.isExpired(new Date()) ||
+      storedCode.hashedCode !== hashedConfirmationCode
+    ) {
+      return left(new InvalidPasswordConfirmationCodeError());
     }
 
     const hashedPassword = await this.hashGenerator.hash(newPassword);
@@ -81,6 +88,9 @@ export class UpdateUserPasswordUseCase {
     await this.unitOfWork.execute(async () => {
       user.changePassword(hashedPassword);
       await this.usersRepository.save(user);
+      await this.passwordChangeConfirmationCodesRepository.deleteByUserId(
+        userId,
+      );
     });
 
     return right({ user });

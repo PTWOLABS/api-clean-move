@@ -125,8 +125,35 @@ export class UpdateUserResponseDto {
 
 export class UpdateUserPasswordBodyDto {
   @ApiProperty({
+    example: "123456",
+    description: "Six-digit confirmation code sent to the user's email.",
+    minLength: 6,
+    maxLength: 6,
+  })
+  confirmationCode!: string;
+
+  @ApiProperty({
     example: "new-strong-password",
     description: "New local password.",
+    minLength: 8,
+    maxLength: 72,
+  })
+  newPassword!: string;
+
+  @ApiPropertyOptional({
+    example: "current-password",
+    description:
+      "Current local password. Required when the user already has a local password.",
+    minLength: 1,
+    maxLength: 72,
+  })
+  currentPassword?: string;
+}
+
+export class RequestPasswordChangeConfirmationCodeBodyDto {
+  @ApiProperty({
+    example: "new-strong-password",
+    description: "New local password to confirm via email code.",
     minLength: 8,
     maxLength: 72,
   })
