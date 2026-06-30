@@ -1,7 +1,11 @@
 import { Email } from "../../../accounts/domain/value-objects/email";
-import { PasswordChangeConfirmationCode } from "../../../accounts/domain/entities/password-change-confirmation-code";
+import {
+  MAX_FAILED_ATTEMPTS,
+  PasswordChangeConfirmationCode,
+} from "../../../accounts/domain/entities/password-change-confirmation-code";
 import { InvalidCurrentPasswordError } from "../../../../shared/errors/invalid-current-password-error";
 import { InvalidPasswordConfirmationCodeError } from "../../../../shared/errors/invalid-password-confirmation-code-error";
+import { InvalidUserPasswordUpdateInputError } from "../../../../shared/errors/invalid-user-password-update-input-error";
 import { ResourceNotFoundError } from "../../../../shared/errors/resource-not-found-error";
 import { SamePasswordError } from "../../../../shared/errors/same-password-error";
 import { makeUser } from "../../../../../tests/factories/user-factory";
@@ -12,14 +16,12 @@ import { InMemoryPasswordChangeConfirmationCodesRepository } from "../../../../.
 import { InMemoryUnitOfWork } from "../../../../../tests/repositories/in-memory-unit-of-work";
 import { InMemoryUsersRepository } from "../../../../../tests/repositories/in-memory-users-repository";
 import { PasswordChangeValidator } from "../../services/password-change-validator";
-import {
-  InvalidUserPasswordUpdateInputError,
-  UpdateUserPasswordUseCase,
-} from "./update-user-password";
+import { UpdateUserPasswordUseCase } from "./update-user-password";
 
 let inMemoryUsersRepository: InMemoryUsersRepository;
 let inMemoryConfirmationCodesRepository: InMemoryPasswordChangeConfirmationCodesRepository;
 let fakeHashGenerator: FakeHashGenerator;
+let fakeHashComparer: FakeHashComparer;
 let fakeTokenHasher: FakeTokenHasher;
 let inMemoryUnitOfWork: InMemoryUnitOfWork;
 let passwordChangeValidator: PasswordChangeValidator;
@@ -32,23 +34,27 @@ describe("Update user password", () => {
     inMemoryConfirmationCodesRepository =
       new InMemoryPasswordChangeConfirmationCodesRepository();
     fakeHashGenerator = new FakeHashGenerator();
+    fakeHashComparer = new FakeHashComparer();
     fakeTokenHasher = new FakeTokenHasher();
     inMemoryUnitOfWork = new InMemoryUnitOfWork();
-    passwordChangeValidator = new PasswordChangeValidator(
-      new FakeHashComparer(),
-    );
+    passwordChangeValidator = new PasswordChangeValidator(fakeHashComparer);
 
     sut = new UpdateUserPasswordUseCase(
       inMemoryUsersRepository,
       inMemoryConfirmationCodesRepository,
       fakeHashGenerator,
+      fakeHashComparer,
       fakeTokenHasher,
       passwordChangeValidator,
       inMemoryUnitOfWork,
     );
   });
 
-  async function seedConfirmationCode(userId: string, code = "123456") {
+  async function seedConfirmationCode(
+    userId: string,
+    newPassword: string,
+    code = "123456",
+  ) {
     const user = await inMemoryUsersRepository.findById(userId);
 
     if (!user) {
@@ -59,7 +65,9 @@ describe("Update user password", () => {
       PasswordChangeConfirmationCode.create({
         userId: user.id,
         hashedCode: `${code}-token-hashed`,
+        pendingPasswordHash: `${newPassword}-hashed`,
         expiresAt: new Date("2030-01-01T00:00:00.000Z"),
+        failedAttempts: 0,
       }),
     );
   }
@@ -73,7 +81,7 @@ describe("Update user password", () => {
       socialAccounts: [{ provider: "GOOGLE", subjectId: "google-sub-1" }],
     });
     await inMemoryUsersRepository.create(user);
-    await seedConfirmationCode(user.id.toString());
+    await seedConfirmationCode(user.id.toString(), "first-local-password");
 
     const result = await sut.execute({
       userId: user.id.toString(),
@@ -97,7 +105,7 @@ describe("Update user password", () => {
       hashedPassword: "old-password-hashed",
     });
     await inMemoryUsersRepository.create(user);
-    await seedConfirmationCode(user.id.toString());
+    await seedConfirmationCode(user.id.toString(), "new-password");
 
     const result = await sut.execute({
       userId: user.id.toString(),
@@ -108,9 +116,12 @@ describe("Update user password", () => {
 
     expect(result.isLeft()).toBe(true);
     expect(result.value).toBeInstanceOf(InvalidPasswordConfirmationCodeError);
+    expect(
+      inMemoryConfirmationCodesRepository.items[0]?.failedAttempts,
+    ).toBe(1);
   });
 
-  it("should reject expired confirmation code", async () => {
+  it("should reject expired confirmation code without incrementing failed attempts", async () => {
     const user = makeUser("CUSTOMER", {
       hashedPassword: "old-password-hashed",
     });
@@ -120,7 +131,9 @@ describe("Update user password", () => {
       PasswordChangeConfirmationCode.create({
         userId: user.id,
         hashedCode: "123456-token-hashed",
+        pendingPasswordHash: "new-password-hashed",
         expiresAt: new Date("2020-01-01T00:00:00.000Z"),
+        failedAttempts: 0,
       }),
     );
 
@@ -133,6 +146,62 @@ describe("Update user password", () => {
 
     expect(result.isLeft()).toBe(true);
     expect(result.value).toBeInstanceOf(InvalidPasswordConfirmationCodeError);
+    expect(
+      inMemoryConfirmationCodesRepository.items[0]?.failedAttempts,
+    ).toBe(0);
+  });
+
+  it("should delete confirmation code after max failed attempts", async () => {
+    const user = makeUser("CUSTOMER", {
+      hashedPassword: "old-password-hashed",
+    });
+    await inMemoryUsersRepository.create(user);
+
+    await inMemoryConfirmationCodesRepository.upsert(
+      PasswordChangeConfirmationCode.create({
+        userId: user.id,
+        hashedCode: "123456-token-hashed",
+        pendingPasswordHash: "new-password-hashed",
+        expiresAt: new Date("2030-01-01T00:00:00.000Z"),
+        failedAttempts: MAX_FAILED_ATTEMPTS - 1,
+      }),
+    );
+
+    const result = await sut.execute({
+      userId: user.id.toString(),
+      confirmationCode: "999999",
+      currentPassword: "old-password",
+      newPassword: "new-password",
+    });
+
+    expect(result.isLeft()).toBe(true);
+    expect(result.value).toBeInstanceOf(InvalidPasswordConfirmationCodeError);
+    expect(inMemoryConfirmationCodesRepository.items).toHaveLength(0);
+  });
+
+  it("should reject when new password differs from the one used to request the code", async () => {
+    const user = makeUser("CUSTOMER", {
+      hashedPassword: "old-password-hashed",
+    });
+    await inMemoryUsersRepository.create(user);
+    await seedConfirmationCode(user.id.toString(), "requested-password");
+
+    const result = await sut.execute({
+      userId: user.id.toString(),
+      confirmationCode: "123456",
+      currentPassword: "old-password",
+      newPassword: "different-password",
+    });
+
+    expect(result.isLeft()).toBe(true);
+    expect(result.value).toBeInstanceOf(InvalidUserPasswordUpdateInputError);
+    if (!(result.value instanceof InvalidUserPasswordUpdateInputError)) {
+      throw new Error("Expected InvalidUserPasswordUpdateInputError.");
+    }
+
+    expect(result.value.message).toBe(
+      "The new password does not match the one used to request the confirmation code.",
+    );
   });
 
   it("should allow user with local password to change password", async () => {
@@ -141,7 +210,7 @@ describe("Update user password", () => {
       hashedPassword: "old-password-hashed",
     });
     await inMemoryUsersRepository.create(user);
-    await seedConfirmationCode(user.id.toString());
+    await seedConfirmationCode(user.id.toString(), "new-password");
 
     const result = await sut.execute({
       userId: user.id.toString(),
@@ -163,7 +232,7 @@ describe("Update user password", () => {
       hashedPassword: "old-password-hashed",
     });
     await inMemoryUsersRepository.create(user);
-    await seedConfirmationCode(user.id.toString());
+    await seedConfirmationCode(user.id.toString(), "old-password");
 
     const result = await sut.execute({
       userId: user.id.toString(),
@@ -181,7 +250,7 @@ describe("Update user password", () => {
       hashedPassword: "old-password-hashed",
     });
     await inMemoryUsersRepository.create(user);
-    await seedConfirmationCode(user.id.toString());
+    await seedConfirmationCode(user.id.toString(), "new-password");
 
     const result = await sut.execute({
       userId: user.id.toString(),
@@ -198,7 +267,7 @@ describe("Update user password", () => {
       hashedPassword: "old-password-hashed",
     });
     await inMemoryUsersRepository.create(user);
-    await seedConfirmationCode(user.id.toString());
+    await seedConfirmationCode(user.id.toString(), "new-password");
 
     const result = await sut.execute({
       userId: user.id.toString(),

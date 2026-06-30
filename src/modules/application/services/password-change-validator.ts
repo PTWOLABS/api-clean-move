@@ -5,7 +5,7 @@ import { InvalidCurrentPasswordError } from "../../../shared/errors/invalid-curr
 import { SamePasswordError } from "../../../shared/errors/same-password-error";
 import { User } from "../../accounts/domain/entities/user";
 import { HashComparer } from "../repositories/hash-comparer";
-import { InvalidUserPasswordUpdateInputError } from "../use-cases/user/update-user-password";
+import { InvalidUserPasswordUpdateInputError } from "../../../shared/errors/invalid-user-password-update-input-error";
 
 type ValidatePasswordChangeInput = {
   user: User;

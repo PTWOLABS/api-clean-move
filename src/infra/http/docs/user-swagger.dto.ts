@@ -80,7 +80,8 @@ export class GetMeUserResponseDto {
 
   @ApiProperty({
     example: true,
-    description: "True when the user has a password set.",
+    description:
+      "True when the user has a local password set. OAuth-only users have false until they set a first password via the two-step password change flow.",
   })
   hasPassword!: boolean;
 
@@ -126,7 +127,8 @@ export class UpdateUserResponseDto {
 export class UpdateUserPasswordBodyDto {
   @ApiProperty({
     example: "123456",
-    description: "Six-digit confirmation code sent to the user's email.",
+    description:
+      "Required six-digit confirmation code sent to the user's email in step 1 (POST /user/me/password/confirmation-code).",
     minLength: 6,
     maxLength: 6,
   })
@@ -134,7 +136,8 @@ export class UpdateUserPasswordBodyDto {
 
   @ApiProperty({
     example: "new-strong-password",
-    description: "New local password.",
+    description:
+      "New local password. Must be identical to the newPassword sent when requesting the confirmation code.",
     minLength: 8,
     maxLength: 72,
   })
@@ -153,7 +156,8 @@ export class UpdateUserPasswordBodyDto {
 export class RequestPasswordChangeConfirmationCodeBodyDto {
   @ApiProperty({
     example: "new-strong-password",
-    description: "New local password to confirm via email code.",
+    description:
+      "New local password to confirm via email code. Must be sent again unchanged in step 2.",
     minLength: 8,
     maxLength: 72,
   })

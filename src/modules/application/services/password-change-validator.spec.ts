@@ -3,7 +3,7 @@ import { makeUser } from "../../../../tests/factories/user-factory";
 import { FakeHashComparer } from "../../../../tests/repositories/fake-hash-comparer";
 import { InvalidCurrentPasswordError } from "../../../shared/errors/invalid-current-password-error";
 import { SamePasswordError } from "../../../shared/errors/same-password-error";
-import { InvalidUserPasswordUpdateInputError } from "../use-cases/user/update-user-password";
+import { InvalidUserPasswordUpdateInputError } from "../../../shared/errors/invalid-user-password-update-input-error";
 import { PasswordChangeValidator } from "./password-change-validator";
 
 describe("PasswordChangeValidator", () => {

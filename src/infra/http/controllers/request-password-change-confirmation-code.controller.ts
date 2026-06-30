@@ -21,7 +21,7 @@ import { Throttle } from "@nestjs/throttler";
 import z from "zod";
 
 import { RequestPasswordChangeConfirmationCodeUseCase } from "../../../modules/application/use-cases/user/request-password-change-confirmation-code";
-import { InvalidUserPasswordUpdateInputError } from "../../../modules/application/use-cases/user/update-user-password";
+import { InvalidUserPasswordUpdateInputError } from "../../../shared/errors/invalid-user-password-update-input-error";
 import { InvalidCurrentPasswordError } from "../../../shared/errors/invalid-current-password-error";
 import { ResourceNotFoundError } from "../../../shared/errors/resource-not-found-error";
 import { SamePasswordError } from "../../../shared/errors/same-password-error";
@@ -56,6 +56,8 @@ export class RequestPasswordChangeConfirmationCodeController {
   @Throttle({ default: { limit: 5, ttl: 60 * 60 * 1000 } })
   @ApiOperation({
     summary: "Request a confirmation code to change the local password.",
+    description:
+      "Step 1 of the logged-in password change flow. Validates the new password, stores a pending password hash, and sends a six-digit OTP to the user's email. The same newPassword value must be sent again in step 2 (POST /user/me/password).",
   })
   @ApiBody({ type: RequestPasswordChangeConfirmationCodeBodyDto })
   @ApiOkResponse({

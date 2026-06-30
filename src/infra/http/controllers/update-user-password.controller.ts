@@ -21,7 +21,7 @@ import { Throttle } from "@nestjs/throttler";
 import z from "zod";
 
 import { UpdateUserPasswordUseCase } from "../../../modules/application/use-cases/user/update-user-password";
-import { InvalidUserPasswordUpdateInputError } from "../../../modules/application/use-cases/user/update-user-password";
+import { InvalidUserPasswordUpdateInputError } from "../../../shared/errors/invalid-user-password-update-input-error";
 import { InvalidCurrentPasswordError } from "../../../shared/errors/invalid-current-password-error";
 import { InvalidPasswordConfirmationCodeError } from "../../../shared/errors/invalid-password-confirmation-code-error";
 import { ResourceNotFoundError } from "../../../shared/errors/resource-not-found-error";
@@ -54,6 +54,8 @@ export class UpdateUserPasswordController {
   @ApiOperation({
     summary:
       "Confirm and apply a local password change using the email confirmation code.",
+    description:
+      "Step 2 of the logged-in password change flow. Requires confirmationCode (breaking change: no longer optional). newPassword must match the value sent in step 1. After success, all active sessions are revoked.",
   })
   @ApiBody({ type: UpdateUserPasswordBodyDto })
   @ApiOkResponse({

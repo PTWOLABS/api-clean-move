@@ -1,4 +1,3 @@
-import { createHash, randomUUID } from "node:crypto";
 import { INestApplication } from "@nestjs/common";
 import { Test } from "@nestjs/testing";
 import request from "supertest";
@@ -55,31 +54,6 @@ type PasswordChangePayload = {
   newPassword: string;
   currentPassword?: string;
 };
-
-function hashPasswordChangeConfirmationCode(code: string): string {
-  return createHash("sha256").update(code).digest("hex");
-}
-
-async function seedPasswordChangeConfirmationCode(
-  prisma: PrismaService,
-  userId: string,
-  plainCode: string,
-  expiresAt: Date,
-) {
-  await prisma.passwordChangeConfirmationCode.upsert({
-    where: { userId },
-    create: {
-      id: randomUUID(),
-      userId,
-      hashedCode: hashPasswordChangeConfirmationCode(plainCode),
-      expiresAt,
-    },
-    update: {
-      hashedCode: hashPasswordChangeConfirmationCode(plainCode),
-      expiresAt,
-    },
-  });
-}
 
 async function requestPasswordChangeConfirmationCode({
   app,
@@ -529,12 +503,16 @@ describe("UpdateUserPasswordController (e2e)", () => {
       password: plainPassword ?? "",
     });
 
-    await seedPasswordChangeConfirmationCode(
-      prisma,
-      user.id.toString(),
-      "123456",
-      new Date("2030-01-01T00:00:00.000Z"),
-    );
+    const requestResponse = await requestPasswordChangeConfirmationCode({
+      app,
+      accessToken: loginBody.accessToken,
+      payload: {
+        currentPassword: "old-password",
+        newPassword: "new-password-1",
+      },
+    });
+
+    expect(requestResponse.status).toBe(200);
 
     const response = await request(getHttpServer(app))
       .post("/user/me/password")
@@ -569,14 +547,31 @@ describe("UpdateUserPasswordController (e2e)", () => {
       password: plainPassword ?? "",
     });
 
-    const confirmationCode = "123456";
+    const requestResponse = await requestPasswordChangeConfirmationCode({
+      app,
+      accessToken: loginBody.accessToken,
+      payload: {
+        currentPassword: "old-password",
+        newPassword: "new-password-1",
+      },
+    });
 
-    await seedPasswordChangeConfirmationCode(
-      prisma,
-      user.id.toString(),
-      confirmationCode,
-      new Date("2020-01-01T00:00:00.000Z"),
+    expect(requestResponse.status).toBe(200);
+
+    const confirmationEmail = capturingEmailSender.sent.at(-1);
+
+    if (!confirmationEmail?.html) {
+      throw new Error("Expected password change confirmation email HTML.");
+    }
+
+    const confirmationCode = extractPasswordChangeConfirmationCodeFromEmail(
+      confirmationEmail.html,
     );
+
+    await prisma.passwordChangeConfirmationCode.update({
+      where: { userId: user.id.toString() },
+      data: { expiresAt: new Date("2020-01-01T00:00:00.000Z") },
+    });
 
     const response = await request(getHttpServer(app))
       .post("/user/me/password")

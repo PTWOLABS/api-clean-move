@@ -1,7 +1,8 @@
 import { Module } from "@nestjs/common";
-import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
+import { ThrottlerModule } from "@nestjs/throttler";
 import { APP_GUARD } from "@nestjs/core";
 
+import { AppThrottlerGuard } from "./auth/app-throttler.guard";
 import { DatabaseModule } from "./database/database.module";
 import { EnvModule } from "./env/env.module";
 import { EventsModule } from "./events/events.module";
@@ -25,7 +26,7 @@ import { AuthModule } from "./auth/auth.module";
   providers: [
     {
       provide: APP_GUARD,
-      useClass: ThrottlerGuard,
+      useClass: AppThrottlerGuard,
     },
   ],
 })

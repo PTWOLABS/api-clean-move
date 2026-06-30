@@ -13,7 +13,9 @@ export class PrismaPasswordChangeConfirmationCodeMapper {
       {
         userId: new UniqueEntityId(raw.userId),
         hashedCode: raw.hashedCode,
+        pendingPasswordHash: raw.pendingPasswordHash,
         expiresAt: raw.expiresAt,
+        failedAttempts: raw.failedAttempts,
       },
       new UniqueEntityId(raw.id),
     );
@@ -26,6 +28,8 @@ export class PrismaPasswordChangeConfirmationCodeMapper {
       id: raw.id.toString(),
       userId: raw.userId.toString(),
       hashedCode: raw.hashedCode,
+      pendingPasswordHash: raw.pendingPasswordHash,
+      failedAttempts: raw.failedAttempts,
       expiresAt: raw.expiresAt,
     };
   }

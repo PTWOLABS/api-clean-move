@@ -2,18 +2,19 @@ import { Injectable } from "@nestjs/common";
 
 import { EnvService } from "../../../../infra/env/env.service";
 import { Either, left, right } from "../../../../shared/either";
+import { InvalidCurrentPasswordError } from "../../../../shared/errors/invalid-current-password-error";
+import { InvalidUserPasswordUpdateInputError } from "../../../../shared/errors/invalid-user-password-update-input-error";
 import { ResourceNotFoundError } from "../../../../shared/errors/resource-not-found-error";
+import { SamePasswordError } from "../../../../shared/errors/same-password-error";
 import { PasswordChangeConfirmationCode } from "../../../accounts/domain/entities/password-change-confirmation-code";
-import { buildPasswordChangeConfirmationEmail } from "../../mail/templates/password-change-confirmation-email";
 import { EmailSender } from "../../gateways/email-sender";
+import { buildPasswordChangeConfirmationEmail } from "../../mail/templates/password-change-confirmation-email";
 import { ConfirmationCodeGenerator } from "../../repositories/confirmation-code-generator";
+import { HashGenerator } from "../../repositories/hash-generator";
 import { PasswordChangeConfirmationCodesRepository } from "../../repositories/password-change-confirmation-codes-repository";
 import { TokenHasher } from "../../repositories/token-hasher";
 import { UsersRepository } from "../../repositories/users-repository";
 import { PasswordChangeValidator } from "../../services/password-change-validator";
-import { InvalidUserPasswordUpdateInputError } from "../user/update-user-password";
-import { InvalidCurrentPasswordError } from "../../../../shared/errors/invalid-current-password-error";
-import { SamePasswordError } from "../../../../shared/errors/same-password-error";
 
 const DEFAULT_CODE_TTL_MS = 15 * 60 * 1000;
 
@@ -38,6 +39,7 @@ export class RequestPasswordChangeConfirmationCodeUseCase {
     private passwordChangeConfirmationCodesRepository: PasswordChangeConfirmationCodesRepository,
     private confirmationCodeGenerator: ConfirmationCodeGenerator,
     private tokenHasher: TokenHasher,
+    private hashGenerator: HashGenerator,
     private emailSender: EmailSender,
     private passwordChangeValidator: PasswordChangeValidator,
     private readonly envService: EnvService,
@@ -66,13 +68,16 @@ export class RequestPasswordChangeConfirmationCodeUseCase {
 
     const plainCode = this.confirmationCodeGenerator.generate();
     const hashedCode = await this.tokenHasher.hash(plainCode);
+    const pendingPasswordHash = await this.hashGenerator.hash(newPassword);
     const now = new Date();
     const expiresAt = new Date(now.getTime() + DEFAULT_CODE_TTL_MS);
 
     const confirmationCode = PasswordChangeConfirmationCode.create({
       userId: user.id,
       hashedCode,
+      pendingPasswordHash,
       expiresAt,
+      failedAttempts: 0,
     });
 
     await this.passwordChangeConfirmationCodesRepository.upsert(
@@ -84,12 +89,19 @@ export class RequestPasswordChangeConfirmationCodeUseCase {
       logoUrl: this.envService.get("EMAIL_LOGO_URL"),
     });
 
-    await this.emailSender.send({
-      to: user.email.getValue(),
-      subject: emailContent.subject,
-      html: emailContent.html,
-      text: emailContent.text,
-    });
+    try {
+      await this.emailSender.send({
+        to: user.email.getValue(),
+        subject: emailContent.subject,
+        html: emailContent.html,
+        text: emailContent.text,
+      });
+    } catch (error) {
+      await this.passwordChangeConfirmationCodesRepository.deleteByUserId(
+        userId,
+      );
+      throw error;
+    }
 
     return right(undefined);
   }

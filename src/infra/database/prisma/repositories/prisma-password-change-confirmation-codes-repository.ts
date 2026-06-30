@@ -24,6 +24,8 @@ export class PrismaPasswordChangeConfirmationCodesRepository implements Password
         create: data,
         update: {
           hashedCode: data.hashedCode,
+          pendingPasswordHash: data.pendingPasswordHash,
+          failedAttempts: code.failedAttempts,
           expiresAt: data.expiresAt,
         },
       });
