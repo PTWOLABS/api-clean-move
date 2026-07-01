@@ -368,6 +368,135 @@ describe("Quote", () => {
     ).toThrow(InvalidQuoteInputError);
   });
 
+  it("should replace quote customer, vehicle, services, payment, text fields, and expiration", () => {
+    const quote = Quote.create(baseProps);
+    const referenceDate = new Date("2026-05-23T10:00:00.000Z");
+    const serviceId = new UniqueEntityId("service-updated");
+
+    quote.update({
+      customerId: new UniqueEntityId("customer-updated"),
+      customer: {
+        name: "Cliente Atualizado",
+        phone: undefined,
+        cpfCnpj: "52998224725",
+        address: {
+          street: "Rua Nova",
+          country: "BR",
+          state: "SP",
+          zipCode: "01001000",
+          city: "Sao Paulo",
+          complement: undefined,
+        },
+      },
+      vehicleId: new UniqueEntityId("vehicle-updated"),
+      vehicle: {
+        plate: "abc1d23",
+        brand: "Toyota",
+        model: "Corolla",
+        color: undefined,
+        year: 2024,
+      },
+      services: [
+        {
+          serviceId,
+          serviceName: "Polimento tecnico",
+          priceInCents: 50000,
+          isCourtesy: false,
+        },
+      ],
+      paymentOptions: [
+        {
+          method: "PIX",
+          label: "Pix com desconto",
+          installments: 1,
+          interestFree: true,
+          discountType: "PERCENTAGE",
+          discountValue: 10,
+        },
+      ],
+      description: "Nova descricao",
+      termsAndConditions: "Novas condicoes",
+      expiresAt: new Date("2026-06-15T23:59:59.000Z"),
+      referenceDate,
+    });
+
+    expect(quote.customerId?.toString()).toBe("customer-updated");
+    expect(quote.customer).toEqual({
+      name: "Cliente Atualizado",
+      phone: null,
+      cpfCnpj: "52998224725",
+      address: {
+        street: "Rua Nova",
+        country: "BR",
+        state: "SP",
+        zipCode: "01001000",
+        city: "Sao Paulo",
+        complement: null,
+      },
+    });
+    expect(quote.vehicleId?.toString()).toBe("vehicle-updated");
+    expect(quote.vehicle).toEqual({
+      plate: "abc1d23",
+      brand: "Toyota",
+      model: "Corolla",
+      color: null,
+      year: 2024,
+    });
+    expect(quote.services).toHaveLength(1);
+    expect(quote.services[0]?.serviceId).toEqual(serviceId);
+    expect(quote.subtotalInCents).toBe(50000);
+    expect(quote.paymentOptions[0]?.totalInCents).toBe(45000);
+    expect(quote.description).toBe("Nova descricao");
+    expect(quote.termsAndConditions).toBe("Novas condicoes");
+    expect(quote.expiresAt).toEqual(new Date("2026-06-15T23:59:59.000Z"));
+    expect(quote.updatedAt).toEqual(referenceDate);
+  });
+
+  it("should recalculate existing payment options when only services are replaced", () => {
+    const quote = Quote.create({
+      ...baseProps,
+      paymentOptions: [
+        {
+          method: "PIX",
+          label: "Pix com desconto",
+          installments: 1,
+          interestFree: true,
+          discountType: "AMOUNT",
+          discountValue: 5000,
+        },
+      ],
+    });
+
+    quote.update({
+      services: [
+        {
+          serviceId: new UniqueEntityId("service-repriced"),
+          serviceName: "Servico reajustado",
+          priceInCents: 20000,
+          isCourtesy: false,
+        },
+      ],
+    });
+
+    expect(quote.subtotalInCents).toBe(20000);
+    expect(quote.paymentOptions[0]?.totalInCents).toBe(15000);
+  });
+
+  it("should clear vehicle id and snapshot", () => {
+    const quote = Quote.create({
+      ...baseProps,
+      vehicleId: new UniqueEntityId("vehicle-original"),
+    });
+
+    quote.update({
+      vehicleId: null,
+      vehicle: null,
+    });
+
+    expect(quote.vehicleId).toBeNull();
+    expect(quote.vehicle).toBeNull();
+  });
+
   it("should mark a quote as converted once", () => {
     const quote = Quote.create(baseProps);
     const appointmentId = new UniqueEntityId("appointment-1");

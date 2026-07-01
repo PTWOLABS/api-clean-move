@@ -58,6 +58,30 @@ export type QuoteVehicleSnapshot = {
   year: number | null;
 } | null;
 
+type QuoteAddressSnapshotInput = {
+  street?: string | null | undefined;
+  country?: string | null | undefined;
+  state?: string | null | undefined;
+  zipCode?: string | null | undefined;
+  city?: string | null | undefined;
+  complement?: string | null | undefined;
+} | null;
+
+type QuoteCustomerSnapshotInput = {
+  name: string;
+  phone?: string | null | undefined;
+  cpfCnpj?: string | null | undefined;
+  address?: QuoteAddressSnapshotInput | undefined;
+};
+
+type QuoteVehicleSnapshotInput = {
+  plate?: string | null | undefined;
+  brand?: string | null | undefined;
+  model?: string | null | undefined;
+  color?: string | null | undefined;
+  year?: number | null | undefined;
+} | null;
+
 export type QuoteProps = {
   establishmentId: UniqueEntityId;
   customerId: UniqueEntityId | null;
@@ -92,6 +116,19 @@ export type QuoteApproveProps = {
   startsAt: Date;
   endsAt?: Date | null;
   approvedAt?: Date;
+};
+
+export type QuoteUpdateProps = {
+  customerId?: UniqueEntityId | null;
+  vehicleId?: UniqueEntityId | null;
+  customer?: QuoteCustomerSnapshotInput;
+  vehicle?: QuoteVehicleSnapshotInput;
+  services?: QuoteServiceSnapshotInput[];
+  paymentOptions?: QuotePaymentOptionInput[];
+  description?: string | null;
+  termsAndConditions?: string | null;
+  expiresAt?: Date | null;
+  referenceDate?: Date;
 };
 
 export class Quote extends AggregateRoot<QuoteProps> {
@@ -207,6 +244,67 @@ export class Quote extends AggregateRoot<QuoteProps> {
     return services.reduce((total, service) => {
       return total + service.courtesyValueInCents;
     }, 0);
+  }
+
+  update(data: QuoteUpdateProps) {
+    const currentPaymentOptionInputs = this.props.paymentOptions.map(
+      (paymentOption) => ({
+        method: paymentOption.method,
+        label: paymentOption.label,
+        installments: paymentOption.installments,
+        interestFree: paymentOption.interestFree,
+        discountType: paymentOption.discountType,
+        discountValue: paymentOption.discountValue,
+      }),
+    );
+
+    if (data.customerId !== undefined) {
+      this.props.customerId = data.customerId;
+    }
+
+    if (data.vehicleId !== undefined) {
+      this.props.vehicleId = data.vehicleId;
+    }
+
+    if (data.customer !== undefined) {
+      this.props.customer = Quote.normalizeCustomer(data.customer);
+    }
+
+    if (data.vehicle !== undefined) {
+      this.props.vehicle = Quote.normalizeVehicle(data.vehicle);
+    }
+
+    if (data.services !== undefined) {
+      this.props.services = data.services.map((service) =>
+        QuotedServiceSnapshot.create(service),
+      );
+    }
+
+    if (data.paymentOptions !== undefined || data.services !== undefined) {
+      const subtotalInCents = Quote.subtotalInCents(this.props.services);
+      const paymentOptions = data.paymentOptions ?? currentPaymentOptionInputs;
+
+      this.props.paymentOptions = paymentOptions.map((paymentOption) =>
+        QuotePaymentOption.create(paymentOption, subtotalInCents),
+      );
+    }
+
+    if (data.description !== undefined) {
+      this.props.description = Quote.normalizeOptionalText(data.description);
+    }
+
+    if (data.termsAndConditions !== undefined) {
+      this.props.termsAndConditions = Quote.normalizeOptionalText(
+        data.termsAndConditions,
+      );
+    }
+
+    if (data.expiresAt !== undefined) {
+      this.props.expiresAt = data.expiresAt;
+    }
+
+    this.touch(data.referenceDate);
+    this.assertValidState();
   }
 
   approve({
@@ -361,7 +459,7 @@ export class Quote extends AggregateRoot<QuoteProps> {
   }
 
   private static normalizeCustomer(
-    customer: QuoteCustomerSnapshot,
+    customer: QuoteCustomerSnapshotInput,
   ): QuoteCustomerSnapshot {
     return {
       name: Quote.normalizeRequiredText(
@@ -370,12 +468,12 @@ export class Quote extends AggregateRoot<QuoteProps> {
       ),
       phone: Quote.normalizeOptionalText(customer.phone),
       cpfCnpj: Quote.normalizeOptionalText(customer.cpfCnpj),
-      address: Quote.normalizeAddress(customer.address),
+      address: Quote.normalizeAddress(customer.address ?? null),
     };
   }
 
   private static normalizeVehicle(
-    vehicle: QuoteVehicleSnapshot,
+    vehicle: QuoteVehicleSnapshotInput,
   ): QuoteVehicleSnapshot {
     if (vehicle === null) {
       return null;
@@ -386,12 +484,12 @@ export class Quote extends AggregateRoot<QuoteProps> {
       brand: Quote.normalizeOptionalText(vehicle.brand),
       model: Quote.normalizeOptionalText(vehicle.model),
       color: Quote.normalizeOptionalText(vehicle.color),
-      year: vehicle.year,
+      year: vehicle.year ?? null,
     };
   }
 
   private static normalizeAddress(
-    address: QuoteAddressSnapshot,
+    address: QuoteAddressSnapshotInput,
   ): QuoteAddressSnapshot {
     if (address === null) {
       return null;
