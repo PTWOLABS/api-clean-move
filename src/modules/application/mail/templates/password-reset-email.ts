@@ -4,6 +4,7 @@ type BuildPasswordResetEmailInput = {
   resetPath: string;
   token: string;
   logoUrl: string;
+  expiresInMinutes?: number;
 };
 
 type PasswordResetEmailContent = {
@@ -23,12 +24,17 @@ export function buildPasswordResetEmail({
   resetPath,
   token,
   logoUrl,
+  expiresInMinutes = 15,
 }: BuildPasswordResetEmailInput): PasswordResetEmailContent {
   const resetUrl = buildResetUrl(resetPath, token);
 
   return {
     subject: "Redefinição de senha",
-    html: renderPasswordResetEmailTemplate({ resetUrl, logoUrl }),
+    html: renderPasswordResetEmailTemplate({
+      resetUrl,
+      logoUrl,
+      expiresInMinutes,
+    }),
     text: [
       "Redefinição de senha — Clean Move",
       "",
@@ -41,7 +47,7 @@ export function buildPasswordResetEmail({
       "",
       "Se você não solicitou esta alteração, ignore este e-mail.",
       "Sua senha permanecerá a mesma.",
-      "Este link expira em 15 minutos.",
+      `Este link expira em ${expiresInMinutes} minutos.`,
       "",
       "Segurança: nunca compartilhe este link.",
       "Nossa equipe nunca solicitará sua senha.",

@@ -1,8 +1,5 @@
 import { UniqueEntityId } from "../../../../shared/entities/unique-entity-id";
-import {
-  MAX_FAILED_ATTEMPTS,
-  PasswordChangeConfirmationCode,
-} from "./password-change-confirmation-code";
+import { PasswordChangeConfirmationCode } from "./password-change-confirmation-code";
 
 describe("PasswordChangeConfirmationCode", () => {
   it("should report expired codes", () => {
@@ -42,9 +39,5 @@ describe("PasswordChangeConfirmationCode", () => {
     code.incrementFailedAttempts();
 
     expect(code.failedAttempts).toBe(2);
-  });
-
-  it("should expose max failed attempts constant", () => {
-    expect(MAX_FAILED_ATTEMPTS).toBe(5);
   });
 });

@@ -10,6 +10,8 @@ import { ApiBody, ApiOkResponse, ApiOperation, ApiTags } from "@nestjs/swagger";
 import { Throttle } from "@nestjs/throttler";
 import z from "zod";
 
+import { authPasswordFlowThrottle } from "../../auth/auth-password-flow-throttle.config";
+
 import { RequestPasswordResetUseCase } from "../../../modules/application/use-cases/auth/request-password-reset";
 import { Public } from "../../auth/public";
 import {
@@ -48,7 +50,7 @@ export class RequestPasswordResetController {
 
   @Post("request")
   @HttpCode(200)
-  @Throttle({ default: { limit: 5, ttl: 60 * 60 * 1000 } })
+  @Throttle({ default: authPasswordFlowThrottle.request })
   @UsePipes(new ZodValidationPipe(requestPasswordResetBodySchema))
   @ApiOperation({
     summary: "Request a password reset link by email.",

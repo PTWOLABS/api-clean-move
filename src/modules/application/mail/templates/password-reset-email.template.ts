@@ -3,11 +3,13 @@ import { renderEmailLayout } from "./shared/email-layout.template";
 type RenderPasswordResetEmailTemplateInput = {
   resetUrl: string;
   logoUrl: string;
+  expiresInMinutes: number;
 };
 
 export function renderPasswordResetEmailTemplate({
   resetUrl,
   logoUrl,
+  expiresInMinutes,
 }: RenderPasswordResetEmailTemplateInput): string {
   const bodyHtml = `<div style="display:inline-block;padding:6px 12px;border-radius:999px;background:#eff6ff;color:#1d4ed8;font-size:12px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;margin-bottom:20px;">
         Redefinição de senha
@@ -40,7 +42,7 @@ export function renderPasswordResetEmailTemplate({
               Se você não solicitou esta alteração, ignore este e-mail. Sua senha permanecerá a mesma.
             </div>
             <div style="font-size:14px;color:#334155;line-height:1.6;">
-              Este link expira em <strong style="color:#0f172a;">15 minutos</strong>.
+              Este link expira em <strong style="color:#0f172a;">${expiresInMinutes} minutos</strong>.
             </div>
           </td>
         </tr>
@@ -66,8 +68,7 @@ export function renderPasswordResetEmailTemplate({
 
   return renderEmailLayout({
     logoUrl,
-    preheader:
-      "Redefina a senha da sua conta Clean Move. O link expira em 15 minutos.",
+    preheader: `Redefina a senha da sua conta Clean Move. O link expira em ${expiresInMinutes} minutos.`,
     pageTitle: "Redefinição de Senha",
     bodyHtml,
   });

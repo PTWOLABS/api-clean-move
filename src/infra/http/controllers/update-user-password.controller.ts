@@ -20,6 +20,8 @@ import {
 import { Throttle } from "@nestjs/throttler";
 import z from "zod";
 
+import { authPasswordFlowThrottle } from "../../auth/auth-password-flow-throttle.config";
+
 import { UpdateUserPasswordUseCase } from "../../../modules/application/use-cases/user/update-user-password";
 import { InvalidUserPasswordUpdateInputError } from "../../../shared/errors/invalid-user-password-update-input-error";
 import { InvalidCurrentPasswordError } from "../../../shared/errors/invalid-current-password-error";
@@ -50,7 +52,7 @@ export class UpdateUserPasswordController {
 
   @Post("me/password")
   @HttpCode(200)
-  @Throttle({ default: { limit: 10, ttl: 15 * 60 * 1000 } })
+  @Throttle({ default: authPasswordFlowThrottle.confirm })
   @ApiOperation({
     summary:
       "Confirm and apply a local password change using the email confirmation code.",

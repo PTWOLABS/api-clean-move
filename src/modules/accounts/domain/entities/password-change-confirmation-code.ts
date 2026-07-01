@@ -1,8 +1,6 @@
 import { Entity } from "../../../../shared/entities/entity";
 import { UniqueEntityId } from "../../../../shared/entities/unique-entity-id";
 
-export const MAX_FAILED_ATTEMPTS = 5;
-
 export type PasswordChangeConfirmationCodeProps = {
   userId: UniqueEntityId;
   hashedCode: string;

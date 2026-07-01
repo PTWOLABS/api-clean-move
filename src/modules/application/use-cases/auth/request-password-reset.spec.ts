@@ -43,6 +43,10 @@ describe("Request password reset", () => {
           return "https://cdn.example.com/brand/logo.png" as Env[T];
         }
 
+        if (key === "PASSWORD_RESET_TOKEN_TTL_IN_MS") {
+          return 900_000 as Env[T];
+        }
+
         throw new Error(`Unexpected env key requested: ${String(key)}`);
       },
     };

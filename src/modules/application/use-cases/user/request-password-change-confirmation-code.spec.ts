@@ -51,6 +51,10 @@ describe("Request password change confirmation code", () => {
           return "https://cdn.example.com/logo.png";
         }
 
+        if (key === "PASSWORD_CHANGE_CONFIRMATION_CODE_TTL_IN_MS") {
+          return 900_000;
+        }
+
         throw new Error(`Unexpected env key: ${key}`);
       },
     } as EnvService;

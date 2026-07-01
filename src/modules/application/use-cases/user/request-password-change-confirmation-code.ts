@@ -16,8 +16,6 @@ import { TokenHasher } from "../../repositories/token-hasher";
 import { UsersRepository } from "../../repositories/users-repository";
 import { PasswordChangeValidator } from "../../services/password-change-validator";
 
-const DEFAULT_CODE_TTL_MS = 15 * 60 * 1000;
-
 type RequestPasswordChangeConfirmationCodeUseCaseRequest = {
   userId: string;
   newPassword: string;
@@ -69,8 +67,11 @@ export class RequestPasswordChangeConfirmationCodeUseCase {
     const plainCode = this.confirmationCodeGenerator.generate();
     const hashedCode = await this.tokenHasher.hash(plainCode);
     const pendingPasswordHash = await this.hashGenerator.hash(newPassword);
+    const codeTtlMs = this.envService.get(
+      "PASSWORD_CHANGE_CONFIRMATION_CODE_TTL_IN_MS",
+    );
     const now = new Date();
-    const expiresAt = new Date(now.getTime() + DEFAULT_CODE_TTL_MS);
+    const expiresAt = new Date(now.getTime() + codeTtlMs);
 
     const confirmationCode = PasswordChangeConfirmationCode.create({
       userId: user.id,
@@ -87,6 +88,7 @@ export class RequestPasswordChangeConfirmationCodeUseCase {
     const emailContent = buildPasswordChangeConfirmationEmail({
       confirmationCode: plainCode,
       logoUrl: this.envService.get("EMAIL_LOGO_URL"),
+      expiresInMinutes: Math.round(codeTtlMs / 60_000),
     });
 
     try {

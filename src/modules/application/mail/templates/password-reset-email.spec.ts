@@ -35,4 +35,16 @@ describe("buildPasswordResetEmail", () => {
       "https://app.example.com/reset-password?lang=pt&token=plain-reset-token",
     );
   });
+
+  it("should use custom expiration minutes when provided", () => {
+    const email = buildPasswordResetEmail({
+      resetPath: "https://app.example.com/reset-password",
+      token: "plain-reset-token",
+      logoUrl,
+      expiresInMinutes: 30,
+    });
+
+    expect(email.html).toContain("30 minutos");
+    expect(email.text).toContain("30 minutos");
+  });
 });

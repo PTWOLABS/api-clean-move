@@ -1,8 +1,6 @@
 import { Email } from "../../../accounts/domain/value-objects/email";
-import {
-  MAX_FAILED_ATTEMPTS,
-  PasswordChangeConfirmationCode,
-} from "../../../accounts/domain/entities/password-change-confirmation-code";
+import { PasswordChangeConfirmationCode } from "../../../accounts/domain/entities/password-change-confirmation-code";
+import { EnvService } from "../../../../infra/env/env.service";
 import { InvalidCurrentPasswordError } from "../../../../shared/errors/invalid-current-password-error";
 import { InvalidPasswordConfirmationCodeError } from "../../../../shared/errors/invalid-password-confirmation-code-error";
 import { InvalidUserPasswordUpdateInputError } from "../../../../shared/errors/invalid-user-password-update-input-error";
@@ -25,8 +23,11 @@ let fakeHashComparer: FakeHashComparer;
 let fakeTokenHasher: FakeTokenHasher;
 let inMemoryUnitOfWork: InMemoryUnitOfWork;
 let passwordChangeValidator: PasswordChangeValidator;
+let envService: EnvService;
 
 let sut: UpdateUserPasswordUseCase;
+
+const MAX_FAILED_ATTEMPTS = 5;
 
 describe("Update user password", () => {
   beforeEach(() => {
@@ -38,6 +39,15 @@ describe("Update user password", () => {
     fakeTokenHasher = new FakeTokenHasher();
     inMemoryUnitOfWork = new InMemoryUnitOfWork();
     passwordChangeValidator = new PasswordChangeValidator(fakeHashComparer);
+    envService = {
+      get: (key: string) => {
+        if (key === "PASSWORD_CONFIRMATION_CODE_MAX_FAILED_ATTEMPTS") {
+          return MAX_FAILED_ATTEMPTS;
+        }
+
+        throw new Error(`Unexpected env key: ${key}`);
+      },
+    } as EnvService;
 
     sut = new UpdateUserPasswordUseCase(
       inMemoryUsersRepository,
@@ -47,6 +57,7 @@ describe("Update user password", () => {
       fakeTokenHasher,
       passwordChangeValidator,
       inMemoryUnitOfWork,
+      envService,
     );
   });
 

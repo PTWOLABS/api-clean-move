@@ -1,12 +1,12 @@
 import { Injectable } from "@nestjs/common";
 
+import { EnvService } from "../../../../infra/env/env.service";
 import { Either, left, right } from "../../../../shared/either";
 import { InvalidCurrentPasswordError } from "../../../../shared/errors/invalid-current-password-error";
 import { InvalidPasswordConfirmationCodeError } from "../../../../shared/errors/invalid-password-confirmation-code-error";
 import { InvalidUserPasswordUpdateInputError } from "../../../../shared/errors/invalid-user-password-update-input-error";
 import { ResourceNotFoundError } from "../../../../shared/errors/resource-not-found-error";
 import { SamePasswordError } from "../../../../shared/errors/same-password-error";
-import { MAX_FAILED_ATTEMPTS } from "../../../accounts/domain/entities/password-change-confirmation-code";
 import { User } from "../../../accounts/domain/entities/user";
 import { HashComparer } from "../../repositories/hash-comparer";
 import { HashGenerator } from "../../repositories/hash-generator";
@@ -42,6 +42,7 @@ export class UpdateUserPasswordUseCase {
     private tokenHasher: TokenHasher,
     private passwordChangeValidator: PasswordChangeValidator,
     private unitOfWork: UnitOfWork,
+    private readonly envService: EnvService,
   ) {}
 
   async execute({
@@ -97,7 +98,10 @@ export class UpdateUserPasswordUseCase {
       storedCode.incrementFailedAttempts();
       await this.passwordChangeConfirmationCodesRepository.upsert(storedCode);
 
-      if (storedCode.failedAttempts >= MAX_FAILED_ATTEMPTS) {
+      if (
+        storedCode.failedAttempts >=
+        this.envService.get("PASSWORD_CONFIRMATION_CODE_MAX_FAILED_ATTEMPTS")
+      ) {
         await this.passwordChangeConfirmationCodesRepository.deleteByUserId(
           userId,
         );
