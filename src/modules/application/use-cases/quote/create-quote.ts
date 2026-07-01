@@ -214,6 +214,12 @@ export class CreateQuoteUseCase {
       VehicleSnapshotResult
     >
   > {
+    if (request.vehicleId !== undefined && request.vehicle !== undefined) {
+      return left(
+        new InvalidQuoteInputError("Provide either vehicleId or vehicle."),
+      );
+    }
+
     if (request.vehicleId && !customerId) {
       return left(
         new InvalidQuoteInputError(
@@ -246,17 +252,34 @@ export class CreateQuoteUseCase {
       });
     }
 
+    if (request.vehicleId === null || request.vehicle === null) {
+      return left(new InvalidQuoteInputError("vehicle is required."));
+    }
+
+    if (!request.vehicle) {
+      return left(new InvalidQuoteInputError("vehicle is required."));
+    }
+
+    const brand = request.vehicle.brand?.trim();
+    const model = request.vehicle.model?.trim();
+
+    if (!brand || !model) {
+      return left(
+        new InvalidQuoteInputError(
+          "vehicle.brand and vehicle.model are required.",
+        ),
+      );
+    }
+
     return right({
       vehicleId: null,
-      vehicle: request.vehicle
-        ? {
-            plate: request.vehicle.plate ?? null,
-            brand: request.vehicle.brand ?? null,
-            model: request.vehicle.model ?? null,
-            color: request.vehicle.color ?? null,
-            year: request.vehicle.year ?? null,
-          }
-        : null,
+      vehicle: {
+        plate: request.vehicle.plate ?? null,
+        brand,
+        model,
+        color: request.vehicle.color ?? null,
+        year: request.vehicle.year ?? null,
+      },
     });
   }
 

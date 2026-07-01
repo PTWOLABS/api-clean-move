@@ -28,6 +28,11 @@ let usersRepository: InMemoryUsersRepository;
 let establishmentScope: EstablishmentScopeService;
 let sut: CreateQuoteUseCase;
 
+const requiredVehicle = {
+  brand: "Honda",
+  model: "HR-V",
+};
+
 describe("Create quote", () => {
   beforeEach(() => {
     quotesRepository = new InMemoryQuotesRepository();
@@ -66,7 +71,7 @@ describe("Create quote", () => {
     const result = await sut.execute({
       actor: { userId: owner.id.toString(), role: "ESTABLISHMENT" },
       customer: { name: "Robertinho Contador" },
-      vehicle: { model: "HR-V", year: 2025, color: "Branco" },
+      vehicle: { ...requiredVehicle, year: 2025, color: "Branco" },
       serviceItems: [{ serviceId: service.id.toString() }],
       paymentOptions: [
         {
@@ -162,6 +167,7 @@ describe("Create quote", () => {
       customer: {
         name: "Cliente Orcamento",
       },
+      vehicle: requiredVehicle,
       serviceItems: [{ serviceId: service.id.toString() }],
       paymentOptions: [
         {
@@ -189,6 +195,7 @@ describe("Create quote", () => {
     const result = await sut.execute({
       actor: { userId: owner.id.toString(), role: "ESTABLISHMENT" },
       customer: { name: " " },
+      vehicle: requiredVehicle,
       serviceItems: [{ serviceId: service.id.toString() }],
       paymentOptions: [
         {
@@ -217,6 +224,7 @@ describe("Create quote", () => {
     const result = await sut.execute({
       actor: { userId: owner.id.toString(), role: "ESTABLISHMENT" },
       customer: { name: "Robertinho Contador" },
+      vehicle: requiredVehicle,
       serviceItems: [{ serviceId: service.id.toString() }],
       paymentOptions: [
         {
@@ -249,6 +257,7 @@ describe("Create quote", () => {
     const result = await sut.execute({
       actor: { userId: owner.id.toString(), role: "ESTABLISHMENT" },
       customerId: customer.id.toString(),
+      vehicle: requiredVehicle,
       serviceItems: [{ serviceId: service.id.toString() }],
       paymentOptions: [
         {
@@ -279,6 +288,65 @@ describe("Create quote", () => {
       actor: { userId: owner.id.toString(), role: "ESTABLISHMENT" },
       customer: { name: "Robertinho Contador" },
       vehicleId: "vehicle-id",
+      serviceItems: [{ serviceId: service.id.toString() }],
+      paymentOptions: [
+        {
+          method: "PIX",
+          label: "A vista no Pix",
+          installments: 1,
+          interestFree: true,
+          discountType: null,
+          discountValue: null,
+        },
+      ],
+    });
+
+    expect(result.isLeft()).toBe(true);
+    expect(result.value).toBeInstanceOf(InvalidQuoteInputError);
+  });
+
+  it("should reject a quote without vehicle data", async () => {
+    const owner = makeUser("ESTABLISHMENT");
+    const establishment = makeEstablishment({ ownerId: owner.id });
+    const service = makeService({ establishmentId: establishment.id });
+
+    await usersRepository.create(owner);
+    await establishmentsRepository.create(establishment);
+    await servicesRepository.create(service);
+
+    const result = await sut.execute({
+      actor: { userId: owner.id.toString(), role: "ESTABLISHMENT" },
+      customer: { name: "Robertinho Contador" },
+      serviceItems: [{ serviceId: service.id.toString() }],
+      paymentOptions: [
+        {
+          method: "PIX",
+          label: "A vista no Pix",
+          installments: 1,
+          interestFree: true,
+          discountType: null,
+          discountValue: null,
+        },
+      ],
+    });
+
+    expect(result.isLeft()).toBe(true);
+    expect(result.value).toBeInstanceOf(InvalidQuoteInputError);
+  });
+
+  it("should reject vehicle data without brand and model", async () => {
+    const owner = makeUser("ESTABLISHMENT");
+    const establishment = makeEstablishment({ ownerId: owner.id });
+    const service = makeService({ establishmentId: establishment.id });
+
+    await usersRepository.create(owner);
+    await establishmentsRepository.create(establishment);
+    await servicesRepository.create(service);
+
+    const result = await sut.execute({
+      actor: { userId: owner.id.toString(), role: "ESTABLISHMENT" },
+      customer: { name: "Robertinho Contador" },
+      vehicle: { brand: "Honda" },
       serviceItems: [{ serviceId: service.id.toString() }],
       paymentOptions: [
         {
@@ -349,6 +417,7 @@ describe("Create quote", () => {
     const result = await sut.execute({
       actor: { userId: owner.id.toString(), role: "ESTABLISHMENT" },
       customer: { name: "Robertinho Contador" },
+      vehicle: requiredVehicle,
       serviceItems: [{ serviceId: service.id.toString() }],
       paymentOptions: [
         {
@@ -379,6 +448,7 @@ describe("Create quote", () => {
     const result = await sut.execute({
       actor: { userId: owner.id.toString(), role: "ESTABLISHMENT" },
       customer: { name: "Robertinho Contador" },
+      vehicle: requiredVehicle,
       serviceItems: [{ serviceId: service.id.toString() }],
       paymentOptions: [
         {
@@ -410,6 +480,7 @@ describe("Create quote", () => {
     const result = await sut.execute({
       actor: { userId: owner.id.toString(), role: "ESTABLISHMENT" },
       customer: { name: "Robertinho Contador" },
+      vehicle: requiredVehicle,
       serviceItems: [{ serviceId: service.id.toString() }],
       paymentOptions: [
         {
@@ -447,6 +518,7 @@ describe("Create quote", () => {
     const result = await sut.execute({
       actor: { userId: owner.id.toString(), role: "ESTABLISHMENT" },
       customer: { name: "Robertinho Contador" },
+      vehicle: requiredVehicle,
       serviceItems: [{ serviceId: service.id.toString() }],
       paymentOptions: [
         {
