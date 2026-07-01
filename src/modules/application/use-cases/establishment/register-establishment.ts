@@ -144,12 +144,12 @@ export class RegisterEstablishmentUseCase {
       address,
     };
 
-    const user = User.create(userInputValues);
-
     let establishment: Establishment;
+    let user: User;
 
     try {
       await this.unitOfWork.execute(async () => {
+        user = User.register(userInputValues);
         establishment = Establishment.register({
           ownerId: user.id,
           cnpj,

@@ -73,19 +73,21 @@ export class AuthenticateWithOAuthUseCase {
 
     const role = roleForNewUser ?? "CUSTOMER";
 
-    const user = User.create({
-      name: displayName,
-      email,
-      hashedPassword: null,
-      role,
-      profileImageUrl: null,
-      phone: null,
-      address: null,
-      socialAccounts: [{ provider, subjectId }],
-    });
+    let user: User;
 
     if (role === "ESTABLISHMENT") {
       await this.unitOfWork.execute(async () => {
+        user = User.register({
+          name: displayName,
+          email,
+          hashedPassword: null,
+          role,
+          profileImageUrl: null,
+          phone: null,
+          address: null,
+          socialAccounts: [{ provider, subjectId }],
+        });
+
         const establishment = Establishment.createOAuthDraft({
           ownerId: user.id,
         });
@@ -94,9 +96,22 @@ export class AuthenticateWithOAuthUseCase {
         await this.establishmentsRepository.create(establishment);
       });
     } else {
-      await this.usersRepository.create(user);
+      await this.unitOfWork.execute(async () => {
+        user = User.register({
+          name: displayName,
+          email,
+          hashedPassword: null,
+          role,
+          profileImageUrl: null,
+          phone: null,
+          address: null,
+          socialAccounts: [{ provider, subjectId }],
+        });
+
+        await this.usersRepository.create(user);
+      });
     }
 
-    return right({ user });
+    return right({ user: user! });
   }
 }

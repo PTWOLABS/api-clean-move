@@ -17,8 +17,6 @@ import {
   PasswordResetAuditLogger,
 } from "../../services/password-reset-audit-logger";
 
-const DEFAULT_TOKEN_TTL_MS = 15 * 60 * 1000;
-
 type RequestPasswordResetUseCaseRequest = {
   email: string;
 } & PasswordResetAuditContext;
@@ -75,8 +73,9 @@ export class RequestPasswordResetUseCase {
 
     const plainToken = this.resetTokenGenerator.generate();
     const hashedToken = await this.tokenHasher.hash(plainToken);
+    const tokenTtlMs = this.envService.get("PASSWORD_RESET_TOKEN_TTL_IN_MS");
     const now = new Date();
-    const expiresAt = new Date(now.getTime() + DEFAULT_TOKEN_TTL_MS);
+    const expiresAt = new Date(now.getTime() + tokenTtlMs);
 
     const token = PasswordResetToken.create({
       userId: user.id,
@@ -89,6 +88,8 @@ export class RequestPasswordResetUseCase {
     const emailContent = buildPasswordResetEmail({
       resetPath: this.envService.get("PASSWORD_RESET_PATH"),
       token: plainToken,
+      logoUrl: this.envService.get("EMAIL_LOGO_URL"),
+      expiresInMinutes: Math.round(tokenTtlMs / 60_000),
     });
 
     await this.emailSender.send({

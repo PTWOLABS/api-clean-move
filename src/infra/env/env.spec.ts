@@ -35,6 +35,7 @@ function baseEnv(
     AWS_REGION: "auto",
     AWS_S3_BUCKET: "my-bucket",
     AWS_S3_PUBLIC_BASE_URL: "https://cdn.example.com",
+    EMAIL_LOGO_URL: "https://cdn.example.com/brand/logo.png",
     PASSWORD_RESET_PATH: "https://app.example.com/reset-password",
     ...overrides,
   };
@@ -294,6 +295,54 @@ describe("envSchema", () => {
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.AWS_S3_ENDPOINT).toBeUndefined();
+    }
+  });
+
+  it("should apply default password flow configuration", () => {
+    const result = envSchema.safeParse(baseEnv());
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.PASSWORD_CHANGE_CONFIRMATION_CODE_TTL_IN_MS).toBe(
+        900_000,
+      );
+      expect(result.data.PASSWORD_RESET_TOKEN_TTL_IN_MS).toBe(900_000);
+      expect(result.data.PASSWORD_CONFIRMATION_CODE_MAX_FAILED_ATTEMPTS).toBe(
+        5,
+      );
+      expect(result.data.AUTH_PASSWORD_FLOW_REQUEST_LIMIT).toBe(5);
+      expect(result.data.AUTH_PASSWORD_FLOW_REQUEST_TTL_IN_MS).toBe(3_600_000);
+      expect(result.data.AUTH_PASSWORD_FLOW_CONFIRM_LIMIT).toBe(10);
+      expect(result.data.AUTH_PASSWORD_FLOW_CONFIRM_TTL_IN_MS).toBe(900_000);
+    }
+  });
+
+  it("should allow overriding password flow configuration", () => {
+    const result = envSchema.safeParse(
+      baseEnv({
+        PASSWORD_CHANGE_CONFIRMATION_CODE_TTL_IN_MS: "600000",
+        PASSWORD_RESET_TOKEN_TTL_IN_MS: "1200000",
+        PASSWORD_CONFIRMATION_CODE_MAX_FAILED_ATTEMPTS: "3",
+        AUTH_PASSWORD_FLOW_REQUEST_LIMIT: "2",
+        AUTH_PASSWORD_FLOW_REQUEST_TTL_IN_MS: "1800000",
+        AUTH_PASSWORD_FLOW_CONFIRM_LIMIT: "4",
+        AUTH_PASSWORD_FLOW_CONFIRM_TTL_IN_MS: "300000",
+      }),
+    );
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.PASSWORD_CHANGE_CONFIRMATION_CODE_TTL_IN_MS).toBe(
+        600_000,
+      );
+      expect(result.data.PASSWORD_RESET_TOKEN_TTL_IN_MS).toBe(1_200_000);
+      expect(result.data.PASSWORD_CONFIRMATION_CODE_MAX_FAILED_ATTEMPTS).toBe(
+        3,
+      );
+      expect(result.data.AUTH_PASSWORD_FLOW_REQUEST_LIMIT).toBe(2);
+      expect(result.data.AUTH_PASSWORD_FLOW_REQUEST_TTL_IN_MS).toBe(1_800_000);
+      expect(result.data.AUTH_PASSWORD_FLOW_CONFIRM_LIMIT).toBe(4);
+      expect(result.data.AUTH_PASSWORD_FLOW_CONFIRM_TTL_IN_MS).toBe(300_000);
     }
   });
 });

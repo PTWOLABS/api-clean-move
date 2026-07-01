@@ -11,6 +11,7 @@ import { ServicesRepository } from "../../modules/application/repositories/servi
 import { UnitOfWork } from "../../modules/application/repositories/unit-of-work";
 import { UsersRepository } from "../../modules/application/repositories/users-repository";
 import { PasswordResetTokensRepository } from "../../modules/application/repositories/password-reset-tokens-repository";
+import { PasswordChangeConfirmationCodesRepository } from "../../modules/application/repositories/password-change-confirmation-codes-repository";
 import { EnvModule } from "../env/env.module";
 import { PrismaAppointmentsRepository } from "./prisma/repositories/prisma-appointments-repository";
 import { PrismaService } from "./prisma/prisma.service";
@@ -26,6 +27,7 @@ import { PrismaUnitOfWork } from "./prisma/prisma-unit-of-work";
 import { SessionsRepository } from "../../modules/application/repositories/sessions-repository";
 import { PrismaSessionsRepository } from "./prisma/repositories/prisma-sessions-repository";
 import { PrismaPasswordResetTokensRepository } from "./prisma/repositories/prisma-password-reset-tokens-repository";
+import { PrismaPasswordChangeConfirmationCodesRepository } from "./prisma/repositories/prisma-password-change-confirmation-codes-repository";
 
 @Global()
 @Module({
@@ -80,6 +82,10 @@ import { PrismaPasswordResetTokensRepository } from "./prisma/repositories/prism
       provide: PasswordResetTokensRepository,
       useClass: PrismaPasswordResetTokensRepository,
     },
+    {
+      provide: PasswordChangeConfirmationCodesRepository,
+      useClass: PrismaPasswordChangeConfirmationCodesRepository,
+    },
   ],
   exports: [
     PrismaService,
@@ -88,6 +94,7 @@ import { PrismaPasswordResetTokensRepository } from "./prisma/repositories/prism
     UsersRepository,
     SessionsRepository,
     PasswordResetTokensRepository,
+    PasswordChangeConfirmationCodesRepository,
     CustomersRepository,
     CustomerVehiclesRepository,
     ServiceCategoriesRepository,

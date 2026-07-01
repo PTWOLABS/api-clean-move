@@ -72,6 +72,41 @@ export const envSchema = z
     JWT_REFRESH_SECRET: nonEmptyStringSchema.min(32),
     JWT_ACCESS_EXPIRES_IN: jwtExpiresInSchema.default("15m"),
     REFRESH_TOKEN_TTL_IN_MS: z.coerce.number().int().positive(),
+    PASSWORD_CHANGE_CONFIRMATION_CODE_TTL_IN_MS: z.coerce
+      .number()
+      .int()
+      .positive()
+      .default(900_000),
+    PASSWORD_RESET_TOKEN_TTL_IN_MS: z.coerce
+      .number()
+      .int()
+      .positive()
+      .default(900_000),
+    PASSWORD_CONFIRMATION_CODE_MAX_FAILED_ATTEMPTS: z.coerce
+      .number()
+      .int()
+      .positive()
+      .default(5),
+    AUTH_PASSWORD_FLOW_REQUEST_LIMIT: z.coerce
+      .number()
+      .int()
+      .positive()
+      .default(5),
+    AUTH_PASSWORD_FLOW_REQUEST_TTL_IN_MS: z.coerce
+      .number()
+      .int()
+      .positive()
+      .default(3_600_000),
+    AUTH_PASSWORD_FLOW_CONFIRM_LIMIT: z.coerce
+      .number()
+      .int()
+      .positive()
+      .default(10),
+    AUTH_PASSWORD_FLOW_CONFIRM_TTL_IN_MS: z.coerce
+      .number()
+      .int()
+      .positive()
+      .default(900_000),
     AWS_REGION: nonEmptyStringSchema,
     AWS_S3_BUCKET: nonEmptyStringSchema,
     AWS_S3_PUBLIC_BASE_URL: s3PublicBaseUrlSchema,
@@ -84,6 +119,7 @@ export const envSchema = z
     ),
     RESEND_API_KEY: optionalNonEmptyStringSchema,
     RESEND_FROM_EMAIL: optionalNonEmptyStringSchema,
+    EMAIL_LOGO_URL: z.url(),
     PASSWORD_RESET_PATH: z.url(),
   })
   .superRefine(

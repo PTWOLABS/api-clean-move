@@ -2,6 +2,7 @@ import { AggregateRoot } from "../../../../shared/entities/aggregate-root";
 import { UniqueEntityId } from "../../../../shared/entities/unique-entity-id";
 import { Optional } from "../../../../shared/types/optional";
 import { UserPasswordChangedEvent } from "../events/user-password-changed-event";
+import { UserRegisteredEvent } from "../events/user-registered-event";
 import { ProfileAlreadyCompleteError } from "../errors/profile-already-complete-error";
 import { Address, AddressCreateInput } from "../value-objects/address";
 import { Email } from "../value-objects/email";
@@ -188,6 +189,31 @@ export class User extends AggregateRoot<UserProps> {
     );
 
     return user;
+  }
+
+  static register(
+    props: Optional<
+      UserProps,
+      "createdAt" | "updatedAt" | "socialAccounts" | "profileImageUrl"
+    >,
+    id?: UniqueEntityId,
+  ) {
+    const user = User.create(props, id);
+
+    user.addDomainEvent(new UserRegisteredEvent(user));
+
+    return user;
+  }
+
+  static restore(props: UserProps, id?: UniqueEntityId) {
+    return new User(
+      {
+        ...props,
+        profileImageUrl: User.normalizeOptionalText(props.profileImageUrl),
+        socialAccounts: props.socialAccounts ?? [],
+      },
+      id,
+    );
   }
 
   private static normalizeOptionalText(value: string | null | undefined) {

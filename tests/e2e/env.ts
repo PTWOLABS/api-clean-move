@@ -50,6 +50,7 @@ export function configureE2EEnv(): E2EEnvironment {
   process.env.AWS_S3_PUBLIC_BASE_URL ??= "http://localhost:4566/clean-move";
   process.env.CORS_ALLOWED_ORIGINS ??= "http://localhost:3000";
   process.env.FRONTEND_URL ??= "http://localhost:3000";
+  process.env.EMAIL_LOGO_URL ??= "http://localhost:3000/logo.png";
   process.env.PASSWORD_RESET_PATH ??= "http://localhost:3000/reset-password";
   process.env.JWT_ACCESS_SECRET ??=
     "test-access-secret-with-at-least-32-characters";

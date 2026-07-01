@@ -35,6 +35,8 @@ jobs:
       AWS_REGION: us-east-1
       AWS_S3_BUCKET: test-upload-bucket
       AWS_S3_PUBLIC_BASE_URL: https://cdn.test.example
+      EMAIL_LOGO_URL: https://cdn.test.example/brand/logo.png
+      PASSWORD_RESET_PATH: http://localhost:3000/reset-password
     steps:
       - uses: actions/checkout@v4
 
@@ -68,6 +70,8 @@ jobs:
       AWS_REGION: us-east-1
       AWS_S3_BUCKET: test-upload-bucket
       AWS_S3_PUBLIC_BASE_URL: https://cdn.test.example
+      EMAIL_LOGO_URL: https://cdn.test.example/brand/logo.png
+      PASSWORD_RESET_PATH: http://localhost:3000/reset-password
     steps:
       - uses: actions/checkout@v4
 
@@ -97,6 +101,8 @@ jobs:
           AWS_REGION=${AWS_REGION}
           AWS_S3_BUCKET=${AWS_S3_BUCKET}
           AWS_S3_PUBLIC_BASE_URL=${AWS_S3_PUBLIC_BASE_URL}
+          EMAIL_LOGO_URL=${EMAIL_LOGO_URL}
+          PASSWORD_RESET_PATH=${PASSWORD_RESET_PATH}
           EOF
 
       - name: Start Postgres with Docker Compose

@@ -49,7 +49,11 @@ describe("Reset password with token", () => {
     envService = {
       get<T extends keyof Env>(key: T): Env[T] {
         if (key === "FRONTEND_URL") {
-          return "https://app.example.com/login" as Env[T];
+          return "https://app.example.com" as Env[T];
+        }
+
+        if (key === "EMAIL_LOGO_URL") {
+          return "https://cdn.example.com/brand/logo.png" as Env[T];
         }
 
         throw new Error(`Unexpected env key requested: ${String(key)}`);

@@ -1,5 +1,8 @@
+import { renderPasswordChangedEmailTemplate } from "./password-changed-email.template";
+
 type BuildPasswordChangedEmailInput = {
   loginUrl: string;
+  logoUrl: string;
 };
 
 type PasswordChangedEmailContent = {
@@ -10,18 +13,26 @@ type PasswordChangedEmailContent = {
 
 export function buildPasswordChangedEmail({
   loginUrl,
+  logoUrl,
 }: BuildPasswordChangedEmailInput): PasswordChangedEmailContent {
   return {
     subject: "Sua senha foi alterada",
-    html: `
-      <p>Sua senha foi alterada com sucesso.</p>
-      <p>Se você não realizou essa alteração, entre em contato com o suporte imediatamente.</p>
-      <p><a href="${loginUrl}">Acessar o login</a></p>
-    `.trim(),
+    html: renderPasswordChangedEmailTemplate({ loginUrl, logoUrl }),
     text: [
-      "Sua senha foi alterada com sucesso.",
+      "Senha alterada — Clean Move",
+      "",
+      "Olá,",
+      "",
+      "Sua senha foi alterada com sucesso. Você já pode acessar sua conta com a nova senha.",
+      "",
+      `Acessar minha conta: ${loginUrl}`,
+      "",
       "Se você não realizou essa alteração, entre em contato com o suporte imediatamente.",
-      `Acesse o login: ${loginUrl}`,
+      "",
+      "Nossa equipe nunca solicitará sua senha por e-mail ou telefone.",
+      "",
+      "Atenciosamente,",
+      "Equipe Clean Move",
     ].join("\n"),
   };
 }

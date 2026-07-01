@@ -17,6 +17,8 @@ import {
 import { Throttle } from "@nestjs/throttler";
 import z from "zod";
 
+import { authPasswordFlowThrottle } from "../../auth/auth-password-flow-throttle.config";
+
 import { ResetPasswordWithTokenUseCase } from "../../../modules/application/use-cases/auth/reset-password-with-token";
 import { Public } from "../../auth/public";
 import {
@@ -56,7 +58,7 @@ export class ResetPasswordWithTokenController {
 
   @Post("confirm")
   @HttpCode(200)
-  @Throttle({ default: { limit: 10, ttl: 15 * 60 * 1000 } })
+  @Throttle({ default: authPasswordFlowThrottle.confirm })
   @UsePipes(new ZodValidationPipe(resetPasswordWithTokenBodySchema))
   @ApiOperation({
     summary: "Reset the account password using a valid reset token.",

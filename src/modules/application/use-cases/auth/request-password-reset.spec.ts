@@ -39,6 +39,14 @@ describe("Request password reset", () => {
           return "https://app.example.com/reset-password" as Env[T];
         }
 
+        if (key === "EMAIL_LOGO_URL") {
+          return "https://cdn.example.com/brand/logo.png" as Env[T];
+        }
+
+        if (key === "PASSWORD_RESET_TOKEN_TTL_IN_MS") {
+          return 900_000 as Env[T];
+        }
+
         throw new Error(`Unexpected env key requested: ${String(key)}`);
       },
     };

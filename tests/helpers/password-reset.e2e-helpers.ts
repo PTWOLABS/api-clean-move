@@ -24,3 +24,20 @@ export function extractPasswordResetTokenFromEmail(html: string): string {
 
   return decodeURIComponent(match[1]);
 }
+
+export function extractPasswordChangeConfirmationCodeFromEmail(
+  html: string,
+): string {
+  const match = /data-confirmation-code="(\d{6})"/.exec(html);
+
+  if (!match?.[1]) {
+    throw new Error(
+      "Expected password change confirmation code in email HTML.",
+    );
+  }
+
+  return match[1];
+}
+
+export const passwordChangeConfirmationCodeSentMessage =
+  "We sent a confirmation code to your email.";
