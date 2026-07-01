@@ -6,9 +6,7 @@ import { InvalidPasswordConfirmationCodeError } from "../../../../shared/errors/
 import { InvalidUserPasswordUpdateInputError } from "../../../../shared/errors/invalid-user-password-update-input-error";
 import { ResourceNotFoundError } from "../../../../shared/errors/resource-not-found-error";
 import { SamePasswordError } from "../../../../shared/errors/same-password-error";
-import {
-  MAX_FAILED_ATTEMPTS,
-} from "../../../accounts/domain/entities/password-change-confirmation-code";
+import { MAX_FAILED_ATTEMPTS } from "../../../accounts/domain/entities/password-change-confirmation-code";
 import { User } from "../../../accounts/domain/entities/user";
 import { HashComparer } from "../../repositories/hash-comparer";
 import { HashGenerator } from "../../repositories/hash-generator";

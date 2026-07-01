@@ -67,7 +67,9 @@ describe("Send welcome email on user registered", () => {
     expect(fakeEmailSender.sent[0]?.to).toBe("maria@example.com");
     expect(fakeEmailSender.sent[0]?.subject).toBe("Bem-vindo(a) à Clean Move");
     expect(fakeEmailSender.sent[0]?.html).toContain("Olá, Maria");
-    expect(fakeEmailSender.sent[0]?.html).toContain("https://app.example.com");
+    expect(fakeEmailSender.sent[0]?.html).toContain(
+      "https://app.example.com/login",
+    );
   });
 
   it("should not send welcome email for employee registration", async () => {

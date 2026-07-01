@@ -6,25 +6,25 @@ describe("buildWelcomeEmail", () => {
   it("should include personalized greeting, login url and branding", () => {
     const email = buildWelcomeEmail({
       userName: "Maria Silva",
-      loginUrl: "https://app.example.com",
+      loginUrl: "https://app.example.com/login",
       logoUrl,
     });
 
     expect(email.subject).toBe("Bem-vindo(a) à Clean Move");
-    expect(email.html).toContain(`href="https://app.example.com"`);
+    expect(email.html).toContain(`href="https://app.example.com/login"`);
     expect(email.html).toContain(`src="${logoUrl}"`);
     expect(email.html).toContain("Olá, Maria");
     expect(email.html).toContain("Boas-vindas");
     expect(email.html).toContain("Acessar minha conta");
     expect(email.text).toContain("Olá, Maria");
-    expect(email.text).toContain("https://app.example.com");
+    expect(email.text).toContain("https://app.example.com/login");
     expect(email.text).toContain("Equipe Clean Move");
   });
 
   it("should fallback to full name when first name is unavailable", () => {
     const email = buildWelcomeEmail({
       userName: "   ",
-      loginUrl: "https://app.example.com",
+      loginUrl: "https://app.example.com/login",
       logoUrl,
     });
 
@@ -35,7 +35,7 @@ describe("buildWelcomeEmail", () => {
   it("should escape html in the user name", () => {
     const email = buildWelcomeEmail({
       userName: "<script>alert(1)</script> Silva",
-      loginUrl: "https://app.example.com",
+      loginUrl: "https://app.example.com/login",
       logoUrl,
     });
 

@@ -157,7 +157,7 @@ describe("Welcome email (e2e)", () => {
     );
     expect(capturingEmailSender.sent[0]?.html).toContain("Olá, Maria");
     expect(capturingEmailSender.sent[0]?.html).toContain(
-      `href="${envService.get("FRONTEND_URL")}"`,
+      `href="${new URL("/login", envService.get("FRONTEND_URL")).toString()}"`,
     );
     expect(capturingEmailSender.sent[0]?.text).toContain("Equipe Clean Move");
   });

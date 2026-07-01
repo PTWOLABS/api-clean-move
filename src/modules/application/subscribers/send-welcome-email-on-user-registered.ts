@@ -41,7 +41,10 @@ export class SendWelcomeEmailOnUserRegistered implements OnModuleDestroy {
 
     const emailContent = buildWelcomeEmail({
       userName: user.name,
-      loginUrl: this.envService.get("FRONTEND_URL"),
+      loginUrl: new URL(
+        "/login",
+        this.envService.get("FRONTEND_URL"),
+      ).toString(),
       logoUrl: this.envService.get("EMAIL_LOGO_URL"),
     });
 

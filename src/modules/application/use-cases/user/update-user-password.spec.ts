@@ -116,9 +116,9 @@ describe("Update user password", () => {
 
     expect(result.isLeft()).toBe(true);
     expect(result.value).toBeInstanceOf(InvalidPasswordConfirmationCodeError);
-    expect(
-      inMemoryConfirmationCodesRepository.items[0]?.failedAttempts,
-    ).toBe(1);
+    expect(inMemoryConfirmationCodesRepository.items[0]?.failedAttempts).toBe(
+      1,
+    );
   });
 
   it("should reject expired confirmation code without incrementing failed attempts", async () => {
@@ -146,9 +146,9 @@ describe("Update user password", () => {
 
     expect(result.isLeft()).toBe(true);
     expect(result.value).toBeInstanceOf(InvalidPasswordConfirmationCodeError);
-    expect(
-      inMemoryConfirmationCodesRepository.items[0]?.failedAttempts,
-    ).toBe(0);
+    expect(inMemoryConfirmationCodesRepository.items[0]?.failedAttempts).toBe(
+      0,
+    );
   });
 
   it("should delete confirmation code after max failed attempts", async () => {
