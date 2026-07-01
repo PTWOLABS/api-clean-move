@@ -49,7 +49,7 @@ describe("Reset password with token", () => {
     envService = {
       get<T extends keyof Env>(key: T): Env[T] {
         if (key === "FRONTEND_URL") {
-          return "https://app.example.com/login" as Env[T];
+          return "https://app.example.com" as Env[T];
         }
 
         if (key === "EMAIL_LOGO_URL") {
