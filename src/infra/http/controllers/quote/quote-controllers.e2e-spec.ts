@@ -323,6 +323,129 @@ describe("Quote controllers (e2e)", () => {
     });
   });
 
+  it("should update a quote through PATCH /quotes/:quoteId", async () => {
+    const { accessToken, establishment } = await makeEstablishmentAccessToken({
+      app,
+      prisma,
+      userFactory,
+      establishmentFactory,
+      envService,
+    });
+    const customer = await customerFactory.makePrismaCustomer({
+      establishmentId: establishment.id,
+      fullName: "Cliente Patch",
+    });
+    const service = await serviceFactory.makePrismaService({
+      establishmentId: establishment.id,
+      serviceName: ServiceName.create("Servico Patch"),
+    });
+    const quoteResponse = await request(getHttpServer(app))
+      .post("/quotes")
+      .set("Authorization", `Bearer ${accessToken}`)
+      .send({
+        customer: { name: "Prospect Patch" },
+        vehicle: {
+          brand: "Honda",
+          model: "Civic",
+        },
+        serviceItems: [{ serviceId: service.id.toString() }],
+        paymentOptions: [{ method: "PIX", label: "Pix", installments: 1 }],
+        expiresAt: new Date(Date.now() + 86400000).toISOString(),
+      });
+    const quoteBody = quoteResponseSchema.parse(quoteResponse.body);
+
+    const updateResponse = await request(getHttpServer(app))
+      .patch(`/quotes/${quoteBody.quote.id}`)
+      .set("Authorization", `Bearer ${accessToken}`)
+      .send({
+        customerId: customer.id.toString(),
+        vehicle: {
+          plate: "abc1d23",
+          brand: "Toyota",
+          model: "Corolla",
+          color: "Prata",
+          year: 2024,
+        },
+        serviceItems: [{ serviceId: service.id.toString(), isCourtesy: true }],
+        paymentOptions: [
+          {
+            method: "CARD",
+            label: "Cartao",
+            installments: 2,
+            interestFree: true,
+          },
+        ],
+        description: "Descricao atualizada",
+        termsAndConditions: "Condicoes atualizadas",
+      });
+    const updateBody = quoteResponseSchema.parse(updateResponse.body);
+
+    expect(updateResponse.status).toBe(200);
+    expect(updateBody.quote.customerId).toBe(customer.id.toString());
+    expect(updateBody.quote.customer.name).toBe("Cliente Patch");
+    expect(updateBody.quote.vehicleId).toBeNull();
+    expect(updateBody.quote.vehicle).toMatchObject({
+      plate: "abc1d23",
+      brand: "Toyota",
+      model: "Corolla",
+      color: "Prata",
+      year: 2024,
+    });
+    expect(updateBody.quote.services[0]).toMatchObject({
+      id: service.id.toString(),
+      isCourtesy: true,
+    });
+    expect(updateBody.quote.subtotalInCents).toBe(0);
+    expect(updateBody.quote.totalCourtesyValueInCents).toBeGreaterThan(0);
+    expect(updateBody.quote.paymentOptions[0]?.totalInCents).toBe(0);
+    expect(updateBody.quote.description).toBe("Descricao atualizada");
+    expect(updateBody.quote.termsAndConditions).toBe("Condicoes atualizadas");
+  });
+
+  it("should reject quote update with customer object when quote has customerId", async () => {
+    const { accessToken, establishment } = await makeEstablishmentAccessToken({
+      app,
+      prisma,
+      userFactory,
+      establishmentFactory,
+      envService,
+    });
+    const customer = await customerFactory.makePrismaCustomer({
+      establishmentId: establishment.id,
+      fullName: "Cliente Bloqueado",
+    });
+    const service = await serviceFactory.makePrismaService({
+      establishmentId: establishment.id,
+    });
+    const quoteResponse = await request(getHttpServer(app))
+      .post("/quotes")
+      .set("Authorization", `Bearer ${accessToken}`)
+      .send({
+        customerId: customer.id.toString(),
+        vehicle: {
+          brand: "Honda",
+          model: "HR-V",
+        },
+        serviceItems: [{ serviceId: service.id.toString() }],
+        paymentOptions: [{ method: "PIX", label: "Pix", installments: 1 }],
+      });
+    const quoteBody = quoteResponseSchema.parse(quoteResponse.body);
+
+    const updateResponse = await request(getHttpServer(app))
+      .patch(`/quotes/${quoteBody.quote.id}`)
+      .set("Authorization", `Bearer ${accessToken}`)
+      .send({
+        customer: {
+          name: "Nao permitido",
+        },
+      });
+
+    expect(updateResponse.status).toBe(400);
+    expect(errorResponseSchema.parse(updateResponse.body).message).toContain(
+      "customer",
+    );
+  });
+
   it("should filter, paginate, and sort listed quotes", async () => {
     const { accessToken, establishment } = await makeEstablishmentAccessToken({
       app,
@@ -628,6 +751,12 @@ describe("Quote controllers (e2e)", () => {
     await request(getHttpServer(app)).get("/quotes").expect(401);
     await request(getHttpServer(app)).get(`/quotes/${quoteId}/pdf`).expect(401);
     await request(getHttpServer(app))
+      .patch(`/quotes/${quoteId}`)
+      .send({
+        description: "Nao autenticado",
+      })
+      .expect(401);
+    await request(getHttpServer(app))
       .post(`/quotes/${quoteId}/approve`)
       .send({
         startsAt: "2026-06-01T10:00:00.000Z",
@@ -766,6 +895,13 @@ describe("Quote controllers (e2e)", () => {
       .set("Authorization", `Bearer ${secondEstablishmentAuth.accessToken}`)
       .expect(404);
     await request(getHttpServer(app))
+      .patch(`/quotes/${firstQuoteId}`)
+      .set("Authorization", `Bearer ${secondEstablishmentAuth.accessToken}`)
+      .send({
+        description: "Tenant errado",
+      })
+      .expect(404);
+    await request(getHttpServer(app))
       .post(`/quotes/${firstQuoteId}/register-customer`)
       .set("Authorization", `Bearer ${secondEstablishmentAuth.accessToken}`)
       .send({
@@ -828,8 +964,16 @@ describe("Quote controllers (e2e)", () => {
       .set("Authorization", `Bearer ${employeeAuth.accessToken}`)
       .send({
         customer: { name: "Forbidden Prospect" },
+        vehicle: { brand: "Honda", model: "HR-V" },
         serviceItems: [{ serviceId: service.id.toString() }],
         paymentOptions: [{ method: "PIX", label: "Pix", installments: 1 }],
+      })
+      .expect(403);
+    await request(getHttpServer(app))
+      .patch(`/quotes/${quoteId}`)
+      .set("Authorization", `Bearer ${employeeAuth.accessToken}`)
+      .send({
+        description: "Forbidden update",
       })
       .expect(403);
     await request(getHttpServer(app))
@@ -947,7 +1091,7 @@ describe("Quote controllers (e2e)", () => {
     ).toContain("Quote is already converted.");
   });
 
-  it("should reject creating a vehicle from a quote without vehicle snapshot", async () => {
+  it("should reject creating a quote without vehicle snapshot", async () => {
     const { accessToken, establishment } = await makeEstablishmentAccessToken({
       app,
       prisma,
@@ -967,20 +1111,10 @@ describe("Quote controllers (e2e)", () => {
         serviceItems: [{ serviceId: service.id.toString() }],
         paymentOptions: [{ method: "PIX", label: "Pix", installments: 1 }],
       });
-    const quoteId = quoteResponseSchema.parse(createResponse.body).quote.id;
 
-    const registerResponse = await request(getHttpServer(app))
-      .post(`/quotes/${quoteId}/register-customer`)
-      .set("Authorization", `Bearer ${accessToken}`)
-      .send({
-        email: "no-vehicle@example.com",
-        createVehicleFromQuote: true,
-      });
-
-    expect(createResponse.status).toBe(201);
-    expect(registerResponse.status).toBe(400);
-    expect(errorResponseSchema.parse(registerResponse.body).message).toContain(
-      "Quote has no vehicle snapshot.",
+    expect(createResponse.status).toBe(400);
+    expect(errorResponseSchema.parse(createResponse.body).message).toContain(
+      "vehicle",
     );
   });
 });
