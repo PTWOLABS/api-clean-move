@@ -21,6 +21,7 @@ export const ALLOWED_EXTRA_EMPLOYEE_FEATURES = [
   "update:appointments",
   "update:services",
   "update:customers",
+  "update:quotes",
   "approve:quotes",
   "delete:appointments",
   "delete:services",

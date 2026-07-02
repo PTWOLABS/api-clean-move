@@ -2111,6 +2111,35 @@ export class CreateQuoteBodyDto {
   expiresAt?: string | null;
 }
 
+export class UpdateQuoteBodyDto {
+  @ApiPropertyOptional({ type: String })
+  customerId?: string;
+
+  @ApiPropertyOptional({ type: Object })
+  customer?: Record<string, unknown>;
+
+  @ApiPropertyOptional({ type: String })
+  vehicleId?: string;
+
+  @ApiPropertyOptional({ type: Object })
+  vehicle?: Record<string, unknown>;
+
+  @ApiPropertyOptional({ type: Object, isArray: true })
+  serviceItems?: Array<{ serviceId: string; isCourtesy?: boolean }>;
+
+  @ApiPropertyOptional({ type: Object, isArray: true })
+  paymentOptions?: Array<Record<string, unknown>>;
+
+  @ApiPropertyOptional({ type: String, nullable: true })
+  description?: string | null;
+
+  @ApiPropertyOptional({ type: String, nullable: true })
+  termsAndConditions?: string | null;
+
+  @ApiPropertyOptional({ type: String, nullable: true, format: "date-time" })
+  expiresAt?: string | null;
+}
+
 export class QuoteResponseDto {
   @ApiProperty({ type: QuoteDto })
   quote!: QuoteDto;

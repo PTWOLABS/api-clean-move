@@ -39,6 +39,7 @@ import { GenerateQuotePdfUseCase } from "../../modules/application/use-cases/quo
 import { GetQuoteUseCase } from "../../modules/application/use-cases/quote/get-quote";
 import { ListQuotesUseCase } from "../../modules/application/use-cases/quote/list-quotes";
 import { RegisterQuoteProspectAsCustomerUseCase } from "../../modules/application/use-cases/quote/register-quote-prospect-as-customer";
+import { UpdateQuoteUseCase } from "../../modules/application/use-cases/quote/update-quote";
 import { GetEstablishmentUseCase } from "../../modules/application/use-cases/establishment/get-establishment";
 import { GetEstablishmentAppointmentsCountUseCase } from "../../modules/application/use-cases/establishment/get-establishment-appointments-count";
 import { GetEstablishmentCancellationRateUseCase } from "../../modules/application/use-cases/establishment/get-establishment-cancellation-rate";
@@ -81,6 +82,7 @@ import { DeleteAppointmentController } from "./controllers/delete-appointment.co
 import { CreateCustomerController } from "./controllers/create-customer.controller";
 import { CreateCustomerVehicleController } from "./controllers/create-customer-vehicle.controller";
 import { CreateQuoteController } from "./controllers/quote/create-quote.controller";
+import { UpdateQuoteController } from "./controllers/quote/update-quote.controller";
 import { CreateServiceCategoryController } from "./controllers/create-service-category.controller";
 import { DeleteServiceCategoryController } from "./controllers/delete-service-category.controller";
 import { ListServiceCategoriesController } from "./controllers/list-service-categories.controller";
@@ -184,6 +186,7 @@ import { RegisterQuoteProspectAsCustomerController } from "./controllers/quote/r
     UpdateCustomerVehicleController,
     DeleteCustomerVehicleController,
     CreateQuoteController,
+    UpdateQuoteController,
     ListQuotesController,
     GetQuoteController,
     GenerateQuotePdfController,
@@ -235,6 +238,7 @@ import { RegisterQuoteProspectAsCustomerController } from "./controllers/quote/r
     UpdateCustomerVehicleUseCase,
     DeleteCustomerVehicleUseCase,
     CreateQuoteUseCase,
+    UpdateQuoteUseCase,
     ListQuotesUseCase,
     GetQuoteUseCase,
     GenerateQuotePdfUseCase,

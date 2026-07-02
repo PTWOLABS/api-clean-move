@@ -24,6 +24,7 @@ describe("EmployeeFeaturesPolicy", () => {
   it("should add allowed extra features after defaults", () => {
     const features = EmployeeFeaturesPolicy.build([
       "update:customers",
+      "update:quotes",
       "create:appointments",
       "update:employees:self",
     ]);
@@ -38,6 +39,7 @@ describe("EmployeeFeaturesPolicy", () => {
       "read:sessions:self",
       "create:appointments",
       "update:customers",
+      "update:quotes",
       "update:employees:self",
     ]);
   });
