@@ -20,6 +20,8 @@ import { CreateCustomerUseCase } from "../../modules/application/use-cases/custo
 import { CreateCustomerVehicleUseCase } from "../../modules/application/use-cases/customer/create-customer-vehicle";
 import { DeleteCustomerUseCase } from "../../modules/application/use-cases/customer/delete-customer";
 import { DeleteCustomerVehicleUseCase } from "../../modules/application/use-cases/customer/delete-customer-vehicle";
+import { GetCustomerUseCase } from "../../modules/application/use-cases/customer/get-customer";
+import { GetCustomerVehicleUseCase } from "../../modules/application/use-cases/customer/get-customer-vehicle";
 import { ListCustomerOptionsUseCase } from "../../modules/application/use-cases/customer/list-customer-options";
 import { ListCustomerVehicleOptionsUseCase } from "../../modules/application/use-cases/customer/list-customer-vehicle-options";
 import { ListCustomersUseCase } from "../../modules/application/use-cases/customer/list-customers";
@@ -104,6 +106,8 @@ import { DeleteCustomerController } from "./controllers/delete-customer.controll
 import { DeleteCustomerVehicleController } from "./controllers/delete-customer-vehicle.controller";
 import { DeleteEmployeeController } from "./controllers/delete-employee.controller";
 
+import { GetCustomerController } from "./controllers/get-customer.controller";
+import { GetCustomerVehicleController } from "./controllers/get-customer-vehicle.controller";
 import { GetEmployeeController } from "./controllers/get-employee.controller";
 import { GetEstablishmentController } from "./controllers/get-establishment.controller";
 import { GetQuoteController } from "./controllers/quote/get-quote.controller";
@@ -182,12 +186,14 @@ import { RegisterQuoteProspectAsCustomerController } from "./controllers/quote/r
     CreateCustomerController,
     ListCustomerOptionsController,
     ListCustomersController,
+    GetCustomerController,
     UpdateCustomerController,
     DeleteCustomerController,
     CreateCustomerVehicleController,
     ListCustomerVehicleOptionsController,
     ListVehiclesController,
     ListCustomerVehiclesController,
+    GetCustomerVehicleController,
     UpdateCustomerVehicleController,
     DeleteCustomerVehicleController,
     CreateQuoteController,
@@ -233,11 +239,13 @@ import { RegisterQuoteProspectAsCustomerController } from "./controllers/quote/r
     CreateCustomerUseCase,
     ListCustomerOptionsUseCase,
     ListCustomersUseCase,
+    GetCustomerUseCase,
     UpdateCustomerUseCase,
     DeleteCustomerUseCase,
     CreateCustomerVehicleUseCase,
     ListCustomerVehicleOptionsUseCase,
     ListCustomerVehiclesUseCase,
+    GetCustomerVehicleUseCase,
     ListVehiclesUseCase,
     UpdateCustomerVehicleUseCase,
     DeleteCustomerVehicleUseCase,
