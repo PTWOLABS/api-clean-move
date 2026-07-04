@@ -91,7 +91,7 @@ export class InMemoryQuotesRepository implements QuotesRepository {
     if (
       serviceId &&
       !quote.services.some(
-        (service) => service.serviceId.toString() === serviceId,
+        (service) => service.serviceId?.toString() === serviceId,
       )
     ) {
       return false;

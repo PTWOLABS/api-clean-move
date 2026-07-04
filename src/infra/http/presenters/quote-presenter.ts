@@ -71,7 +71,7 @@ export class QuotePresenter {
       customer: quote.customer,
       vehicle: quote.vehicle,
       services: quote.services.map((service) => ({
-        id: service.serviceId.toString(),
+        id: service.serviceId?.toString() ?? null,
         name: service.serviceName,
         category: service.category
           ? {

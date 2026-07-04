@@ -4,7 +4,7 @@ import { UniqueEntityId } from "../../../../shared/entities/unique-entity-id";
 import { InvalidQuoteInputError } from "../errors/invalid-quote-input-error";
 
 export type QuoteServiceSnapshot = {
-  serviceId: UniqueEntityId;
+  serviceId: UniqueEntityId | null;
   serviceName: string;
   category?: ServiceCategorySnapshot | undefined;
   durationInMinutes?: number | undefined;
@@ -14,8 +14,9 @@ export type QuoteServiceSnapshot = {
 
 export type QuoteServiceSnapshotInput = Omit<
   QuoteServiceSnapshot,
-  "isCourtesy"
+  "serviceId" | "isCourtesy"
 > & {
+  serviceId?: UniqueEntityId | null;
   isCourtesy?: boolean;
 };
 
@@ -59,7 +60,11 @@ export class QuotedServiceSnapshot extends ValueObject<QuoteServiceSnapshot> {
   static create(props: QuoteServiceSnapshotInput) {
     const serviceName = props.serviceName.trim();
 
-    if (!(props.serviceId instanceof UniqueEntityId)) {
+    if (
+      props.serviceId !== undefined &&
+      props.serviceId !== null &&
+      !(props.serviceId instanceof UniqueEntityId)
+    ) {
       throw new InvalidQuoteInputError("Invalid serviceId.");
     }
 
@@ -93,6 +98,7 @@ export class QuotedServiceSnapshot extends ValueObject<QuoteServiceSnapshot> {
 
     return new QuotedServiceSnapshot({
       ...props,
+      serviceId: props.serviceId ?? null,
       serviceName,
       isCourtesy: props.isCourtesy ?? false,
     });

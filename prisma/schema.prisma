@@ -378,7 +378,7 @@ model Quote {
 model QuoteService {
   id                       String  @id @default(uuid()) @db.Uuid
   quoteId                  String  @map("quote_id") @db.Uuid
-  serviceId                String  @map("service_id") @db.Uuid
+  serviceId                String? @map("service_id") @db.Uuid
   serviceName              String  @map("service_name") @db.VarChar(72)
   serviceCategoryId        String? @map("service_category_id") @db.Uuid
   serviceCategoryName      String? @map("service_category_name") @db.VarChar(48)
@@ -387,8 +387,8 @@ model QuoteService {
   isCourtesy               Boolean @default(false) @map("is_courtesy")
   position                 Int     @default(0)
 
-  quote   Quote   @relation(fields: [quoteId], references: [id], onDelete: Cascade)
-  service Service @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+  quote   Quote    @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  service Service? @relation(fields: [serviceId], references: [id], onDelete: Restrict)
 
   @@unique([quoteId, serviceId])
   @@index([quoteId])
