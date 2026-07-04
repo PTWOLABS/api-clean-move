@@ -54,6 +54,7 @@ describe("Approve quote", () => {
       appointmentsRepository,
       customersRepository,
       customerVehiclesRepository,
+      servicesRepository,
     );
 
     sut = new ApproveQuoteUseCase(
@@ -101,6 +102,47 @@ describe("Approve quote", () => {
     expect(result.value.appointment.vehicle?.model).toBe("HR-V");
     expect(result.value.quote.convertedAppointmentId).toEqual(
       result.value.appointment.id,
+    );
+  });
+
+  it("should create detached quote services in the catalog when approving", async () => {
+    const establishment = makeEstablishment();
+    const customer = makeCustomer({ establishmentId: establishment.id });
+    const quote = makeQuote({
+      establishmentId: establishment.id,
+      customerId: customer.id,
+      services: [
+        {
+          serviceName: "Polimento tecnico",
+          priceInCents: 45000,
+          isCourtesy: false,
+        },
+      ],
+    });
+
+    await establishmentsRepository.create(establishment);
+    await customersRepository.create(customer);
+    await quotesRepository.create(quote);
+
+    const result = await sut.execute({
+      actor: {
+        userId: establishment.ownerId.toString(),
+        role: "ESTABLISHMENT",
+      },
+      quoteId: quote.id.toString(),
+      startsAt: new Date("2026-06-01T10:00:00.000Z"),
+      endsAt: new Date("2026-06-01T12:00:00.000Z"),
+    });
+
+    expect(result.isRight()).toBe(true);
+    if (result.isLeft()) throw result.value;
+    expect(servicesRepository.items).toHaveLength(1);
+    expect(servicesRepository.items[0]?.serviceName.value).toBe(
+      "Polimento tecnico",
+    );
+    expect(servicesRepository.items[0]?.price.amountInCents).toBe(45000);
+    expect(result.value.appointment.services[0]?.serviceId).toEqual(
+      servicesRepository.items[0]?.id,
     );
   });
 

@@ -177,6 +177,168 @@ describe("Create quote", () => {
     }
   });
 
+  it("should create a quote with explicit service charged price", async () => {
+    const owner = makeUser("ESTABLISHMENT");
+    const establishment = makeEstablishment({ ownerId: owner.id });
+    const service = makeService({
+      establishmentId: establishment.id,
+      priceSpecification: ServicePriceSpecification.create({
+        type: "RANGE",
+        minPriceInCents: 30000,
+        maxPriceInCents: 60000,
+      }),
+    });
+
+    await usersRepository.create(owner);
+    await establishmentsRepository.create(establishment);
+    await servicesRepository.create(service);
+
+    const result = await sut.execute({
+      actor: {
+        userId: establishment.ownerId.toString(),
+        role: "ESTABLISHMENT",
+      },
+      customer: {
+        name: "Cliente Orcamento",
+      },
+      serviceItems: [
+        {
+          serviceId: service.id.toString(),
+          priceInCents: 45000,
+        },
+      ],
+      paymentOptions: [
+        {
+          method: "PIX",
+          label: "Pix",
+        },
+      ],
+    });
+
+    expect(result.isRight()).toBe(true);
+    if (result.isRight()) {
+      expect(result.value.quote.services[0]?.priceInCents).toBe(45000);
+      expect(result.value.quote.subtotalInCents).toBe(45000);
+    }
+  });
+
+  it("should create a quote with detached service snapshot", async () => {
+    const owner = makeUser("ESTABLISHMENT");
+    const establishment = makeEstablishment({ ownerId: owner.id });
+
+    await usersRepository.create(owner);
+    await establishmentsRepository.create(establishment);
+
+    const result = await sut.execute({
+      actor: {
+        userId: establishment.ownerId.toString(),
+        role: "ESTABLISHMENT",
+      },
+      customer: {
+        name: "Cliente Orcamento",
+      },
+      serviceItems: [
+        {
+          serviceName: "Polimento tecnico",
+          priceInCents: 45000,
+        },
+      ],
+      paymentOptions: [
+        {
+          method: "PIX",
+          label: "Pix",
+        },
+      ],
+    });
+
+    expect(result.isRight()).toBe(true);
+    if (result.isRight()) {
+      expect(result.value.quote.services[0]?.serviceId).toBeNull();
+      expect(result.value.quote.services[0]?.serviceName).toBe(
+        "Polimento tecnico",
+      );
+      expect(result.value.quote.services[0]?.priceInCents).toBe(45000);
+      expect(servicesRepository.items).toHaveLength(0);
+    }
+  });
+
+  it("should reject a detached quote service with an existing catalog name", async () => {
+    const owner = makeUser("ESTABLISHMENT");
+    const establishment = makeEstablishment({ ownerId: owner.id });
+    const service = makeService({ establishmentId: establishment.id });
+
+    await usersRepository.create(owner);
+    await establishmentsRepository.create(establishment);
+    await servicesRepository.create(service);
+
+    const result = await sut.execute({
+      actor: {
+        userId: establishment.ownerId.toString(),
+        role: "ESTABLISHMENT",
+      },
+      customer: {
+        name: "Cliente Orcamento",
+      },
+      serviceItems: [
+        {
+          serviceName: service.serviceName.value,
+          priceInCents: 45000,
+        },
+      ],
+      paymentOptions: [
+        {
+          method: "PIX",
+          label: "Pix",
+        },
+      ],
+    });
+
+    expect(result.isLeft()).toBe(true);
+    expect(result.value).toBeInstanceOf(InvalidQuoteInputError);
+  });
+
+  it("should reject a quote service price outside the catalog policy", async () => {
+    const owner = makeUser("ESTABLISHMENT");
+    const establishment = makeEstablishment({ ownerId: owner.id });
+    const service = makeService({
+      establishmentId: establishment.id,
+      priceSpecification: ServicePriceSpecification.create({
+        type: "RANGE",
+        minPriceInCents: 30000,
+        maxPriceInCents: 60000,
+      }),
+    });
+
+    await usersRepository.create(owner);
+    await establishmentsRepository.create(establishment);
+    await servicesRepository.create(service);
+
+    const result = await sut.execute({
+      actor: {
+        userId: establishment.ownerId.toString(),
+        role: "ESTABLISHMENT",
+      },
+      customer: {
+        name: "Cliente Orcamento",
+      },
+      serviceItems: [
+        {
+          serviceId: service.id.toString(),
+          priceInCents: 60001,
+        },
+      ],
+      paymentOptions: [
+        {
+          method: "PIX",
+          label: "Pix",
+        },
+      ],
+    });
+
+    expect(result.isLeft()).toBe(true);
+    expect(result.value).toBeInstanceOf(InvalidQuoteInputError);
+  });
+
   it("should reject a missing prospect name", async () => {
     const owner = makeUser("ESTABLISHMENT");
     const establishment = makeEstablishment({ ownerId: owner.id });
