@@ -1,10 +1,8 @@
 import { Either, left, right } from "../../../../../shared/either";
 import { InvalidAppointmentInputError } from "../../../../scheduling/domain/errors/invalid-appointment-input-error";
+import { ChargeableServiceItemInput } from "../../../services/chargeable-service-resolver";
 
-export type AppointmentServiceItemInput = {
-  serviceId: string;
-  priceInCents?: number | undefined;
-};
+export type AppointmentServiceItemInput = ChargeableServiceItemInput;
 
 export function normalizeAppointmentServiceItems(
   serviceIds?: string[],
