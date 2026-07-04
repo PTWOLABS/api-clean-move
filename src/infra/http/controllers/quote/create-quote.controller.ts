@@ -71,19 +71,49 @@ const quotePaymentOptionSchema = z.object({
   discountValue: z.number().int().nonnegative().optional().nullable(),
 });
 
+const quoteServiceItemSchema = z
+  .object({
+    serviceId: z.uuid().optional().nullable(),
+    serviceName: z.string().trim().min(1).optional(),
+    priceInCents: z.number().int().nonnegative().optional(),
+    isCourtesy: z.boolean().optional(),
+  })
+  .superRefine((value, context) => {
+    if (value.serviceId) {
+      if (value.serviceName !== undefined) {
+        context.addIssue({
+          code: "custom",
+          message: "serviceName cannot be provided with serviceId.",
+          path: ["serviceName"],
+        });
+      }
+
+      return;
+    }
+
+    if (!value.serviceName) {
+      context.addIssue({
+        code: "custom",
+        message: "serviceName is required when serviceId is not provided.",
+        path: ["serviceName"],
+      });
+    }
+
+    if (value.priceInCents === undefined) {
+      context.addIssue({
+        code: "custom",
+        message: "priceInCents is required when serviceId is not provided.",
+        path: ["priceInCents"],
+      });
+    }
+  });
+
 const createQuoteBodySchema = z.object({
   customerId: z.uuid().optional().nullable(),
   customer: quoteCustomerSchema.optional(),
   vehicleId: z.uuid().optional().nullable(),
   vehicle: quoteVehicleSchema.optional().nullable(),
-  serviceItems: z
-    .array(
-      z.object({
-        serviceId: z.uuid(),
-        isCourtesy: z.boolean().optional(),
-      }),
-    )
-    .min(1),
+  serviceItems: z.array(quoteServiceItemSchema).min(1),
   paymentOptions: z.array(quotePaymentOptionSchema).min(1),
   description: z.string().trim().optional().nullable(),
   termsAndConditions: z.string().trim().optional().nullable(),
@@ -163,7 +193,15 @@ export class CreateQuoteController {
           }
         : body.vehicle;
     const serviceItems = body.serviceItems.map((item) => ({
-      serviceId: item.serviceId,
+      ...(item.serviceId !== undefined && item.serviceId !== null
+        ? { serviceId: item.serviceId }
+        : {}),
+      ...(item.serviceName !== undefined
+        ? { serviceName: item.serviceName }
+        : {}),
+      ...(item.priceInCents !== undefined
+        ? { priceInCents: item.priceInCents }
+        : {}),
       ...(item.isCourtesy !== undefined ? { isCourtesy: item.isCourtesy } : {}),
     }));
     const paymentOptions = body.paymentOptions.map((option) => ({
