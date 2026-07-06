@@ -16,6 +16,7 @@ import {
 } from "../../../../../tests/helpers/auth-session.e2e-helpers";
 import { HashGenerator } from "../../../../modules/application/repositories/hash-generator";
 import { ServiceName } from "../../../../modules/catalog/domain/value-objects/service-name";
+import { ServicePriceSpecification } from "../../../../modules/catalog/domain/value-objects/service-price-specification";
 import { CustomerDocument } from "../../../../modules/customer/domain/value-objects/customer-document";
 import { AppModule } from "../../../app.module";
 import { PrismaService } from "../../../database/prisma/prisma.service";
@@ -54,7 +55,7 @@ const quoteResponseSchema = z.object({
     services: z
       .array(
         z.object({
-          id: z.uuid(),
+          id: z.uuid().nullable(),
           name: z.string().min(1),
           category: quoteServiceCategorySchema,
           durationInMinutes: z.number().int().nullable(),
@@ -194,6 +195,11 @@ describe("Quote controllers (e2e)", () => {
     const service = await serviceFactory.makePrismaService({
       establishmentId: establishment.id,
       serviceName: ServiceName.create("Lavagem detalhada"),
+      priceSpecification: ServicePriceSpecification.create({
+        type: "RANGE",
+        minPriceInCents: 30000,
+        maxPriceInCents: 60000,
+      }),
     });
 
     const createResponse = await request(getHttpServer(app))
@@ -207,7 +213,18 @@ describe("Quote controllers (e2e)", () => {
           color: "Branco",
           year: 2025,
         },
-        serviceItems: [{ serviceId: service.id.toString(), isCourtesy: false }],
+        serviceItems: [
+          {
+            serviceId: service.id.toString(),
+            priceInCents: 45000,
+            isCourtesy: false,
+          },
+          {
+            serviceName: "Cristalizacao avulsa",
+            priceInCents: 12000,
+            isCourtesy: false,
+          },
+        ],
         paymentOptions: [
           {
             method: "PIX",
@@ -225,6 +242,10 @@ describe("Quote controllers (e2e)", () => {
     expect(createResponse.status).toBe(201);
     const quoteId = createBody.quote.id;
     expect(createBody.quote.customerId).toBeNull();
+    expect(createBody.quote.services[0]?.priceInCents).toBe(45000);
+    expect(createBody.quote.services[1]?.id).toBeNull();
+    expect(createBody.quote.services[1]?.name).toBe("Cristalizacao avulsa");
+    expect(createBody.quote.subtotalInCents).toBe(57000);
     expect(createBody.quote.paymentOptions[0]?.totalInCents).toBeGreaterThan(0);
 
     const listResponse = await request(getHttpServer(app))
@@ -250,7 +271,7 @@ describe("Quote controllers (e2e)", () => {
       vehiclePlate: null,
       status: "VALID",
       approvedAt: null,
-      servicesCount: 1,
+      servicesCount: 2,
     });
     expect(listBody.quotes[0]?.totalInCents).toBe(
       createBody.quote.paymentOptions[0]?.totalInCents,
@@ -306,6 +327,14 @@ describe("Quote controllers (e2e)", () => {
     expect(approveBody.quote.convertedAppointmentId).toBe(
       approveBody.appointment.id,
     );
+    const createdDetachedService = await prisma.service.findFirst({
+      where: {
+        establishmentId: establishment.id.toString(),
+        serviceName: "Cristalizacao avulsa",
+        deletedAt: null,
+      },
+    });
+    expect(createdDetachedService?.priceInCents).toBe(12000);
 
     const approvedListResponse = await request(getHttpServer(app))
       .get("/quotes")

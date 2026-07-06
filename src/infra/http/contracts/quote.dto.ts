@@ -45,7 +45,7 @@ export type QuoteItemDTO = {
     year: number | null;
   } | null;
   services: {
-    id: string;
+    id: string | null;
     name: string;
     category: QuoteServiceCategoryDTO | null;
     durationInMinutes: number | null;

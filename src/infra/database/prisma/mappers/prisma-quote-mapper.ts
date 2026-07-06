@@ -90,7 +90,7 @@ export function toQuoteServicesCreate(
   raw: Quote,
 ): Prisma.QuoteServiceUncheckedCreateWithoutQuoteInput[] {
   return raw.services.map((service, index) => ({
-    serviceId: service.serviceId.toString(),
+    serviceId: service.serviceId?.toString() ?? null,
     serviceName: service.serviceName,
     serviceCategoryId: service.category?.id.toString() ?? null,
     serviceCategoryName: service.category?.name ?? null,
@@ -153,7 +153,9 @@ export class PrismaQuoteMapper {
           .slice()
           .sort((a, b) => a.position - b.position)
           .map((service) => ({
-            serviceId: new UniqueEntityId(service.serviceId),
+            serviceId: service.serviceId
+              ? new UniqueEntityId(service.serviceId)
+              : null,
             serviceName: service.serviceName,
             category: toCategorySnapshot(
               service.serviceCategoryId,

@@ -305,17 +305,31 @@ export class Quote extends AggregateRoot<QuoteProps> {
     }
 
     const serviceIds = new Set<string>();
+    const detachedServiceNames = new Set<string>();
 
     for (const service of this.props.services) {
-      const serviceId = service.serviceId.toString();
+      const serviceId = service.serviceId?.toString();
 
-      if (serviceIds.has(serviceId)) {
+      if (serviceId && serviceIds.has(serviceId)) {
         throw new InvalidQuoteInputError(
           "Duplicate services are not allowed in the same quote.",
         );
       }
 
-      serviceIds.add(serviceId);
+      if (serviceId) {
+        serviceIds.add(serviceId);
+        continue;
+      }
+
+      const serviceName = service.serviceName.trim().toLowerCase();
+
+      if (detachedServiceNames.has(serviceName)) {
+        throw new InvalidQuoteInputError(
+          "Duplicate detached services are not allowed in the same quote.",
+        );
+      }
+
+      detachedServiceNames.add(serviceName);
     }
 
     if (this.props.paymentOptions.length === 0) {

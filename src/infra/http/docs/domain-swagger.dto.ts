@@ -2095,8 +2095,18 @@ export class CreateQuoteBodyDto {
   @ApiPropertyOptional({ type: Object, nullable: true })
   vehicle?: Record<string, unknown> | null;
 
-  @ApiProperty({ type: Object, isArray: true })
-  serviceItems!: Array<{ serviceId: string; isCourtesy?: boolean }>;
+  @ApiProperty({
+    type: Object,
+    isArray: true,
+    description:
+      "Service items with optional charged prices. When priceInCents is omitted, the service default charge price is used.",
+  })
+  serviceItems!: Array<{
+    serviceId?: string;
+    serviceName?: string;
+    priceInCents?: number;
+    isCourtesy?: boolean;
+  }>;
 
   @ApiProperty({ type: Object, isArray: true })
   paymentOptions!: Array<Record<string, unknown>>;

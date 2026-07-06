@@ -3,6 +3,10 @@ import { Injectable } from "@nestjs/common";
 import { Address } from "../../../accounts/domain/value-objects/address";
 import { InactiveServiceError } from "../../../catalog/domain/errors/inactive-service-error";
 import {
+  InvalidServiceNameError,
+  ServiceName,
+} from "../../../catalog/domain/value-objects/service-name";
+import {
   Quote,
   QuoteAddressSnapshot,
   QuoteCustomerSnapshot,
@@ -21,6 +25,10 @@ import { CustomersRepository } from "../../repositories/customers-repository";
 import { QuotesRepository } from "../../repositories/quotes-repository";
 import { ServicesRepository } from "../../repositories/services-repository";
 import { UsersRepository } from "../../repositories/users-repository";
+import {
+  ChargeableServiceItemInput,
+  resolveChargeableServices,
+} from "../../services/chargeable-service-resolver";
 import {
   EstablishmentScopeActor,
   EstablishmentScopeService,
@@ -42,7 +50,9 @@ type QuoteVehicleInput = {
 };
 
 type QuoteServiceItemInput = {
-  serviceId: string;
+  serviceId?: string | null;
+  serviceName?: string;
+  priceInCents?: number;
   isCourtesy?: boolean;
 };
 
@@ -265,38 +275,158 @@ export class CreateQuoteUseCase {
     establishmentId: string,
   ): Promise<
     Either<
-      ResourceNotFoundError | InactiveServiceError,
+      ResourceNotFoundError | InactiveServiceError | InvalidQuoteInputError,
       QuoteServiceSnapshotInput[]
     >
   > {
+    const serviceItemsResult = this.normalizeServiceItems(serviceItems);
+
+    if (serviceItemsResult.isLeft()) {
+      return left(serviceItemsResult.value);
+    }
+
     const services: QuoteServiceSnapshotInput[] = [];
 
-    for (const item of serviceItems) {
-      const service =
-        await this.servicesRepository.findByServiceIdAndEstablishmentId(
-          item.serviceId,
+    for (const item of serviceItemsResult.value) {
+      if (item.serviceId) {
+        const resolvedServicesResult = await resolveChargeableServices({
+          servicesRepository: this.servicesRepository,
           establishmentId,
-        );
+          serviceItems: [item as ChargeableServiceItemInput],
+          makeInvalidPriceError: (message) =>
+            new InvalidQuoteInputError(message),
+        });
 
-      if (!service || service.isDeleted()) {
-        return left(new ResourceNotFoundError({ resource: "service" }));
+        if (resolvedServicesResult.isLeft()) {
+          return left(resolvedServicesResult.value);
+        }
+
+        const { service, priceInCents } = resolvedServicesResult.value[0]!;
+
+        services.push({
+          serviceId: service.id,
+          serviceName: service.serviceName.value,
+          category: service.category,
+          durationInMinutes: service.estimatedDuration?.upperBoundInMinutes,
+          priceInCents,
+          isCourtesy: item.isCourtesy ?? false,
+        });
+
+        continue;
       }
 
-      if (!service.isActive) {
-        return left(new InactiveServiceError(service.serviceName.value));
+      const detachedServiceResult = await this.resolveDetachedService(
+        item,
+        establishmentId,
+      );
+
+      if (detachedServiceResult.isLeft()) {
+        return left(detachedServiceResult.value);
       }
 
-      services.push({
-        serviceId: service.id,
-        serviceName: service.serviceName.value,
-        category: service.category,
-        durationInMinutes: service.estimatedDuration?.upperBoundInMinutes,
-        priceInCents: service.priceSpecification.defaultChargePriceInCents,
-        isCourtesy: item.isCourtesy ?? false,
-      });
+      services.push(detachedServiceResult.value);
     }
 
     return right(services);
+  }
+
+  private async resolveDetachedService(
+    serviceItem: QuoteServiceItemInput,
+    establishmentId: string,
+  ): Promise<Either<InvalidQuoteInputError, QuoteServiceSnapshotInput>> {
+    const serviceNameInput = serviceItem.serviceName;
+
+    if (!serviceNameInput) {
+      return left(new InvalidQuoteInputError("serviceName is required."));
+    }
+
+    if (serviceItem.priceInCents === undefined) {
+      return left(new InvalidQuoteInputError("priceInCents is required."));
+    }
+
+    let serviceName: ServiceName;
+
+    try {
+      serviceName = ServiceName.create(serviceNameInput);
+    } catch (error) {
+      if (error instanceof InvalidServiceNameError) {
+        return left(new InvalidQuoteInputError(error.message));
+      }
+
+      return left(new InvalidQuoteInputError("Invalid serviceName."));
+    }
+
+    const existingService =
+      await this.servicesRepository.findActiveByNameAndEstablishmentId(
+        serviceName.value,
+        establishmentId,
+      );
+
+    if (existingService) {
+      return left(
+        new InvalidQuoteInputError(
+          "A service with this name already exists. Select the existing service or use another name.",
+        ),
+      );
+    }
+
+    return right({
+      serviceName: serviceName.value,
+      priceInCents: serviceItem.priceInCents,
+      isCourtesy: serviceItem.isCourtesy ?? false,
+    });
+  }
+
+  private normalizeServiceItems(
+    serviceItems: QuoteServiceItemInput[],
+  ): Either<InvalidQuoteInputError, QuoteServiceItemInput[]> {
+    if (serviceItems.length === 0) {
+      return left(
+        new InvalidQuoteInputError("At least one service is required."),
+      );
+    }
+
+    const ids = serviceItems
+      .map((item) => item.serviceId)
+      .filter((serviceId): serviceId is string => Boolean(serviceId));
+
+    const itemWithAmbiguousService = serviceItems.some(
+      (item) => item.serviceId && item.serviceName !== undefined,
+    );
+
+    if (itemWithAmbiguousService) {
+      return left(
+        new InvalidQuoteInputError(
+          "serviceName cannot be provided with serviceId.",
+        ),
+      );
+    }
+
+    if (new Set(ids).size !== ids.length) {
+      return left(
+        new InvalidQuoteInputError(
+          "Duplicate services are not allowed in the same quote.",
+        ),
+      );
+    }
+
+    const detachedServiceNames = serviceItems
+      .filter((item) => !item.serviceId)
+      .map((item) => item.serviceName?.trim().toLowerCase())
+      .filter(
+        (serviceName): serviceName is string =>
+          serviceName !== undefined && serviceName.length > 0,
+      );
+
+    if (new Set(detachedServiceNames).size !== detachedServiceNames.length) {
+      return left(
+        new InvalidQuoteInputError(
+          "Duplicate detached services are not allowed in the same quote.",
+        ),
+      );
+    }
+
+    return right(serviceItems);
   }
 }
 

@@ -19,6 +19,7 @@ import { AppointmentsRepository } from "../../repositories/appointments-reposito
 import { CustomerVehiclesRepository } from "../../repositories/customer-vehicles-repository";
 import { CustomersRepository } from "../../repositories/customers-repository";
 import { ServicesRepository } from "../../repositories/services-repository";
+import { resolveChargeableServices } from "../../services/chargeable-service-resolver";
 import {
   AppointmentServiceItemInput,
   normalizeAppointmentServiceItems,
@@ -94,42 +95,20 @@ export class CreateAppointmentUseCase {
       return left(new ResourceNotFoundError({ resource: "customer" }));
     }
 
-    const services: AppointmentServiceSnapshot[] = [];
+    const resolvedServicesResult = await resolveChargeableServices({
+      servicesRepository: this.servicesRepository,
+      establishmentId: establishment.id.toString(),
+      serviceItems: serviceItemsResult.value,
+      makeInvalidPriceError: (message) =>
+        new InvalidAppointmentInputError(message),
+    });
 
-    for (const item of serviceItemsResult.value) {
-      const service =
-        await this.servicesRepository.findByServiceIdAndEstablishmentId(
-          item.serviceId,
-          establishment.id.toString(),
-        );
+    if (resolvedServicesResult.isLeft()) {
+      return left(resolvedServicesResult.value);
+    }
 
-      if (!service) {
-        return left(new ResourceNotFoundError({ resource: "service" }));
-      }
-
-      if (service.isDeleted()) {
-        return left(new ResourceNotFoundError({ resource: "service" }));
-      }
-
-      if (!service.isActive) {
-        return left(new InactiveServiceError(service.serviceName.value));
-      }
-
-      const priceInCents =
-        item.priceInCents ??
-        service.priceSpecification.defaultChargePriceInCents;
-
-      try {
-        service.priceSpecification.assertCanCharge(priceInCents);
-      } catch (error) {
-        return left(
-          new InvalidAppointmentInputError(
-            error instanceof Error ? error.message : "Invalid service price.",
-          ),
-        );
-      }
-
-      services.push({
+    const services: AppointmentServiceSnapshot[] =
+      resolvedServicesResult.value.map(({ service, priceInCents }) => ({
         serviceId: service.id,
         serviceName: service.serviceName.value,
         category: service.category,
@@ -137,8 +116,7 @@ export class CreateAppointmentUseCase {
         priceSpecification: service.priceSpecification.toValue(),
         priceInCents,
         isActive: service.isActive,
-      });
-    }
+      }));
 
     const vehicle = vehicleId
       ? await this.customerVehiclesRepository.findByIdAndCustomerIdAndEstablishmentId(
