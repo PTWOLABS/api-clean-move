@@ -352,6 +352,112 @@ describe("Quote controllers (e2e)", () => {
     });
   });
 
+  it("should reject quote creation with an invalid prospect phone", async () => {
+    const { accessToken, establishment } = await makeEstablishmentAccessToken({
+      app,
+      prisma,
+      userFactory,
+      establishmentFactory,
+      envService,
+    });
+    const service = await serviceFactory.makePrismaService({
+      establishmentId: establishment.id,
+    });
+
+    const response = await request(getHttpServer(app))
+      .post("/quotes")
+      .set("Authorization", `Bearer ${accessToken}`)
+      .send({
+        customer: { name: "Telefone Invalido", phone: "1" },
+        vehicle: { brand: "Honda", model: "HR-V" },
+        serviceItems: [{ serviceId: service.id.toString() }],
+        paymentOptions: [{ method: "PIX", label: "Pix", installments: 1 }],
+      });
+
+    expect(response.status).toBe(400);
+    expect(errorResponseSchema.parse(response.body).message).toContain(
+      "Invalid phone number",
+    );
+  });
+
+  it("should reject quote creation with an incomplete vehicle snapshot", async () => {
+    const { accessToken, establishment } = await makeEstablishmentAccessToken({
+      app,
+      prisma,
+      userFactory,
+      establishmentFactory,
+      envService,
+    });
+    const service = await serviceFactory.makePrismaService({
+      establishmentId: establishment.id,
+    });
+
+    const withoutBrandResponse = await request(getHttpServer(app))
+      .post("/quotes")
+      .set("Authorization", `Bearer ${accessToken}`)
+      .send({
+        customer: { name: "Veiculo Sem Marca" },
+        vehicle: { model: "HR-V" },
+        serviceItems: [{ serviceId: service.id.toString() }],
+        paymentOptions: [{ method: "PIX", label: "Pix", installments: 1 }],
+      });
+    const withoutModelResponse = await request(getHttpServer(app))
+      .post("/quotes")
+      .set("Authorization", `Bearer ${accessToken}`)
+      .send({
+        customer: { name: "Veiculo Sem Modelo" },
+        vehicle: { brand: "Honda" },
+        serviceItems: [{ serviceId: service.id.toString() }],
+        paymentOptions: [{ method: "PIX", label: "Pix", installments: 1 }],
+      });
+
+    expect(withoutBrandResponse.status).toBe(400);
+    expect(withoutModelResponse.status).toBe(400);
+  });
+
+  it("should create a prospect quote with vehicle snapshot and detached service", async () => {
+    const { accessToken } = await makeEstablishmentAccessToken({
+      app,
+      prisma,
+      userFactory,
+      establishmentFactory,
+      envService,
+    });
+
+    const response = await request(getHttpServer(app))
+      .post("/quotes")
+      .set("Authorization", `Bearer ${accessToken}`)
+      .send({
+        customer: {
+          name: "Prospect Snapshot",
+          phone: "(11) 98765-4321",
+          cpfCnpj: "529.982.247-25",
+        },
+        vehicle: {
+          plate: "ABC-1D23",
+          brand: "Honda",
+          model: "HR-V",
+          color: "Branco",
+          year: 2025,
+        },
+        serviceItems: [
+          {
+            serviceName: "Polimento snapshot",
+            priceInCents: 45000,
+          },
+        ],
+        paymentOptions: [{ method: "PIX", label: "Pix", installments: 1 }],
+      });
+    const body = quoteResponseSchema.parse(response.body);
+
+    expect(response.status).toBe(201);
+    expect(body.quote.customer.phone).toBe("11987654321");
+    expect(body.quote.customer.cpfCnpj).toBe("52998224725");
+    expect(body.quote.vehicle?.plate).toBe("ABC1D23");
+    expect(body.quote.services[0]?.id).toBeNull();
+    expect(body.quote.services[0]?.name).toBe("Polimento snapshot");
+  });
+
   it("should filter, paginate, and sort listed quotes", async () => {
     const { accessToken, establishment } = await makeEstablishmentAccessToken({
       app,

@@ -16,7 +16,10 @@ import { InMemoryServicesRepository } from "../../../../../tests/repositories/in
 import { InMemoryUsersRepository } from "../../../../../tests/repositories/in-memory-users-repository";
 import { ServicePriceSpecification } from "../../../catalog/domain/value-objects/service-price-specification";
 import { EstablishmentScopeService } from "../../services/establishment-scope";
-import { CreateQuoteUseCase } from "./create-quote";
+import {
+  CreateQuoteUseCase,
+  type CreateQuoteUseCaseRequest,
+} from "./create-quote";
 
 let quotesRepository: InMemoryQuotesRepository;
 let customersRepository: InMemoryCustomersRepository;
@@ -27,6 +30,12 @@ let servicesRepository: InMemoryServicesRepository;
 let usersRepository: InMemoryUsersRepository;
 let establishmentScope: EstablishmentScopeService;
 let sut: CreateQuoteUseCase;
+
+type CreateQuoteRequestOverride = Partial<
+  Omit<CreateQuoteUseCaseRequest, "customer">
+> & {
+  customer?: CreateQuoteUseCaseRequest["customer"] | undefined;
+};
 
 describe("Create quote", () => {
   beforeEach(() => {
@@ -54,6 +63,45 @@ describe("Create quote", () => {
     );
   });
 
+  async function makeQuoteContext() {
+    const owner = makeUser("ESTABLISHMENT");
+    const establishment = makeEstablishment({ ownerId: owner.id });
+    const service = makeService({ establishmentId: establishment.id });
+
+    await usersRepository.create(owner);
+    await establishmentsRepository.create(establishment);
+    await servicesRepository.create(service);
+
+    return { owner, establishment, service };
+  }
+
+  function makeCreateQuoteRequest(
+    context: Awaited<ReturnType<typeof makeQuoteContext>>,
+    override: CreateQuoteRequestOverride = {},
+  ): CreateQuoteUseCaseRequest {
+    const { customer, ...restOverride } = override;
+    const request: CreateQuoteUseCaseRequest = {
+      actor: {
+        userId: context.owner.id.toString(),
+        role: "ESTABLISHMENT",
+      },
+      customer: { name: "Cliente Orcamento" },
+      serviceItems: [{ serviceId: context.service.id.toString() }],
+      paymentOptions: [{ method: "PIX", label: "Pix" }],
+      ...restOverride,
+    };
+
+    if ("customer" in override) {
+      if (customer === undefined) {
+        delete request.customer;
+      } else {
+        request.customer = customer;
+      }
+    }
+
+    return request;
+  }
+
   it("should create a quote for a prospect without creating customer or vehicle records", async () => {
     const owner = makeUser("ESTABLISHMENT");
     const establishment = makeEstablishment({ ownerId: owner.id });
@@ -66,7 +114,12 @@ describe("Create quote", () => {
     const result = await sut.execute({
       actor: { userId: owner.id.toString(), role: "ESTABLISHMENT" },
       customer: { name: "Robertinho Contador" },
-      vehicle: { model: "HR-V", year: 2025, color: "Branco" },
+      vehicle: {
+        brand: "Honda",
+        model: "HR-V",
+        year: 2025,
+        color: "Branco",
+      },
       serviceItems: [{ serviceId: service.id.toString() }],
       paymentOptions: [
         {
@@ -363,6 +416,191 @@ describe("Create quote", () => {
         },
       ],
     });
+
+    expect(result.isLeft()).toBe(true);
+    expect(result.value).toBeInstanceOf(InvalidQuoteInputError);
+  });
+
+  it("should reject an invalid prospect phone", async () => {
+    const context = await makeQuoteContext();
+
+    const result = await sut.execute(
+      makeCreateQuoteRequest(context, {
+        customer: { name: "Cliente Orcamento", phone: "1" },
+      }),
+    );
+
+    expect(result.isLeft()).toBe(true);
+    expect(result.value).toBeInstanceOf(InvalidQuoteInputError);
+  });
+
+  it("should reject an invalid prospect CPF/CNPJ", async () => {
+    const context = await makeQuoteContext();
+
+    const result = await sut.execute(
+      makeCreateQuoteRequest(context, {
+        customer: { name: "Cliente Orcamento", cpfCnpj: "123" },
+      }),
+    );
+
+    expect(result.isLeft()).toBe(true);
+    expect(result.value).toBeInstanceOf(InvalidQuoteInputError);
+  });
+
+  it("should reject an incomplete or invalid prospect address", async () => {
+    const context = await makeQuoteContext();
+
+    const incompleteAddressResult = await sut.execute(
+      makeCreateQuoteRequest(context, {
+        customer: {
+          name: "Cliente Orcamento",
+          address: {
+            street: "Rua A",
+            country: "Brasil",
+            state: "SP",
+            zipCode: null,
+            city: "Sao Paulo",
+            complement: null,
+          },
+        },
+      }),
+    );
+    const invalidAddressResult = await sut.execute(
+      makeCreateQuoteRequest(context, {
+        customer: {
+          name: "Cliente Orcamento",
+          address: {
+            street: "Rua A",
+            country: "Brasil",
+            state: "SP",
+            zipCode: "abc",
+            city: "Sao Paulo",
+            complement: null,
+          },
+        },
+      }),
+    );
+
+    expect(incompleteAddressResult.isLeft()).toBe(true);
+    expect(incompleteAddressResult.value).toBeInstanceOf(
+      InvalidQuoteInputError,
+    );
+    expect(invalidAddressResult.isLeft()).toBe(true);
+    expect(invalidAddressResult.value).toBeInstanceOf(InvalidQuoteInputError);
+  });
+
+  it("should reject a vehicle snapshot without brand", async () => {
+    const context = await makeQuoteContext();
+
+    const result = await sut.execute(
+      makeCreateQuoteRequest(context, {
+        vehicle: { model: "HR-V" },
+      }),
+    );
+
+    expect(result.isLeft()).toBe(true);
+    expect(result.value).toBeInstanceOf(InvalidQuoteInputError);
+  });
+
+  it("should reject a vehicle snapshot without model", async () => {
+    const context = await makeQuoteContext();
+
+    const result = await sut.execute(
+      makeCreateQuoteRequest(context, {
+        vehicle: { brand: "Honda" },
+      }),
+    );
+
+    expect(result.isLeft()).toBe(true);
+    expect(result.value).toBeInstanceOf(InvalidQuoteInputError);
+  });
+
+  it("should reject an invalid vehicle plate snapshot", async () => {
+    const context = await makeQuoteContext();
+
+    const result = await sut.execute(
+      makeCreateQuoteRequest(context, {
+        vehicle: { brand: "Honda", model: "HR-V", plate: "ABC123" },
+      }),
+    );
+
+    expect(result.isLeft()).toBe(true);
+    expect(result.value).toBeInstanceOf(InvalidQuoteInputError);
+  });
+
+  it("should reject an invalid vehicle year snapshot", async () => {
+    const context = await makeQuoteContext();
+
+    const result = await sut.execute(
+      makeCreateQuoteRequest(context, {
+        vehicle: { brand: "Honda", model: "HR-V", year: 1899 },
+      }),
+    );
+
+    expect(result.isLeft()).toBe(true);
+    expect(result.value).toBeInstanceOf(InvalidQuoteInputError);
+  });
+
+  it("should accept customerId without customer", async () => {
+    const context = await makeQuoteContext();
+    const customer = makeCustomer({
+      establishmentId: context.establishment.id,
+    });
+
+    await customersRepository.create(customer);
+
+    const result = await sut.execute(
+      makeCreateQuoteRequest(context, {
+        customer: undefined,
+        customerId: customer.id.toString(),
+      }),
+    );
+
+    expect(result.isRight()).toBe(true);
+    if (result.isLeft()) throw result.value;
+    expect(result.value.quote.customerId).toEqual(customer.id);
+  });
+
+  it("should reject customerId with customer snapshot", async () => {
+    const context = await makeQuoteContext();
+    const customer = makeCustomer({
+      establishmentId: context.establishment.id,
+    });
+
+    await customersRepository.create(customer);
+
+    const result = await sut.execute(
+      makeCreateQuoteRequest(context, {
+        customerId: customer.id.toString(),
+        customer: { name: "Cliente Duplicado" },
+      }),
+    );
+
+    expect(result.isLeft()).toBe(true);
+    expect(result.value).toBeInstanceOf(InvalidQuoteInputError);
+  });
+
+  it("should reject vehicleId with vehicle snapshot", async () => {
+    const context = await makeQuoteContext();
+    const customer = makeCustomer({
+      establishmentId: context.establishment.id,
+    });
+    const vehicle = makeCustomerVehicle({
+      establishmentId: context.establishment.id,
+      customerId: customer.id,
+    });
+
+    await customersRepository.create(customer);
+    await customerVehiclesRepository.create(vehicle);
+
+    const result = await sut.execute(
+      makeCreateQuoteRequest(context, {
+        customer: undefined,
+        customerId: customer.id.toString(),
+        vehicleId: vehicle.id.toString(),
+        vehicle: { brand: "Honda", model: "HR-V" },
+      }),
+    );
 
     expect(result.isLeft()).toBe(true);
     expect(result.value).toBeInstanceOf(InvalidQuoteInputError);

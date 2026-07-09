@@ -1,11 +1,14 @@
 import { Injectable } from "@nestjs/common";
 
 import { Address } from "../../../accounts/domain/value-objects/address";
+import { Phone } from "../../../accounts/domain/value-objects/phone";
 import { InactiveServiceError } from "../../../catalog/domain/errors/inactive-service-error";
 import {
   InvalidServiceNameError,
   ServiceName,
 } from "../../../catalog/domain/value-objects/service-name";
+import { CustomerVehicle } from "../../../customer/domain/entities/customer-vehicle";
+import { CustomerDocument } from "../../../customer/domain/value-objects/customer-document";
 import {
   Quote,
   QuoteAddressSnapshot,
@@ -175,6 +178,14 @@ export class CreateQuoteUseCase {
       CustomerSnapshotResult
     >
   > {
+    if (request.customerId && request.customer !== undefined) {
+      return left(
+        new InvalidQuoteInputError(
+          "customer cannot be provided with customerId.",
+        ),
+      );
+    }
+
     if (request.customerId) {
       const customer =
         await this.customersRepository.findByIdAndEstablishmentId(
@@ -203,13 +214,24 @@ export class CreateQuoteUseCase {
       return left(new InvalidQuoteInputError("customer.name is required."));
     }
 
+    const phoneResult = normalizePhoneSnapshot(request.customer?.phone);
+    if (phoneResult.isLeft()) return left(phoneResult.value);
+
+    const documentResult = normalizeCustomerDocumentSnapshot(
+      request.customer?.cpfCnpj,
+    );
+    if (documentResult.isLeft()) return left(documentResult.value);
+
+    const addressResult = normalizeAddressSnapshot(request.customer?.address);
+    if (addressResult.isLeft()) return left(addressResult.value);
+
     return right({
       customerId: null,
       customer: {
         name,
-        phone: request.customer?.phone ?? null,
-        cpfCnpj: request.customer?.cpfCnpj ?? null,
-        address: request.customer?.address ?? null,
+        phone: phoneResult.value,
+        cpfCnpj: documentResult.value,
+        address: addressResult.value,
       },
     });
   }
@@ -224,6 +246,18 @@ export class CreateQuoteUseCase {
       VehicleSnapshotResult
     >
   > {
+    if (
+      request.vehicleId &&
+      request.vehicle !== undefined &&
+      request.vehicle !== null
+    ) {
+      return left(
+        new InvalidQuoteInputError(
+          "vehicle cannot be provided with vehicleId.",
+        ),
+      );
+    }
+
     if (request.vehicleId && !customerId) {
       return left(
         new InvalidQuoteInputError(
@@ -256,17 +290,12 @@ export class CreateQuoteUseCase {
       });
     }
 
+    const vehicleResult = normalizeVehicleSnapshot(request.vehicle);
+    if (vehicleResult.isLeft()) return left(vehicleResult.value);
+
     return right({
       vehicleId: null,
-      vehicle: request.vehicle
-        ? {
-            plate: request.vehicle.plate ?? null,
-            brand: request.vehicle.brand ?? null,
-            model: request.vehicle.model ?? null,
-            color: request.vehicle.color ?? null,
-            year: request.vehicle.year ?? null,
-          }
-        : null,
+      vehicle: vehicleResult.value,
     });
   }
 
@@ -443,4 +472,144 @@ function toAddressSnapshot(address: Address | null): QuoteAddressSnapshot {
     city: address.city,
     complement: address.complement,
   };
+}
+
+function normalizeOptionalText(value: string | null | undefined) {
+  const normalizedValue = value?.trim();
+
+  if (!normalizedValue) {
+    return null;
+  }
+
+  return normalizedValue;
+}
+
+function normalizePhoneSnapshot(
+  value: string | null | undefined,
+): Either<InvalidQuoteInputError, string | null> {
+  const normalizedValue = normalizeOptionalText(value);
+
+  if (normalizedValue === null) {
+    return right(null);
+  }
+
+  try {
+    return right(Phone.create(normalizedValue).toString());
+  } catch (error) {
+    return left(
+      new InvalidQuoteInputError(
+        error instanceof Error ? error.message : "Invalid customer.phone.",
+      ),
+    );
+  }
+}
+
+function normalizeCustomerDocumentSnapshot(
+  value: string | null | undefined,
+): Either<InvalidQuoteInputError, string | null> {
+  const normalizedValue = normalizeOptionalText(value);
+
+  if (normalizedValue === null) {
+    return right(null);
+  }
+
+  try {
+    return right(CustomerDocument.create(normalizedValue).toString());
+  } catch (error) {
+    return left(
+      new InvalidQuoteInputError(
+        error instanceof Error ? error.message : "Invalid customer.cpfCnpj.",
+      ),
+    );
+  }
+}
+
+function normalizeAddressSnapshot(
+  address: QuoteAddressSnapshot | undefined,
+): Either<InvalidQuoteInputError, QuoteAddressSnapshot> {
+  if (address === undefined || address === null) {
+    return right(null);
+  }
+
+  const street = normalizeOptionalText(address.street);
+  const country = normalizeOptionalText(address.country);
+  const state = normalizeOptionalText(address.state);
+  const zipCode = normalizeOptionalText(address.zipCode);
+  const city = normalizeOptionalText(address.city);
+
+  if (!street || !country || !state || !zipCode || !city) {
+    return left(
+      new InvalidQuoteInputError(
+        "customer.address must include street, country, state, zipCode, and city.",
+      ),
+    );
+  }
+
+  try {
+    return right(
+      toAddressSnapshot(
+        Address.create({
+          street,
+          country,
+          state,
+          zipCode,
+          city,
+          complement: address.complement,
+        }),
+      ),
+    );
+  } catch (error) {
+    return left(
+      new InvalidQuoteInputError(
+        error instanceof Error ? error.message : "Invalid customer.address.",
+      ),
+    );
+  }
+}
+
+function normalizeVehicleSnapshot(
+  vehicle: QuoteVehicleInput | null | undefined,
+): Either<InvalidQuoteInputError, QuoteVehicleSnapshot> {
+  if (vehicle === undefined || vehicle === null) {
+    return right(null);
+  }
+
+  const brand = normalizeOptionalText(vehicle.brand);
+  const model = normalizeOptionalText(vehicle.model);
+
+  if (!brand) {
+    return left(new InvalidQuoteInputError("vehicle.brand is required."));
+  }
+
+  if (!model) {
+    return left(new InvalidQuoteInputError("vehicle.model is required."));
+  }
+
+  let plate: string | null;
+
+  try {
+    plate = CustomerVehicle.normalizePlate(vehicle.plate ?? null);
+  } catch (error) {
+    return left(
+      new InvalidQuoteInputError(
+        error instanceof Error ? error.message : "Invalid vehicle.plate.",
+      ),
+    );
+  }
+
+  if (
+    vehicle.year !== undefined &&
+    vehicle.year !== null &&
+    (!Number.isInteger(vehicle.year) || vehicle.year < 1900)
+  ) {
+    return left(new InvalidQuoteInputError("year must be a valid integer."));
+  }
+
+  return right({
+    plate,
+    brand,
+    model,
+    color: normalizeOptionalText(vehicle.color),
+    year: vehicle.year ?? null,
+  });
 }
