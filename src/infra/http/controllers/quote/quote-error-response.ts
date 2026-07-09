@@ -18,3 +18,11 @@ export type QuoteErrorResponse = {
   message: string;
   errors?: QuoteFieldError[];
 };
+
+export function createQuoteErrorResponse(
+  statusCode: number,
+  code: string,
+  message: string,
+): QuoteErrorResponse {
+  return { statusCode, code, message };
+}

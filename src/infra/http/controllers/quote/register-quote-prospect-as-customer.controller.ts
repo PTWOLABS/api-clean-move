@@ -21,13 +21,13 @@ import {
   RegisterQuoteProspectBodyDto,
   RegisterQuoteProspectResponseDto,
 } from "../../docs/domain-swagger.dto";
-import { ZodValidationPipe } from "../../pipes/zod-validation.pipe";
 import { AuthenticatedUser } from "../../../auth/authenticated-user";
 import { CurrentUser } from "../../../auth/current-user";
 import { throwQuoteHttpError } from "./quote-http-errors";
 import { CustomerPresenter } from "../../presenters/customer-presenter";
 import { CustomerVehiclePresenter } from "../../presenters/customer-vehicle-presenter";
 import { QuotePresenter } from "../../presenters/quote-presenter";
+import { QuoteZodValidationPipe } from "./quote-zod-validation.pipe";
 
 const quoteIdParamSchema = z.uuid();
 
@@ -78,9 +78,9 @@ export class RegisterQuoteProspectAsCustomerController {
   @ApiInternalServerErrorResponse({ description: "Unexpected failure." })
   async handle(
     @CurrentUser() user: AuthenticatedUser,
-    @Param("quoteId", new ZodValidationPipe(quoteIdParamSchema))
+    @Param("quoteId", new QuoteZodValidationPipe(quoteIdParamSchema))
     quoteId: string,
-    @Body(new ZodValidationPipe(registerQuoteProspectBodySchema))
+    @Body(new QuoteZodValidationPipe(registerQuoteProspectBodySchema))
     body: RegisterQuoteProspectBodySchema,
   ) {
     const result = await this.registerQuoteProspectAsCustomer.execute({

@@ -18,9 +18,9 @@ import { EmployeeFeatures } from "../../../auth/employee-features";
 import { Roles } from "../../../auth/roles";
 import { GenerateQuotePdfUseCase } from "../../../../modules/application/use-cases/quote/generate-quote-pdf";
 import { AuthenticatedUser } from "../../../auth/authenticated-user";
-import { ZodValidationPipe } from "../../pipes/zod-validation.pipe";
 import { CurrentUser } from "../../../auth/current-user";
 import { throwQuoteHttpError } from "./quote-http-errors";
+import { QuoteZodValidationPipe } from "./quote-zod-validation.pipe";
 
 const quoteIdParamSchema = z.uuid();
 
@@ -59,7 +59,7 @@ export class GenerateQuotePdfController {
   @ApiInternalServerErrorResponse({ description: "Unexpected failure." })
   async handle(
     @CurrentUser() user: AuthenticatedUser,
-    @Param("quoteId", new ZodValidationPipe(quoteIdParamSchema))
+    @Param("quoteId", new QuoteZodValidationPipe(quoteIdParamSchema))
     quoteId: string,
     @Res() response: Response,
   ) {

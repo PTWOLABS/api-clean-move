@@ -22,9 +22,9 @@ import {
   CreateQuoteBodyDto,
   QuoteResponseDto,
 } from "../../docs/domain-swagger.dto";
-import { ZodValidationPipe } from "../../pipes/zod-validation.pipe";
 import { QuotePresenter } from "../../presenters/quote-presenter";
 import { throwQuoteHttpError } from "./quote-http-errors";
+import { QuoteZodValidationPipe } from "./quote-zod-validation.pipe";
 
 const quoteAddressSchema = z.object({
   street: z.string().trim().nullable(),
@@ -164,7 +164,7 @@ export class CreateQuoteController {
   @ApiInternalServerErrorResponse({ description: "Unexpected failure." })
   async handle(
     @CurrentUser() user: AuthenticatedUser,
-    @Body(new ZodValidationPipe(createQuoteBodySchema))
+    @Body(new QuoteZodValidationPipe(createQuoteBodySchema))
     body: CreateQuoteBodySchema,
   ) {
     const customer =

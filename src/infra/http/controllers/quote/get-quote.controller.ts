@@ -1,11 +1,4 @@
-import {
-  Controller,
-  ForbiddenException,
-  Get,
-  InternalServerErrorException,
-  NotFoundException,
-  Param,
-} from "@nestjs/common";
+import { Controller, Get, Param } from "@nestjs/common";
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
@@ -21,15 +14,14 @@ import {
 import z from "zod";
 
 import { GetQuoteUseCase } from "../../../../modules/application/use-cases/quote/get-quote";
-import { NotAllowedError } from "../../../../shared/errors/not-allowed-error";
-import { ResourceNotFoundError } from "../../../../shared/errors/resource-not-found-error";
 import { AuthenticatedUser } from "../../../auth/authenticated-user";
 import { CurrentUser } from "../../../auth/current-user";
 import { EmployeeFeatures } from "../../../auth/employee-features";
 import { Roles } from "../../../auth/roles";
 import { QuoteResponseDto } from "../../docs/domain-swagger.dto";
-import { ZodValidationPipe } from "../../pipes/zod-validation.pipe";
 import { QuotePresenter } from "../../presenters/quote-presenter";
+import { throwQuoteHttpError } from "./quote-http-errors";
+import { QuoteZodValidationPipe } from "./quote-zod-validation.pipe";
 
 const quoteIdParamSchema = z.uuid();
 
@@ -61,7 +53,7 @@ export class GetQuoteController {
   @ApiInternalServerErrorResponse({ description: "Unexpected failure." })
   async handle(
     @CurrentUser() user: AuthenticatedUser,
-    @Param("quoteId", new ZodValidationPipe(quoteIdParamSchema))
+    @Param("quoteId", new QuoteZodValidationPipe(quoteIdParamSchema))
     quoteId: string,
   ) {
     const result = await this.getQuote.execute({
@@ -70,16 +62,7 @@ export class GetQuoteController {
     });
 
     if (result.isLeft()) {
-      const error = result.value;
-
-      switch (error.constructor) {
-        case NotAllowedError:
-          throw new ForbiddenException(error.message);
-        case ResourceNotFoundError:
-          throw new NotFoundException(error.message);
-        default:
-          throw new InternalServerErrorException(error.message);
-      }
+      throwQuoteHttpError(result.value);
     }
 
     return {

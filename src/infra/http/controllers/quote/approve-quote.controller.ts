@@ -24,9 +24,9 @@ import {
   ApproveQuoteResponseDto,
 } from "../../docs/domain-swagger.dto";
 import { AppointmentPresenter } from "../../presenters/appointment-presenter";
-import { ZodValidationPipe } from "../../pipes/zod-validation.pipe";
 import { QuotePresenter } from "../../presenters/quote-presenter";
 import { throwQuoteHttpError } from "./quote-http-errors";
+import { QuoteZodValidationPipe } from "./quote-zod-validation.pipe";
 
 const quoteIdParamSchema = z.uuid();
 
@@ -69,9 +69,9 @@ export class ApproveQuoteController {
   @ApiInternalServerErrorResponse({ description: "Unexpected failure." })
   async handle(
     @CurrentUser() user: AuthenticatedUser,
-    @Param("quoteId", new ZodValidationPipe(quoteIdParamSchema))
+    @Param("quoteId", new QuoteZodValidationPipe(quoteIdParamSchema))
     quoteId: string,
-    @Body(new ZodValidationPipe(approveQuoteBodySchema))
+    @Body(new QuoteZodValidationPipe(approveQuoteBodySchema))
     body: ApproveQuoteBodySchema,
   ) {
     const result = await this.approveQuote.execute({
