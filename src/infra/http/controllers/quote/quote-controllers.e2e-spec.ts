@@ -433,6 +433,34 @@ describe("Quote controllers (e2e)", () => {
     });
   });
 
+  it("should return a stable code when a quote contains an inactive service", async () => {
+    const { accessToken, establishment } = await makeEstablishmentAccessToken({
+      app,
+      prisma,
+      userFactory,
+      establishmentFactory,
+      envService,
+    });
+    const service = await serviceFactory.makePrismaService({
+      establishmentId: establishment.id,
+      isActive: false,
+    });
+
+    const response = await request(getHttpServer(app))
+      .post("/quotes")
+      .set("Authorization", `Bearer ${accessToken}`)
+      .send({
+        customer: { name: "Servico Inativo" },
+        serviceItems: [{ serviceId: service.id.toString() }],
+        paymentOptions: [{ method: "PIX", label: "Pix", installments: 1 }],
+      });
+
+    expect(response.status).toBe(400);
+    expect(errorResponseSchema.parse(response.body)).toMatchObject({
+      code: "QUOTE_SERVICE_INACTIVE",
+    });
+  });
+
   it("should create a prospect quote with vehicle snapshot and detached service", async () => {
     const { accessToken } = await makeEstablishmentAccessToken({
       app,
