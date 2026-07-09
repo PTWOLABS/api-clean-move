@@ -219,16 +219,23 @@ export class Quote extends AggregateRoot<QuoteProps> {
     this.assertValidDate(approvedAt, "approvedAt must be a valid date.");
 
     if (endsAt && endsAt.getTime() <= startsAt.getTime()) {
-      throw new InvalidQuoteInputError("endsAt must be greater than startsAt.");
+      throw new InvalidQuoteInputError(
+        "endsAt must be greater than startsAt.",
+        "QUOTE_INVALID_SCHEDULE_INTERVAL",
+      );
     }
 
     if (this.props.convertedAppointmentId || this.props.convertedAt) {
-      throw new InvalidQuoteInputError("Quote is already converted.");
+      throw new InvalidQuoteInputError(
+        "Quote is already converted.",
+        "QUOTE_ALREADY_CONVERTED",
+      );
     }
 
     if (!this.props.customerId) {
       throw new InvalidQuoteInputError(
         "Quote must be linked to a customer before conversion.",
+        "QUOTE_CANNOT_BE_APPROVED_FOR_PROSPECT",
       );
     }
 
@@ -251,7 +258,10 @@ export class Quote extends AggregateRoot<QuoteProps> {
     this.assertValidDate(referenceDate, "referenceDate must be a valid date.");
 
     if (this.props.convertedAppointmentId || this.props.convertedAt) {
-      throw new InvalidQuoteInputError("Quote is already converted.");
+      throw new InvalidQuoteInputError(
+        "Quote is already converted.",
+        "QUOTE_ALREADY_CONVERTED",
+      );
     }
 
     this.props.convertedAppointmentId = appointmentId;
@@ -261,7 +271,10 @@ export class Quote extends AggregateRoot<QuoteProps> {
 
   linkCustomer(customerId: UniqueEntityId, vehicleId: UniqueEntityId | null) {
     if (this.props.customerId) {
-      throw new InvalidQuoteInputError("Quote already has a customer.");
+      throw new InvalidQuoteInputError(
+        "Quote already has a customer.",
+        "QUOTE_ALREADY_HAS_CUSTOMER",
+      );
     }
 
     this.props.customerId = customerId;

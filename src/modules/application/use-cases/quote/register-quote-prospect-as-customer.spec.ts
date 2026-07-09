@@ -143,6 +143,7 @@ describe("Register quote prospect as customer", () => {
 
     expect(result.isLeft()).toBe(true);
     expect(result.value).toBeInstanceOf(InvalidQuoteInputError);
+    expect(result.value).toMatchObject({ code: "QUOTE_ALREADY_HAS_CUSTOMER" });
   });
 
   it("should reject createVehicleFromQuote when quote has no vehicle snapshot", async () => {
@@ -168,6 +169,9 @@ describe("Register quote prospect as customer", () => {
 
     expect(result.isLeft()).toBe(true);
     expect(result.value).toBeInstanceOf(InvalidQuoteInputError);
+    expect(result.value).toMatchObject({
+      code: "QUOTE_VEHICLE_SNAPSHOT_MISSING",
+    });
   });
 
   it("should reject customer document conflicts", async () => {
@@ -200,6 +204,7 @@ describe("Register quote prospect as customer", () => {
 
     expect(result.isLeft()).toBe(true);
     expect(result.value).toBeInstanceOf(ResourceAlreadyExistsError);
+    expect(result.value).toMatchObject({ resource: "customer" });
   });
 
   it("should use UnitOfWork when creating customer and vehicle", async () => {

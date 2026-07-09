@@ -74,7 +74,12 @@ export class RegisterQuoteProspectAsCustomerUseCase {
     }
 
     if (quote.customerId) {
-      return left(new InvalidQuoteInputError("Quote already has a customer."));
+      return left(
+        new InvalidQuoteInputError(
+          "Quote already has a customer.",
+          "QUOTE_ALREADY_HAS_CUSTOMER",
+        ),
+      );
     }
 
     let customer: Customer;
@@ -100,7 +105,10 @@ export class RegisterQuoteProspectAsCustomerUseCase {
       if (request.createVehicleFromQuote) {
         if (!quote.vehicle) {
           return left(
-            new InvalidQuoteInputError("Quote has no vehicle snapshot."),
+            new InvalidQuoteInputError(
+              "Quote has no vehicle snapshot.",
+              "QUOTE_VEHICLE_SNAPSHOT_MISSING",
+            ),
           );
         }
 
@@ -108,6 +116,7 @@ export class RegisterQuoteProspectAsCustomerUseCase {
           return left(
             new InvalidQuoteInputError(
               "Quote vehicle snapshot must include brand and model.",
+              "QUOTE_VEHICLE_SNAPSHOT_INCOMPLETE",
             ),
           );
         }
@@ -137,7 +146,10 @@ export class RegisterQuoteProspectAsCustomerUseCase {
 
       if (conflict) {
         return left(
-          new ResourceAlreadyExistsError("Customer already registered."),
+          new ResourceAlreadyExistsError({
+            message: "Customer already registered.",
+            resource: "customer",
+          }),
         );
       }
     }
@@ -169,7 +181,10 @@ function toAddress(address: QuoteAddressSnapshot): Address | null {
     !address.zipCode ||
     !address.city
   ) {
-    throw new InvalidQuoteInputError("Quote customer address is incomplete.");
+    throw new InvalidQuoteInputError(
+      "Quote customer address is incomplete.",
+      "QUOTE_CUSTOMER_ADDRESS_INCOMPLETE",
+    );
   }
 
   return Address.create({
