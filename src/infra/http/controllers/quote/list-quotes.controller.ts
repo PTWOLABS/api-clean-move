@@ -18,7 +18,11 @@ import { AuthenticatedUser } from "../../../auth/authenticated-user";
 import { CurrentUser } from "../../../auth/current-user";
 import { EmployeeFeatures } from "../../../auth/employee-features";
 import { Roles } from "../../../auth/roles";
-import { ListQuotesResponseDto } from "../../docs/domain-swagger.dto";
+import {
+  ListQuotesResponseDto,
+  QuoteErrorResponseDto,
+  QuoteValidationErrorResponseDto,
+} from "../../docs/domain-swagger.dto";
 import { QuotePresenter } from "../../presenters/quote-presenter";
 import { throwQuoteHttpError } from "./quote-http-errors";
 import { QuoteZodValidationPipe } from "./quote-zod-validation.pipe";
@@ -84,14 +88,24 @@ export class ListQuotesController {
     description: "Quotes listed successfully.",
     type: ListQuotesResponseDto,
   })
-  @ApiBadRequestResponse({ description: "Invalid query parameters." })
+  @ApiBadRequestResponse({
+    description: "Invalid query parameters.",
+    type: QuoteValidationErrorResponseDto,
+  })
   @ApiUnauthorizedResponse({ description: "Missing or invalid access token." })
   @ApiForbiddenResponse({
     description:
       "Authenticated user does not have the required role or employee feature.",
+    type: QuoteErrorResponseDto,
   })
-  @ApiNotFoundResponse({ description: "Establishment profile was not found." })
-  @ApiInternalServerErrorResponse({ description: "Unexpected failure." })
+  @ApiNotFoundResponse({
+    description: "Establishment profile was not found.",
+    type: QuoteErrorResponseDto,
+  })
+  @ApiInternalServerErrorResponse({
+    description: "Unexpected failure.",
+    type: QuoteErrorResponseDto,
+  })
   async handle(
     @CurrentUser() user: AuthenticatedUser,
     @Query(new QuoteZodValidationPipe(listQuotesQuerySchema))

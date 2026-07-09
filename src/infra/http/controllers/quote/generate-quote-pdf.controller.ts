@@ -19,6 +19,10 @@ import { Roles } from "../../../auth/roles";
 import { GenerateQuotePdfUseCase } from "../../../../modules/application/use-cases/quote/generate-quote-pdf";
 import { AuthenticatedUser } from "../../../auth/authenticated-user";
 import { CurrentUser } from "../../../auth/current-user";
+import {
+  QuoteErrorResponseDto,
+  QuoteValidationErrorResponseDto,
+} from "../../docs/domain-swagger.dto";
 import { throwQuoteHttpError } from "./quote-http-errors";
 import { QuoteZodValidationPipe } from "./quote-zod-validation.pipe";
 
@@ -49,14 +53,24 @@ export class GenerateQuotePdfController {
       },
     },
   })
-  @ApiBadRequestResponse({ description: "Invalid quote id." })
+  @ApiBadRequestResponse({
+    description: "Invalid quote id.",
+    type: QuoteValidationErrorResponseDto,
+  })
   @ApiUnauthorizedResponse({ description: "Missing or invalid access token." })
   @ApiForbiddenResponse({
     description:
       "Authenticated user does not have the required role or employee feature.",
+    type: QuoteErrorResponseDto,
   })
-  @ApiNotFoundResponse({ description: "Quote or establishment not found." })
-  @ApiInternalServerErrorResponse({ description: "Unexpected failure." })
+  @ApiNotFoundResponse({
+    description: "Quote or establishment not found.",
+    type: QuoteErrorResponseDto,
+  })
+  @ApiInternalServerErrorResponse({
+    description: "Unexpected failure.",
+    type: QuoteErrorResponseDto,
+  })
   async handle(
     @CurrentUser() user: AuthenticatedUser,
     @Param("quoteId", new QuoteZodValidationPipe(quoteIdParamSchema))

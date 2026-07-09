@@ -2126,6 +2126,30 @@ export class QuoteResponseDto {
   quote!: QuoteDto;
 }
 
+export class QuoteErrorResponseDto {
+  @ApiProperty({ example: 400 })
+  statusCode!: number;
+
+  @ApiProperty({ example: "QUOTE_ALREADY_CONVERTED" })
+  code!: string;
+
+  @ApiProperty({ example: "Quote is already converted." })
+  message!: string;
+}
+
+export class QuoteFieldErrorDto {
+  @ApiProperty({ example: "customer.email" })
+  field!: string;
+
+  @ApiProperty({ example: "INVALID_FORMAT" })
+  code!: string;
+}
+
+export class QuoteValidationErrorResponseDto extends QuoteErrorResponseDto {
+  @ApiProperty({ type: QuoteFieldErrorDto, isArray: true })
+  errors!: QuoteFieldErrorDto[];
+}
+
 export class QuoteListItemDto {
   @ApiProperty({ example: "2e11b57c-b96a-490a-9ae6-64ef2966fd84" })
   id!: string;

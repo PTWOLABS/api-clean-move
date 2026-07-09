@@ -20,7 +20,9 @@ import { EmployeeFeatures } from "../../../auth/employee-features";
 import { Roles } from "../../../auth/roles";
 import {
   CreateQuoteBodyDto,
+  QuoteErrorResponseDto,
   QuoteResponseDto,
+  QuoteValidationErrorResponseDto,
 } from "../../docs/domain-swagger.dto";
 import { QuotePresenter } from "../../presenters/quote-presenter";
 import { throwQuoteHttpError } from "./quote-http-errors";
@@ -151,17 +153,23 @@ export class CreateQuoteController {
   })
   @ApiBadRequestResponse({
     description: "Invalid payload, inactive service, or invalid quote rules.",
+    type: QuoteValidationErrorResponseDto,
   })
   @ApiUnauthorizedResponse({ description: "Missing or invalid access token." })
   @ApiForbiddenResponse({
     description:
       "Authenticated user does not have the required role or employee feature.",
+    type: QuoteErrorResponseDto,
   })
   @ApiNotFoundResponse({
     description:
       "Customer, vehicle, service, owner, or establishment profile was not found.",
+    type: QuoteErrorResponseDto,
   })
-  @ApiInternalServerErrorResponse({ description: "Unexpected failure." })
+  @ApiInternalServerErrorResponse({
+    description: "Unexpected failure.",
+    type: QuoteErrorResponseDto,
+  })
   async handle(
     @CurrentUser() user: AuthenticatedUser,
     @Body(new QuoteZodValidationPipe(createQuoteBodySchema))

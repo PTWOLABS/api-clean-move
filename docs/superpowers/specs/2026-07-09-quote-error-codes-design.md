@@ -51,15 +51,15 @@ Validation failures additionally return `errors`, preserving every invalid field
 
 Quote validation gets an opt-in formatter rather than changing the shared `ZodValidationPipe` response used by other domains. The formatter maps Zod issue kinds to the following generic, reusable field codes:
 
-| Zod condition | API field code |
-| --- | --- |
-| missing required value | `REQUIRED` |
-| invalid primitive type | `INVALID_TYPE` |
+| Zod condition                              | API field code   |
+| ------------------------------------------ | ---------------- |
+| missing required value                     | `REQUIRED`       |
+| invalid primitive type                     | `INVALID_TYPE`   |
 | invalid string/UUID/email/date/enum format | `INVALID_FORMAT` |
-| below a minimum or above a maximum | `OUT_OF_RANGE` |
-| below an array/string minimum | `MIN_ITEMS` |
-| above an array/string maximum | `MAX_ITEMS` |
-| cross-field/custom schema rule | `INVALID_VALUE` |
+| below a minimum or above a maximum         | `OUT_OF_RANGE`   |
+| below an array/string minimum              | `MIN_ITEMS`      |
+| above an array/string maximum              | `MAX_ITEMS`      |
+| cross-field/custom schema rule             | `INVALID_VALUE`  |
 
 The top-level code is always `VALIDATION_ERROR`. This avoids leaking Zod implementation terms such as `too_small` and `invalid_type` while avoiding a separate code for every structural validation rule.
 

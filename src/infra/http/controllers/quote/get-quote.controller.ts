@@ -18,7 +18,11 @@ import { AuthenticatedUser } from "../../../auth/authenticated-user";
 import { CurrentUser } from "../../../auth/current-user";
 import { EmployeeFeatures } from "../../../auth/employee-features";
 import { Roles } from "../../../auth/roles";
-import { QuoteResponseDto } from "../../docs/domain-swagger.dto";
+import {
+  QuoteErrorResponseDto,
+  QuoteResponseDto,
+  QuoteValidationErrorResponseDto,
+} from "../../docs/domain-swagger.dto";
 import { QuotePresenter } from "../../presenters/quote-presenter";
 import { throwQuoteHttpError } from "./quote-http-errors";
 import { QuoteZodValidationPipe } from "./quote-zod-validation.pipe";
@@ -43,14 +47,24 @@ export class GetQuoteController {
     description: "Quote found successfully.",
     type: QuoteResponseDto,
   })
-  @ApiBadRequestResponse({ description: "Invalid quote id." })
+  @ApiBadRequestResponse({
+    description: "Invalid quote id.",
+    type: QuoteValidationErrorResponseDto,
+  })
   @ApiUnauthorizedResponse({ description: "Missing or invalid access token." })
   @ApiForbiddenResponse({
     description:
       "Authenticated user does not have the required role or employee feature.",
+    type: QuoteErrorResponseDto,
   })
-  @ApiNotFoundResponse({ description: "Quote or establishment not found." })
-  @ApiInternalServerErrorResponse({ description: "Unexpected failure." })
+  @ApiNotFoundResponse({
+    description: "Quote or establishment not found.",
+    type: QuoteErrorResponseDto,
+  })
+  @ApiInternalServerErrorResponse({
+    description: "Unexpected failure.",
+    type: QuoteErrorResponseDto,
+  })
   async handle(
     @CurrentUser() user: AuthenticatedUser,
     @Param("quoteId", new QuoteZodValidationPipe(quoteIdParamSchema))

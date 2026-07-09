@@ -18,6 +18,8 @@ import { Roles } from "../../../auth/roles";
 import { EmployeeFeatures } from "../../../auth/employee-features";
 import { RegisterQuoteProspectAsCustomerUseCase } from "../../../../modules/application/use-cases/quote/register-quote-prospect-as-customer";
 import {
+  QuoteErrorResponseDto,
+  QuoteValidationErrorResponseDto,
   RegisterQuoteProspectBodyDto,
   RegisterQuoteProspectResponseDto,
 } from "../../docs/domain-swagger.dto";
@@ -65,17 +67,26 @@ export class RegisterQuoteProspectAsCustomerController {
   })
   @ApiBadRequestResponse({
     description: "Invalid payload or quote/customer conversion rule.",
+    type: QuoteValidationErrorResponseDto,
   })
   @ApiUnauthorizedResponse({ description: "Missing or invalid access token." })
   @ApiForbiddenResponse({
     description:
       "Authenticated user does not have the required role or employee feature.",
+    type: QuoteErrorResponseDto,
   })
-  @ApiNotFoundResponse({ description: "Quote or establishment not found." })
+  @ApiNotFoundResponse({
+    description: "Quote or establishment not found.",
+    type: QuoteErrorResponseDto,
+  })
   @ApiConflictResponse({
     description: "Customer already registered for the establishment.",
+    type: QuoteErrorResponseDto,
   })
-  @ApiInternalServerErrorResponse({ description: "Unexpected failure." })
+  @ApiInternalServerErrorResponse({
+    description: "Unexpected failure.",
+    type: QuoteErrorResponseDto,
+  })
   async handle(
     @CurrentUser() user: AuthenticatedUser,
     @Param("quoteId", new QuoteZodValidationPipe(quoteIdParamSchema))

@@ -2,7 +2,6 @@ import {
   BadRequestException,
   HttpStatus,
   Injectable,
-  type ArgumentMetadata,
   type PipeTransform,
 } from "@nestjs/common";
 import { z } from "zod";
@@ -24,9 +23,7 @@ export function formatQuoteValidationIssues(
   }));
 }
 
-function toQuoteValidationFieldCode(
-  issue: ZodIssue,
-): QuoteValidationFieldCode {
+function toQuoteValidationFieldCode(issue: ZodIssue): QuoteValidationFieldCode {
   switch (issue.code) {
     case "invalid_type":
       return issue.input === undefined ? "REQUIRED" : "INVALID_TYPE";
@@ -52,10 +49,7 @@ export class QuoteZodValidationPipe<
 > implements PipeTransform<unknown, z.output<TSchema>> {
   constructor(private readonly schema: TSchema) {}
 
-  transform(
-    value: unknown,
-    _metadata: ArgumentMetadata,
-  ): z.output<TSchema> {
+  transform(value: unknown): z.output<TSchema> {
     const result = this.schema.safeParse(value);
 
     if (result.success) {

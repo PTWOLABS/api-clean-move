@@ -23,13 +23,21 @@ export function throwQuoteHttpError(error: Error): never {
 
   if (error instanceof ResourceNotFoundError) {
     throw new NotFoundException(
-      createQuoteErrorResponse(404, resourceNotFoundCode(error.resource), error.message),
+      createQuoteErrorResponse(
+        404,
+        resourceNotFoundCode(error.resource),
+        error.message,
+      ),
     );
   }
 
   if (error instanceof ResourceAlreadyExistsError) {
     throw new ConflictException(
-      createQuoteErrorResponse(409, resourceAlreadyExistsCode(error.resource), error.message),
+      createQuoteErrorResponse(
+        409,
+        resourceAlreadyExistsCode(error.resource),
+        error.message,
+      ),
     );
   }
 

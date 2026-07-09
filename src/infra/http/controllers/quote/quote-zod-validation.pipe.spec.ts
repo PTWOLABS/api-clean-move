@@ -45,26 +45,10 @@ describe("QuoteZodValidationPipe", () => {
       }),
     );
 
-    expect(() =>
-      pipe.transform(
-        {},
-        {
-          data: undefined,
-          metatype: Object,
-          type: "body",
-        },
-      ),
-    ).toThrowError(BadRequestException);
+    expect(() => pipe.transform({})).toThrowError(BadRequestException);
 
     try {
-      pipe.transform(
-        {},
-        {
-          data: undefined,
-          metatype: Object,
-          type: "body",
-        },
-      );
+      pipe.transform({});
     } catch (error) {
       expect(error).toBeInstanceOf(BadRequestException);
       expect((error as BadRequestException).getResponse()).toEqual({

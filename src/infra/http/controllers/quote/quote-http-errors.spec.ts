@@ -43,10 +43,12 @@ describe("throwQuoteHttpError", () => {
     expect(captureException(new NotAllowedError())).toBeInstanceOf(
       ForbiddenException,
     );
-    expect(captureException(new NotAllowedError()).getResponse()).toMatchObject({
-      statusCode: 403,
-      code: "FORBIDDEN",
-    });
+    expect(captureException(new NotAllowedError()).getResponse()).toMatchObject(
+      {
+        statusCode: 403,
+        code: "FORBIDDEN",
+      },
+    );
 
     expect(
       captureException(

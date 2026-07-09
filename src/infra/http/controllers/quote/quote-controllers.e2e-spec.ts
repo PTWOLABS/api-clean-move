@@ -133,7 +133,17 @@ const approveQuoteResponseSchema = z.object({
 });
 
 const errorResponseSchema = z.object({
+  statusCode: z.number().int(),
+  code: z.string().min(1),
   message: z.string(),
+  errors: z
+    .array(
+      z.object({
+        field: z.string(),
+        code: z.string(),
+      }),
+    )
+    .optional(),
 });
 
 function collectPdfResponseBody(
@@ -413,6 +423,14 @@ describe("Quote controllers (e2e)", () => {
 
     expect(withoutBrandResponse.status).toBe(400);
     expect(withoutModelResponse.status).toBe(400);
+    expect(errorResponseSchema.parse(withoutBrandResponse.body)).toMatchObject({
+      code: "VALIDATION_ERROR",
+      errors: [{ field: "vehicle.brand", code: "REQUIRED" }],
+    });
+    expect(errorResponseSchema.parse(withoutModelResponse.body)).toMatchObject({
+      code: "VALIDATION_ERROR",
+      errors: [{ field: "vehicle.model", code: "REQUIRED" }],
+    });
   });
 
   it("should create a prospect quote with vehicle snapshot and detached service", async () => {
@@ -714,9 +732,9 @@ describe("Quote controllers (e2e)", () => {
       });
 
     expect(response.status).toBe(400);
-    expect(errorResponseSchema.parse(response.body).message).toContain(
-      "Quote must be linked to a customer before conversion.",
-    );
+    expect(errorResponseSchema.parse(response.body)).toMatchObject({
+      code: "QUOTE_CANNOT_BE_APPROVED_FOR_PROSPECT",
+    });
   });
 
   it("should not create a vehicle when createVehicleFromQuote is false", async () => {
@@ -892,10 +910,16 @@ describe("Quote controllers (e2e)", () => {
     expect(secondSearchResponse.status).toBe(200);
     expect(secondSearchBody.quotes).toHaveLength(0);
 
-    await request(getHttpServer(app))
+    const inaccessibleQuoteResponse = await request(getHttpServer(app))
       .get(`/quotes/${firstQuoteId}`)
-      .set("Authorization", `Bearer ${secondEstablishmentAuth.accessToken}`)
-      .expect(404);
+      .set("Authorization", `Bearer ${secondEstablishmentAuth.accessToken}`);
+
+    expect(inaccessibleQuoteResponse.status).toBe(404);
+    expect(
+      errorResponseSchema.parse(inaccessibleQuoteResponse.body),
+    ).toMatchObject({
+      code: "QUOTE_NOT_FOUND",
+    });
     await request(getHttpServer(app))
       .get(`/quotes/${firstQuoteId}/pdf`)
       .set("Authorization", `Bearer ${secondEstablishmentAuth.accessToken}`)
@@ -1024,9 +1048,9 @@ describe("Quote controllers (e2e)", () => {
 
     expect(createResponse.status).toBe(201);
     expect(registerResponse.status).toBe(409);
-    expect(errorResponseSchema.parse(registerResponse.body).message).toContain(
-      "Customer already registered.",
-    );
+    expect(errorResponseSchema.parse(registerResponse.body)).toMatchObject({
+      code: "CUSTOMER_ALREADY_EXISTS",
+    });
   });
 
   it("should reject approving a quote that was already converted", async () => {
@@ -1077,9 +1101,11 @@ describe("Quote controllers (e2e)", () => {
     expect(registerResponse.status).toBe(201);
     expect(firstApproveResponse.status).toBe(201);
     expect(secondApproveResponse.status).toBe(400);
-    expect(
-      errorResponseSchema.parse(secondApproveResponse.body).message,
-    ).toContain("Quote is already converted.");
+    expect(errorResponseSchema.parse(secondApproveResponse.body)).toMatchObject(
+      {
+        code: "QUOTE_ALREADY_CONVERTED",
+      },
+    );
   });
 
   it("should reject creating a vehicle from a quote without vehicle snapshot", async () => {
@@ -1114,8 +1140,8 @@ describe("Quote controllers (e2e)", () => {
 
     expect(createResponse.status).toBe(201);
     expect(registerResponse.status).toBe(400);
-    expect(errorResponseSchema.parse(registerResponse.body).message).toContain(
-      "Quote has no vehicle snapshot.",
-    );
+    expect(errorResponseSchema.parse(registerResponse.body)).toMatchObject({
+      code: "QUOTE_VEHICLE_SNAPSHOT_MISSING",
+    });
   });
 });
