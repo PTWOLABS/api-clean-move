@@ -18,16 +18,18 @@ import { Roles } from "../../../auth/roles";
 import { EmployeeFeatures } from "../../../auth/employee-features";
 import { RegisterQuoteProspectAsCustomerUseCase } from "../../../../modules/application/use-cases/quote/register-quote-prospect-as-customer";
 import {
+  QuoteErrorResponseDto,
+  QuoteValidationErrorResponseDto,
   RegisterQuoteProspectBodyDto,
   RegisterQuoteProspectResponseDto,
 } from "../../docs/domain-swagger.dto";
-import { ZodValidationPipe } from "../../pipes/zod-validation.pipe";
 import { AuthenticatedUser } from "../../../auth/authenticated-user";
 import { CurrentUser } from "../../../auth/current-user";
 import { throwQuoteHttpError } from "./quote-http-errors";
 import { CustomerPresenter } from "../../presenters/customer-presenter";
 import { CustomerVehiclePresenter } from "../../presenters/customer-vehicle-presenter";
 import { QuotePresenter } from "../../presenters/quote-presenter";
+import { QuoteZodValidationPipe } from "./quote-zod-validation.pipe";
 
 const quoteIdParamSchema = z.uuid();
 
@@ -65,22 +67,31 @@ export class RegisterQuoteProspectAsCustomerController {
   })
   @ApiBadRequestResponse({
     description: "Invalid payload or quote/customer conversion rule.",
+    type: QuoteValidationErrorResponseDto,
   })
   @ApiUnauthorizedResponse({ description: "Missing or invalid access token." })
   @ApiForbiddenResponse({
     description:
       "Authenticated user does not have the required role or employee feature.",
+    type: QuoteErrorResponseDto,
   })
-  @ApiNotFoundResponse({ description: "Quote or establishment not found." })
+  @ApiNotFoundResponse({
+    description: "Quote or establishment not found.",
+    type: QuoteErrorResponseDto,
+  })
   @ApiConflictResponse({
     description: "Customer already registered for the establishment.",
+    type: QuoteErrorResponseDto,
   })
-  @ApiInternalServerErrorResponse({ description: "Unexpected failure." })
+  @ApiInternalServerErrorResponse({
+    description: "Unexpected failure.",
+    type: QuoteErrorResponseDto,
+  })
   async handle(
     @CurrentUser() user: AuthenticatedUser,
-    @Param("quoteId", new ZodValidationPipe(quoteIdParamSchema))
+    @Param("quoteId", new QuoteZodValidationPipe(quoteIdParamSchema))
     quoteId: string,
-    @Body(new ZodValidationPipe(registerQuoteProspectBodySchema))
+    @Body(new QuoteZodValidationPipe(registerQuoteProspectBodySchema))
     body: RegisterQuoteProspectBodySchema,
   ) {
     const result = await this.registerQuoteProspectAsCustomer.execute({

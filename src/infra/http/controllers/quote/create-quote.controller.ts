@@ -1,12 +1,4 @@
-import {
-  BadRequestException,
-  Body,
-  Controller,
-  ForbiddenException,
-  InternalServerErrorException,
-  NotFoundException,
-  Post,
-} from "@nestjs/common";
+import { Body, Controller, Post } from "@nestjs/common";
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
@@ -22,21 +14,19 @@ import {
 import z from "zod";
 
 import { CreateQuoteUseCase } from "../../../../modules/application/use-cases/quote/create-quote";
-import { InactiveServiceError } from "../../../../modules/catalog/domain/errors/inactive-service-error";
-import { InvalidQuoteInputError } from "../../../../modules/quotes/domain/errors/invalid-quote-input-error";
-import { NotAllowedError } from "../../../../shared/errors/not-allowed-error";
-import { ResourceNotFoundError } from "../../../../shared/errors/resource-not-found-error";
-import { UnexpectedDomainError } from "../../../../shared/errors/unexpected-domain-error";
 import { AuthenticatedUser } from "../../../auth/authenticated-user";
 import { CurrentUser } from "../../../auth/current-user";
 import { EmployeeFeatures } from "../../../auth/employee-features";
 import { Roles } from "../../../auth/roles";
 import {
   CreateQuoteBodyDto,
+  QuoteErrorResponseDto,
   QuoteResponseDto,
+  QuoteValidationErrorResponseDto,
 } from "../../docs/domain-swagger.dto";
-import { ZodValidationPipe } from "../../pipes/zod-validation.pipe";
 import { QuotePresenter } from "../../presenters/quote-presenter";
+import { throwQuoteHttpError } from "./quote-http-errors";
+import { QuoteZodValidationPipe } from "./quote-zod-validation.pipe";
 
 const quoteAddressSchema = z.object({
   street: z.string().trim().nullable(),
@@ -56,8 +46,8 @@ const quoteCustomerSchema = z.object({
 
 const quoteVehicleSchema = z.object({
   plate: z.string().trim().optional().nullable(),
-  brand: z.string().trim().optional().nullable(),
-  model: z.string().trim().optional().nullable(),
+  brand: z.string().trim().min(1),
+  model: z.string().trim().min(1),
   color: z.string().trim().optional().nullable(),
   year: z.number().int().optional().nullable(),
 });
@@ -108,17 +98,39 @@ const quoteServiceItemSchema = z
     }
   });
 
-const createQuoteBodySchema = z.object({
-  customerId: z.uuid().optional().nullable(),
-  customer: quoteCustomerSchema.optional(),
-  vehicleId: z.uuid().optional().nullable(),
-  vehicle: quoteVehicleSchema.optional().nullable(),
-  serviceItems: z.array(quoteServiceItemSchema).min(1),
-  paymentOptions: z.array(quotePaymentOptionSchema).min(1),
-  description: z.string().trim().optional().nullable(),
-  termsAndConditions: z.string().trim().optional().nullable(),
-  expiresAt: z.coerce.date().optional().nullable(),
-});
+const createQuoteBodySchema = z
+  .object({
+    customerId: z.uuid().optional().nullable(),
+    customer: quoteCustomerSchema.optional(),
+    vehicleId: z.uuid().optional().nullable(),
+    vehicle: quoteVehicleSchema.optional().nullable(),
+    serviceItems: z.array(quoteServiceItemSchema).min(1),
+    paymentOptions: z.array(quotePaymentOptionSchema).min(1),
+    description: z.string().trim().optional().nullable(),
+    termsAndConditions: z.string().trim().optional().nullable(),
+    expiresAt: z.coerce.date().optional().nullable(),
+  })
+  .superRefine((value, context) => {
+    if (value.customerId && value.customer !== undefined) {
+      context.addIssue({
+        code: "custom",
+        message: "customer cannot be provided with customerId.",
+        path: ["customer"],
+      });
+    }
+
+    if (
+      value.vehicleId &&
+      value.vehicle !== undefined &&
+      value.vehicle !== null
+    ) {
+      context.addIssue({
+        code: "custom",
+        message: "vehicle cannot be provided with vehicleId.",
+        path: ["vehicle"],
+      });
+    }
+  });
 
 type CreateQuoteBodySchema = z.infer<typeof createQuoteBodySchema>;
 
@@ -141,20 +153,26 @@ export class CreateQuoteController {
   })
   @ApiBadRequestResponse({
     description: "Invalid payload, inactive service, or invalid quote rules.",
+    type: QuoteValidationErrorResponseDto,
   })
   @ApiUnauthorizedResponse({ description: "Missing or invalid access token." })
   @ApiForbiddenResponse({
     description:
       "Authenticated user does not have the required role or employee feature.",
+    type: QuoteErrorResponseDto,
   })
   @ApiNotFoundResponse({
     description:
       "Customer, vehicle, service, owner, or establishment profile was not found.",
+    type: QuoteErrorResponseDto,
   })
-  @ApiInternalServerErrorResponse({ description: "Unexpected failure." })
+  @ApiInternalServerErrorResponse({
+    description: "Unexpected failure.",
+    type: QuoteErrorResponseDto,
+  })
   async handle(
     @CurrentUser() user: AuthenticatedUser,
-    @Body(new ZodValidationPipe(createQuoteBodySchema))
+    @Body(new QuoteZodValidationPipe(createQuoteBodySchema))
     body: CreateQuoteBodySchema,
   ) {
     const customer =
@@ -239,21 +257,7 @@ export class CreateQuoteController {
     });
 
     if (result.isLeft()) {
-      const error = result.value;
-
-      switch (error.constructor) {
-        case NotAllowedError:
-          throw new ForbiddenException(error.message);
-        case ResourceNotFoundError:
-          throw new NotFoundException(error.message);
-        case InactiveServiceError:
-        case InvalidQuoteInputError:
-          throw new BadRequestException(error.message);
-        case UnexpectedDomainError:
-          throw new InternalServerErrorException(error.message);
-        default:
-          throw new BadRequestException(error.message);
-      }
+      throwQuoteHttpError(result.value);
     }
 
     return {

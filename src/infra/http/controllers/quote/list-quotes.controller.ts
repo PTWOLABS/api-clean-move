@@ -1,11 +1,4 @@
-import {
-  Controller,
-  ForbiddenException,
-  Get,
-  InternalServerErrorException,
-  NotFoundException,
-  Query,
-} from "@nestjs/common";
+import { Controller, Get, Query } from "@nestjs/common";
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
@@ -21,15 +14,18 @@ import {
 import z from "zod";
 
 import { ListQuotesUseCase } from "../../../../modules/application/use-cases/quote/list-quotes";
-import { NotAllowedError } from "../../../../shared/errors/not-allowed-error";
-import { ResourceNotFoundError } from "../../../../shared/errors/resource-not-found-error";
 import { AuthenticatedUser } from "../../../auth/authenticated-user";
 import { CurrentUser } from "../../../auth/current-user";
 import { EmployeeFeatures } from "../../../auth/employee-features";
 import { Roles } from "../../../auth/roles";
-import { ListQuotesResponseDto } from "../../docs/domain-swagger.dto";
-import { ZodValidationPipe } from "../../pipes/zod-validation.pipe";
+import {
+  ListQuotesResponseDto,
+  QuoteErrorResponseDto,
+  QuoteValidationErrorResponseDto,
+} from "../../docs/domain-swagger.dto";
 import { QuotePresenter } from "../../presenters/quote-presenter";
+import { throwQuoteHttpError } from "./quote-http-errors";
+import { QuoteZodValidationPipe } from "./quote-zod-validation.pipe";
 
 const booleanQuerySchema = z.preprocess((value) => {
   if (value === "true") return true;
@@ -92,17 +88,27 @@ export class ListQuotesController {
     description: "Quotes listed successfully.",
     type: ListQuotesResponseDto,
   })
-  @ApiBadRequestResponse({ description: "Invalid query parameters." })
+  @ApiBadRequestResponse({
+    description: "Invalid query parameters.",
+    type: QuoteValidationErrorResponseDto,
+  })
   @ApiUnauthorizedResponse({ description: "Missing or invalid access token." })
   @ApiForbiddenResponse({
     description:
       "Authenticated user does not have the required role or employee feature.",
+    type: QuoteErrorResponseDto,
   })
-  @ApiNotFoundResponse({ description: "Establishment profile was not found." })
-  @ApiInternalServerErrorResponse({ description: "Unexpected failure." })
+  @ApiNotFoundResponse({
+    description: "Establishment profile was not found.",
+    type: QuoteErrorResponseDto,
+  })
+  @ApiInternalServerErrorResponse({
+    description: "Unexpected failure.",
+    type: QuoteErrorResponseDto,
+  })
   async handle(
     @CurrentUser() user: AuthenticatedUser,
-    @Query(new ZodValidationPipe(listQuotesQuerySchema))
+    @Query(new QuoteZodValidationPipe(listQuotesQuerySchema))
     query: ListQuotesQuerySchema,
   ) {
     const filters = {
@@ -141,16 +147,7 @@ export class ListQuotesController {
     });
 
     if (result.isLeft()) {
-      const error = result.value;
-
-      switch (error.constructor) {
-        case NotAllowedError:
-          throw new ForbiddenException(error.message);
-        case ResourceNotFoundError:
-          throw new NotFoundException(error.message);
-        default:
-          throw new InternalServerErrorException(error.message);
-      }
+      throwQuoteHttpError(result.value);
     }
 
     return {

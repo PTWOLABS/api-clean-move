@@ -404,7 +404,11 @@ describe("Quote", () => {
       quote.approve({
         startsAt: new Date("2026-06-01T10:00:00.000Z"),
       }),
-    ).toThrow(InvalidQuoteInputError);
+    ).toThrowError(
+      expect.objectContaining({
+        code: "QUOTE_CANNOT_BE_APPROVED_FOR_PROSPECT",
+      }),
+    );
   });
 
   it("should reject approval with invalid scheduling range", () => {
@@ -418,7 +422,9 @@ describe("Quote", () => {
         startsAt: new Date("2026-06-01T12:00:00.000Z"),
         endsAt: new Date("2026-06-01T10:00:00.000Z"),
       }),
-    ).toThrow(InvalidQuoteInputError);
+    ).toThrowError(
+      expect.objectContaining({ code: "QUOTE_INVALID_SCHEDULE_INTERVAL" }),
+    );
   });
 
   it("should not accept invalid conversion reference date", () => {
@@ -441,7 +447,9 @@ describe("Quote", () => {
 
     expect(() =>
       quote.markAsConverted(new UniqueEntityId("appointment-2")),
-    ).toThrow(InvalidQuoteInputError);
+    ).toThrowError(
+      expect.objectContaining({ code: "QUOTE_ALREADY_CONVERTED" }),
+    );
   });
 
   it("should link a prospect quote to a customer and vehicle once", () => {
@@ -455,6 +463,8 @@ describe("Quote", () => {
     expect(quote.vehicleId).toEqual(vehicleId);
     expect(() =>
       quote.linkCustomer(new UniqueEntityId("customer-2"), null),
-    ).toThrow(InvalidQuoteInputError);
+    ).toThrowError(
+      expect.objectContaining({ code: "QUOTE_ALREADY_HAS_CUSTOMER" }),
+    );
   });
 });

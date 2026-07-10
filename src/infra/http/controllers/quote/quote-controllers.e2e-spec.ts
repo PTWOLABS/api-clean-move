@@ -133,7 +133,17 @@ const approveQuoteResponseSchema = z.object({
 });
 
 const errorResponseSchema = z.object({
+  statusCode: z.number().int(),
+  code: z.string().min(1),
   message: z.string(),
+  errors: z
+    .array(
+      z.object({
+        field: z.string(),
+        code: z.string(),
+      }),
+    )
+    .optional(),
 });
 
 function collectPdfResponseBody(
@@ -350,6 +360,164 @@ describe("Quote controllers (e2e)", () => {
       status: "APPROVED",
       approvedAt: approveBody.quote.convertedAt,
     });
+  });
+
+  it("should reject quote creation with an invalid prospect phone", async () => {
+    const { accessToken, establishment } = await makeEstablishmentAccessToken({
+      app,
+      prisma,
+      userFactory,
+      establishmentFactory,
+      envService,
+    });
+    const service = await serviceFactory.makePrismaService({
+      establishmentId: establishment.id,
+    });
+
+    const response = await request(getHttpServer(app))
+      .post("/quotes")
+      .set("Authorization", `Bearer ${accessToken}`)
+      .send({
+        customer: { name: "Telefone Invalido", phone: "1" },
+        vehicle: { brand: "Honda", model: "HR-V" },
+        serviceItems: [{ serviceId: service.id.toString() }],
+        paymentOptions: [{ method: "PIX", label: "Pix", installments: 1 }],
+      });
+
+    expect(response.status).toBe(400);
+    expect(errorResponseSchema.parse(response.body).message).toContain(
+      "Invalid phone number",
+    );
+  });
+
+  it("should reject quote creation with an incomplete vehicle snapshot", async () => {
+    const { accessToken, establishment } = await makeEstablishmentAccessToken({
+      app,
+      prisma,
+      userFactory,
+      establishmentFactory,
+      envService,
+    });
+    const service = await serviceFactory.makePrismaService({
+      establishmentId: establishment.id,
+    });
+
+    const withoutBrandResponse = await request(getHttpServer(app))
+      .post("/quotes")
+      .set("Authorization", `Bearer ${accessToken}`)
+      .send({
+        customer: { name: "Veiculo Sem Marca" },
+        vehicle: { model: "HR-V" },
+        serviceItems: [{ serviceId: service.id.toString() }],
+        paymentOptions: [{ method: "PIX", label: "Pix", installments: 1 }],
+      });
+    const withoutModelResponse = await request(getHttpServer(app))
+      .post("/quotes")
+      .set("Authorization", `Bearer ${accessToken}`)
+      .send({
+        customer: { name: "Veiculo Sem Modelo" },
+        vehicle: { brand: "Honda" },
+        serviceItems: [{ serviceId: service.id.toString() }],
+        paymentOptions: [{ method: "PIX", label: "Pix", installments: 1 }],
+      });
+    const invalidYearTypeResponse = await request(getHttpServer(app))
+      .post("/quotes")
+      .set("Authorization", `Bearer ${accessToken}`)
+      .send({
+        customer: { name: "Veiculo Com Ano Invalido" },
+        vehicle: { brand: "Honda", model: "HR-V", year: "2025" },
+        serviceItems: [{ serviceId: service.id.toString() }],
+        paymentOptions: [{ method: "PIX", label: "Pix", installments: 1 }],
+      });
+
+    expect(withoutBrandResponse.status).toBe(400);
+    expect(withoutModelResponse.status).toBe(400);
+    expect(invalidYearTypeResponse.status).toBe(400);
+    expect(errorResponseSchema.parse(withoutBrandResponse.body)).toMatchObject({
+      code: "VALIDATION_ERROR",
+      errors: [{ field: "vehicle.brand", code: "REQUIRED" }],
+    });
+    expect(errorResponseSchema.parse(withoutModelResponse.body)).toMatchObject({
+      code: "VALIDATION_ERROR",
+      errors: [{ field: "vehicle.model", code: "REQUIRED" }],
+    });
+    expect(
+      errorResponseSchema.parse(invalidYearTypeResponse.body),
+    ).toMatchObject({
+      code: "VALIDATION_ERROR",
+      errors: [{ field: "vehicle.year", code: "INVALID_TYPE" }],
+    });
+  });
+
+  it("should return a stable code when a quote contains an inactive service", async () => {
+    const { accessToken, establishment } = await makeEstablishmentAccessToken({
+      app,
+      prisma,
+      userFactory,
+      establishmentFactory,
+      envService,
+    });
+    const service = await serviceFactory.makePrismaService({
+      establishmentId: establishment.id,
+      isActive: false,
+    });
+
+    const response = await request(getHttpServer(app))
+      .post("/quotes")
+      .set("Authorization", `Bearer ${accessToken}`)
+      .send({
+        customer: { name: "Servico Inativo" },
+        serviceItems: [{ serviceId: service.id.toString() }],
+        paymentOptions: [{ method: "PIX", label: "Pix", installments: 1 }],
+      });
+
+    expect(response.status).toBe(400);
+    expect(errorResponseSchema.parse(response.body)).toMatchObject({
+      code: "QUOTE_SERVICE_INACTIVE",
+    });
+  });
+
+  it("should create a prospect quote with vehicle snapshot and detached service", async () => {
+    const { accessToken } = await makeEstablishmentAccessToken({
+      app,
+      prisma,
+      userFactory,
+      establishmentFactory,
+      envService,
+    });
+
+    const response = await request(getHttpServer(app))
+      .post("/quotes")
+      .set("Authorization", `Bearer ${accessToken}`)
+      .send({
+        customer: {
+          name: "Prospect Snapshot",
+          phone: "(11) 98765-4321",
+          cpfCnpj: "529.982.247-25",
+        },
+        vehicle: {
+          plate: "ABC-1D23",
+          brand: "Honda",
+          model: "HR-V",
+          color: "Branco",
+          year: 2025,
+        },
+        serviceItems: [
+          {
+            serviceName: "Polimento snapshot",
+            priceInCents: 45000,
+          },
+        ],
+        paymentOptions: [{ method: "PIX", label: "Pix", installments: 1 }],
+      });
+    const body = quoteResponseSchema.parse(response.body);
+
+    expect(response.status).toBe(201);
+    expect(body.quote.customer.phone).toBe("11987654321");
+    expect(body.quote.customer.cpfCnpj).toBe("52998224725");
+    expect(body.quote.vehicle?.plate).toBe("ABC1D23");
+    expect(body.quote.services[0]?.id).toBeNull();
+    expect(body.quote.services[0]?.name).toBe("Polimento snapshot");
   });
 
   it("should filter, paginate, and sort listed quotes", async () => {
@@ -608,9 +776,9 @@ describe("Quote controllers (e2e)", () => {
       });
 
     expect(response.status).toBe(400);
-    expect(errorResponseSchema.parse(response.body).message).toContain(
-      "Quote must be linked to a customer before conversion.",
-    );
+    expect(errorResponseSchema.parse(response.body)).toMatchObject({
+      code: "QUOTE_CANNOT_BE_APPROVED_FOR_PROSPECT",
+    });
   });
 
   it("should not create a vehicle when createVehicleFromQuote is false", async () => {
@@ -786,10 +954,16 @@ describe("Quote controllers (e2e)", () => {
     expect(secondSearchResponse.status).toBe(200);
     expect(secondSearchBody.quotes).toHaveLength(0);
 
-    await request(getHttpServer(app))
+    const inaccessibleQuoteResponse = await request(getHttpServer(app))
       .get(`/quotes/${firstQuoteId}`)
-      .set("Authorization", `Bearer ${secondEstablishmentAuth.accessToken}`)
-      .expect(404);
+      .set("Authorization", `Bearer ${secondEstablishmentAuth.accessToken}`);
+
+    expect(inaccessibleQuoteResponse.status).toBe(404);
+    expect(
+      errorResponseSchema.parse(inaccessibleQuoteResponse.body),
+    ).toMatchObject({
+      code: "QUOTE_NOT_FOUND",
+    });
     await request(getHttpServer(app))
       .get(`/quotes/${firstQuoteId}/pdf`)
       .set("Authorization", `Bearer ${secondEstablishmentAuth.accessToken}`)
@@ -918,9 +1092,9 @@ describe("Quote controllers (e2e)", () => {
 
     expect(createResponse.status).toBe(201);
     expect(registerResponse.status).toBe(409);
-    expect(errorResponseSchema.parse(registerResponse.body).message).toContain(
-      "Customer already registered.",
-    );
+    expect(errorResponseSchema.parse(registerResponse.body)).toMatchObject({
+      code: "CUSTOMER_ALREADY_EXISTS",
+    });
   });
 
   it("should reject approving a quote that was already converted", async () => {
@@ -971,9 +1145,11 @@ describe("Quote controllers (e2e)", () => {
     expect(registerResponse.status).toBe(201);
     expect(firstApproveResponse.status).toBe(201);
     expect(secondApproveResponse.status).toBe(400);
-    expect(
-      errorResponseSchema.parse(secondApproveResponse.body).message,
-    ).toContain("Quote is already converted.");
+    expect(errorResponseSchema.parse(secondApproveResponse.body)).toMatchObject(
+      {
+        code: "QUOTE_ALREADY_CONVERTED",
+      },
+    );
   });
 
   it("should reject creating a vehicle from a quote without vehicle snapshot", async () => {
@@ -1008,8 +1184,8 @@ describe("Quote controllers (e2e)", () => {
 
     expect(createResponse.status).toBe(201);
     expect(registerResponse.status).toBe(400);
-    expect(errorResponseSchema.parse(registerResponse.body).message).toContain(
-      "Quote has no vehicle snapshot.",
-    );
+    expect(errorResponseSchema.parse(registerResponse.body)).toMatchObject({
+      code: "QUOTE_VEHICLE_SNAPSHOT_MISSING",
+    });
   });
 });

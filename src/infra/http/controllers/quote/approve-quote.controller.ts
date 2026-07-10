@@ -22,11 +22,13 @@ import { Roles } from "../../../auth/roles";
 import {
   ApproveQuoteBodyDto,
   ApproveQuoteResponseDto,
+  QuoteErrorResponseDto,
+  QuoteValidationErrorResponseDto,
 } from "../../docs/domain-swagger.dto";
 import { AppointmentPresenter } from "../../presenters/appointment-presenter";
-import { ZodValidationPipe } from "../../pipes/zod-validation.pipe";
 import { QuotePresenter } from "../../presenters/quote-presenter";
 import { throwQuoteHttpError } from "./quote-http-errors";
+import { QuoteZodValidationPipe } from "./quote-zod-validation.pipe";
 
 const quoteIdParamSchema = z.uuid();
 
@@ -57,21 +59,27 @@ export class ApproveQuoteController {
   })
   @ApiBadRequestResponse({
     description: "Invalid payload or quote approval rule.",
+    type: QuoteValidationErrorResponseDto,
   })
   @ApiUnauthorizedResponse({ description: "Missing or invalid access token." })
   @ApiForbiddenResponse({
     description:
       "Authenticated user does not have the required role or employee feature.",
+    type: QuoteErrorResponseDto,
   })
   @ApiNotFoundResponse({
     description: "Quote, appointment dependency, or establishment not found.",
+    type: QuoteErrorResponseDto,
   })
-  @ApiInternalServerErrorResponse({ description: "Unexpected failure." })
+  @ApiInternalServerErrorResponse({
+    description: "Unexpected failure.",
+    type: QuoteErrorResponseDto,
+  })
   async handle(
     @CurrentUser() user: AuthenticatedUser,
-    @Param("quoteId", new ZodValidationPipe(quoteIdParamSchema))
+    @Param("quoteId", new QuoteZodValidationPipe(quoteIdParamSchema))
     quoteId: string,
-    @Body(new ZodValidationPipe(approveQuoteBodySchema))
+    @Body(new QuoteZodValidationPipe(approveQuoteBodySchema))
     body: ApproveQuoteBodySchema,
   ) {
     const result = await this.approveQuote.execute({

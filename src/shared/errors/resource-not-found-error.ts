@@ -7,5 +7,8 @@ export class ResourceNotFoundError extends Error {
       message ??
         `Resource not found${resource ? ": ".concat(`${resource}.`) : "."}`,
     );
+    this.resource = resource;
   }
+
+  readonly resource: string | undefined;
 }
