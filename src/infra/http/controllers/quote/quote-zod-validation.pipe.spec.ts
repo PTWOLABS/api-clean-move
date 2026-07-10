@@ -59,4 +59,24 @@ describe("QuoteZodValidationPipe", () => {
       });
     }
   });
+
+  it("should distinguish a provided invalid type from a required field", () => {
+    const pipe = new QuoteZodValidationPipe(
+      z.object({
+        isCourtesy: z.boolean(),
+      }),
+    );
+
+    try {
+      pipe.transform({ isCourtesy: "yes" });
+    } catch (error) {
+      expect(error).toBeInstanceOf(BadRequestException);
+      expect((error as BadRequestException).getResponse()).toEqual({
+        statusCode: 400,
+        code: "VALIDATION_ERROR",
+        message: "Validation failed",
+        errors: [{ field: "isCourtesy", code: "INVALID_TYPE" }],
+      });
+    }
+  });
 });

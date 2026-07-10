@@ -420,9 +420,19 @@ describe("Quote controllers (e2e)", () => {
         serviceItems: [{ serviceId: service.id.toString() }],
         paymentOptions: [{ method: "PIX", label: "Pix", installments: 1 }],
       });
+    const invalidYearTypeResponse = await request(getHttpServer(app))
+      .post("/quotes")
+      .set("Authorization", `Bearer ${accessToken}`)
+      .send({
+        customer: { name: "Veiculo Com Ano Invalido" },
+        vehicle: { brand: "Honda", model: "HR-V", year: "2025" },
+        serviceItems: [{ serviceId: service.id.toString() }],
+        paymentOptions: [{ method: "PIX", label: "Pix", installments: 1 }],
+      });
 
     expect(withoutBrandResponse.status).toBe(400);
     expect(withoutModelResponse.status).toBe(400);
+    expect(invalidYearTypeResponse.status).toBe(400);
     expect(errorResponseSchema.parse(withoutBrandResponse.body)).toMatchObject({
       code: "VALIDATION_ERROR",
       errors: [{ field: "vehicle.brand", code: "REQUIRED" }],
@@ -430,6 +440,12 @@ describe("Quote controllers (e2e)", () => {
     expect(errorResponseSchema.parse(withoutModelResponse.body)).toMatchObject({
       code: "VALIDATION_ERROR",
       errors: [{ field: "vehicle.model", code: "REQUIRED" }],
+    });
+    expect(
+      errorResponseSchema.parse(invalidYearTypeResponse.body),
+    ).toMatchObject({
+      code: "VALIDATION_ERROR",
+      errors: [{ field: "vehicle.year", code: "INVALID_TYPE" }],
     });
   });
 
