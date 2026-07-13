@@ -560,6 +560,8 @@ describe("Quote controllers (e2e)", () => {
     yesterdayNoon.setUTCDate(todayNoon.getUTCDate() - 1);
     const tomorrowNoon = new Date(todayNoon);
     tomorrowNoon.setUTCDate(todayNoon.getUTCDate() + 1);
+    const saoPauloTodayEnd = new Date(tomorrowNoon);
+    saoPauloTodayEnd.setUTCHours(2, 59, 59, 999);
 
     async function createQuote(input: {
       customerName?: string;
@@ -651,6 +653,15 @@ describe("Quote controllers (e2e)", () => {
       expiresAt: yesterdayNoon,
       createdAt: new Date("2026-06-22T12:00:00.000Z"),
     });
+    const saoPauloEndOfDayQuoteId = await createQuote({
+      customerName: "Filtro Prospect Fim do Dia",
+      vehiclePlate: "TZD1A23",
+      vehicleBrand: "Fiat",
+      vehicleModel: "Uno",
+      serviceId: polishingService.id.toString(),
+      expiresAt: saoPauloTodayEnd,
+      createdAt: new Date("2026-06-23T12:00:00.000Z"),
+    });
 
     const approveResponse = await request(getHttpServer(app))
       .post(`/quotes/${oldestQuoteId}/approve`)
@@ -670,6 +681,7 @@ describe("Quote controllers (e2e)", () => {
     });
 
     expect(recentList.quotes.map((quote) => quote.id)).toEqual([
+      saoPauloEndOfDayQuoteId,
       recentQuoteId,
       middleQuoteId,
       oldestQuoteId,
@@ -678,14 +690,15 @@ describe("Quote controllers (e2e)", () => {
       oldestQuoteId,
       middleQuoteId,
       recentQuoteId,
+      saoPauloEndOfDayQuoteId,
     ]);
-    expect(paginatedList.totalItems).toBe(3);
+    expect(paginatedList.totalItems).toBe(4);
     expect(paginatedList.quotes.map((quote) => quote.id)).toEqual([
       middleQuoteId,
     ]);
     expect(recentList.summary).toEqual({
       valid: 0,
-      expiresToday: 1,
+      expiresToday: 2,
       approved: 1,
       expired: 1,
     });
@@ -697,6 +710,7 @@ describe("Quote controllers (e2e)", () => {
       [recentQuoteId]: "EXPIRED",
       [middleQuoteId]: "EXPIRES_TODAY",
       [oldestQuoteId]: "APPROVED",
+      [saoPauloEndOfDayQuoteId]: "EXPIRES_TODAY",
     });
 
     await expect(

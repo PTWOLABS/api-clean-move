@@ -4,22 +4,9 @@ import {
   QuoteListItemDTO,
   QuoteStatus,
 } from "../contracts/quote.dto";
+import { getSaoPauloDayBounds } from "../../../shared/utils/get-sao-paulo-day-bounds";
 
 export class QuotePresenter {
-  private static getUtcDayBounds(referenceDate: Date) {
-    const todayStart = new Date(
-      Date.UTC(
-        referenceDate.getUTCFullYear(),
-        referenceDate.getUTCMonth(),
-        referenceDate.getUTCDate(),
-      ),
-    );
-    const tomorrowStart = new Date(todayStart);
-    tomorrowStart.setUTCDate(todayStart.getUTCDate() + 1);
-
-    return { todayStart, tomorrowStart };
-  }
-
   private static getListStatus(quote: Quote, referenceDate: Date): QuoteStatus {
     if (quote.convertedAppointmentId) {
       return "APPROVED";
@@ -29,8 +16,7 @@ export class QuotePresenter {
       return "VALID";
     }
 
-    const { todayStart, tomorrowStart } =
-      QuotePresenter.getUtcDayBounds(referenceDate);
+    const { todayStart, tomorrowStart } = getSaoPauloDayBounds(referenceDate);
 
     if (quote.expiresAt < todayStart) {
       return "EXPIRED";

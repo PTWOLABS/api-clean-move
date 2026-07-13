@@ -6,6 +6,7 @@ import {
 } from "../../src/modules/application/repositories/quotes-repository";
 import { Quote } from "../../src/modules/quotes/domain/entities/quote";
 import { UniqueEntityId } from "../../src/shared/entities/unique-entity-id";
+import { getSaoPauloDayBounds } from "../../src/shared/utils/get-sao-paulo-day-bounds";
 
 export class InMemoryQuotesRepository implements QuotesRepository {
   public items: Quote[] = [];
@@ -30,26 +31,11 @@ export class InMemoryQuotesRepository implements QuotesRepository {
     return value.toISOString().slice(0, 10);
   }
 
-  private static getUtcDayBounds(referenceDate: Date) {
-    const todayStart = new Date(
-      Date.UTC(
-        referenceDate.getUTCFullYear(),
-        referenceDate.getUTCMonth(),
-        referenceDate.getUTCDate(),
-      ),
-    );
-    const tomorrowStart = new Date(todayStart);
-    tomorrowStart.setUTCDate(todayStart.getUTCDate() + 1);
-
-    return { todayStart, tomorrowStart };
-  }
-
   private static summarizeQuotes(
     quotes: Quote[],
     referenceDate: Date,
   ): QuoteSummary {
-    const { todayStart, tomorrowStart } =
-      InMemoryQuotesRepository.getUtcDayBounds(referenceDate);
+    const { todayStart, tomorrowStart } = getSaoPauloDayBounds(referenceDate);
 
     return quotes.reduce<QuoteSummary>(
       (summary, quote) => {

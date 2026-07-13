@@ -8,6 +8,7 @@ import {
 import { Quote } from "../../../../modules/quotes/domain/entities/quote";
 import { Prisma } from "../../../../generated/prisma/client";
 import { UniqueEntityId } from "../../../../shared/entities/unique-entity-id";
+import { getSaoPauloDayBounds } from "../../../../shared/utils/get-sao-paulo-day-bounds";
 import { PrismaQuoteMapper } from "../mappers/prisma-quote-mapper";
 import { rethrowPrismaRepositoryError } from "../prisma-repository-error-handler";
 import { PrismaUnitOfWork } from "../prisma-unit-of-work";
@@ -66,20 +67,6 @@ export class PrismaQuotesRepository implements QuotesRepository {
         lt: nextDay,
       },
     };
-  }
-
-  private static getUtcDayBounds(referenceDate: Date) {
-    const todayStart = new Date(
-      Date.UTC(
-        referenceDate.getUTCFullYear(),
-        referenceDate.getUTCMonth(),
-        referenceDate.getUTCDate(),
-      ),
-    );
-    const tomorrowStart = new Date(todayStart);
-    tomorrowStart.setUTCDate(todayStart.getUTCDate() + 1);
-
-    return { todayStart, tomorrowStart };
   }
 
   private static withStatusWhere(
@@ -291,8 +278,7 @@ export class PrismaQuotesRepository implements QuotesRepository {
     const page = filters?.page ?? 1;
     const size = filters?.size ?? 20;
     const where = PrismaQuotesRepository.buildWhere(establishmentId, filters);
-    const { todayStart, tomorrowStart } =
-      PrismaQuotesRepository.getUtcDayBounds(referenceDate);
+    const { todayStart, tomorrowStart } = getSaoPauloDayBounds(referenceDate);
 
     try {
       const client = PrismaUnitOfWork.getClient(this.prisma);

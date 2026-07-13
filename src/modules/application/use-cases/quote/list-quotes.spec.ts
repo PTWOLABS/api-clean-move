@@ -143,6 +143,34 @@ describe("List quotes", () => {
     });
   });
 
+  it("should include the Sao Paulo end of day in the expires-today summary", async () => {
+    const establishment = makeEstablishment();
+    const expiresTodayQuote = makeQuote({
+      establishmentId: establishment.id,
+      expiresAt: new Date("2026-07-14T02:59:59.999Z"),
+    });
+
+    await establishmentsRepository.create(establishment);
+    await quotesRepository.create(expiresTodayQuote);
+
+    const result = await sut.execute({
+      actor: {
+        userId: establishment.ownerId.toString(),
+        role: "ESTABLISHMENT",
+      },
+      referenceDate: new Date("2026-07-13T12:00:00.000Z"),
+    });
+
+    expect(result.isRight()).toBe(true);
+    if (result.isLeft()) throw result.value;
+    expect(result.value.summary).toEqual({
+      valid: 0,
+      expiresToday: 1,
+      approved: 0,
+      expired: 0,
+    });
+  });
+
   it("should sort quotes by creation date", async () => {
     const establishment = makeEstablishment();
     const oldestQuote = makeQuote({
