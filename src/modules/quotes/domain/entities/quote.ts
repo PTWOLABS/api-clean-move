@@ -269,7 +269,64 @@ export class Quote extends AggregateRoot<QuoteProps> {
     this.touch(referenceDate);
   }
 
+  associateService(
+    quoteServiceId: UniqueEntityId,
+    serviceId: UniqueEntityId,
+    referenceDate: Date = new Date(),
+  ): void {
+    this.assertValidDate(referenceDate, "referenceDate must be a valid date.");
+    this.assertNotConverted();
+
+    const serviceIndex = this.findServiceIndex(quoteServiceId);
+    const services = [...this.props.services];
+    services[serviceIndex] = services[serviceIndex]!.withServiceId(serviceId);
+    this.assertValidServices(services);
+
+    this.props.services = services;
+    this.touch(referenceDate);
+  }
+
+  renameDetachedService(
+    quoteServiceId: UniqueEntityId,
+    serviceName: string,
+    referenceDate: Date = new Date(),
+  ): void {
+    this.assertValidDate(referenceDate, "referenceDate must be a valid date.");
+    this.assertNotConverted();
+
+    const serviceIndex = this.findServiceIndex(quoteServiceId);
+    const currentService = this.props.services[serviceIndex]!;
+
+    if (currentService.serviceId) {
+      throw new InvalidQuoteInputError(
+        "Only detached quote services can be renamed.",
+      );
+    }
+
+    const services = [...this.props.services];
+    services[serviceIndex] = currentService.withServiceName(serviceName);
+    this.assertValidServices(services);
+
+    this.props.services = services;
+    this.touch(referenceDate);
+  }
+
+  resolveCustomerReferences(
+    customerId: UniqueEntityId,
+    vehicleId: UniqueEntityId | null,
+    referenceDate: Date = new Date(),
+  ): void {
+    this.assertValidDate(referenceDate, "referenceDate must be a valid date.");
+    this.assertNotConverted();
+
+    this.props.customerId = customerId;
+    this.props.vehicleId = vehicleId;
+    this.touch(referenceDate);
+  }
+
   linkCustomer(customerId: UniqueEntityId, vehicleId: UniqueEntityId | null) {
+    this.assertNotConverted();
+
     if (this.props.customerId) {
       throw new InvalidQuoteInputError(
         "Quote already has a customer.",
@@ -313,19 +370,41 @@ export class Quote extends AggregateRoot<QuoteProps> {
       );
     }
 
-    if (this.props.services.length === 0) {
+    this.assertValidServices(this.props.services);
+
+    if (this.props.paymentOptions.length === 0) {
+      throw new InvalidQuoteInputError(
+        "At least one payment option is required.",
+      );
+    }
+  }
+
+  private assertValidServices(services: QuotedServiceSnapshot[]) {
+    if (services.length === 0) {
       throw new InvalidQuoteInputError("At least one service is required.");
     }
 
+    const quoteServiceIds = new Set<string>();
     const serviceIds = new Set<string>();
     const detachedServiceNames = new Set<string>();
 
-    for (const service of this.props.services) {
+    for (const service of services) {
+      const quoteServiceId = service.quoteServiceId.toString();
+
+      if (quoteServiceIds.has(quoteServiceId)) {
+        throw new InvalidQuoteInputError(
+          "Duplicate quote service item ids are not allowed.",
+        );
+      }
+
+      quoteServiceIds.add(quoteServiceId);
+
       const serviceId = service.serviceId?.toString();
 
       if (serviceId && serviceIds.has(serviceId)) {
         throw new InvalidQuoteInputError(
           "Duplicate services are not allowed in the same quote.",
+          "QUOTE_DUPLICATE_SERVICE_RESOLUTION",
         );
       }
 
@@ -339,15 +418,34 @@ export class Quote extends AggregateRoot<QuoteProps> {
       if (detachedServiceNames.has(serviceName)) {
         throw new InvalidQuoteInputError(
           "Duplicate detached services are not allowed in the same quote.",
+          "QUOTE_SERVICE_NAME_UNAVAILABLE",
         );
       }
 
       detachedServiceNames.add(serviceName);
     }
+  }
 
-    if (this.props.paymentOptions.length === 0) {
+  private findServiceIndex(quoteServiceId: UniqueEntityId) {
+    const serviceIndex = this.props.services.findIndex((service) =>
+      service.quoteServiceId.equals(quoteServiceId),
+    );
+
+    if (serviceIndex === -1) {
       throw new InvalidQuoteInputError(
-        "At least one payment option is required.",
+        "Quote service item was not found.",
+        "QUOTE_SERVICE_ITEM_NOT_FOUND",
+      );
+    }
+
+    return serviceIndex;
+  }
+
+  private assertNotConverted() {
+    if (this.props.convertedAppointmentId || this.props.convertedAt) {
+      throw new InvalidQuoteInputError(
+        "Quote is already converted.",
+        "QUOTE_ALREADY_CONVERTED",
       );
     }
   }
