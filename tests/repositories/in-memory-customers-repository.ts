@@ -38,6 +38,13 @@ export class InMemoryCustomersRepository implements CustomersRepository {
     return customer;
   }
 
+  async findByIdAndEstablishmentIdIncludingDeleted(
+    id: string,
+    establishmentId: string,
+  ): Promise<Customer | null> {
+    return this.findByIdAndEstablishmentId(id, establishmentId);
+  }
+
   async findManyByIdsAndEstablishmentIdIncludingDeleted(
     ids: string[],
     establishmentId: string,
