@@ -17,6 +17,7 @@ describe("Prisma repository error handler", () => {
       "SERVICE_NAME",
     );
     expect(mapPrismaConstraintTarget(undefined)).toBe("UNKNOWN");
+    expect(mapPrismaConstraintTarget(["service_name"])).toBe("UNKNOWN");
   });
 
   it("should map known unique constraint names", () => {
@@ -31,6 +32,9 @@ describe("Prisma repository error handler", () => {
     expect(
       mapPrismaConstraintTarget("services_active_establishment_name_unique"),
     ).toBe("SERVICE_NAME");
+    expect(mapPrismaConstraintTarget("legacy_service_name_constraint")).toBe(
+      "UNKNOWN",
+    );
   });
 
   it("should preserve the violated resource on P2002 errors", () => {

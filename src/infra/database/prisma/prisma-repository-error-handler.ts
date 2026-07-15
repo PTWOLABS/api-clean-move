@@ -13,15 +13,15 @@ export function mapPrismaConstraintTarget(
       .filter((item): item is string => typeof item === "string")
       .map((item) => item.toLowerCase());
 
-    if (columns.includes("cpf_cnpj")) {
+    if (hasExactColumns(columns, ["establishment_id", "cpf_cnpj"])) {
       return "CUSTOMER_DOCUMENT";
     }
 
-    if (columns.includes("plate")) {
+    if (hasExactColumns(columns, ["establishment_id", "plate"])) {
       return "VEHICLE_PLATE";
     }
 
-    if (columns.includes("service_name")) {
+    if (hasExactColumns(columns, ["establishment_id", "service_name"])) {
       return "SERVICE_NAME";
     }
 
@@ -34,30 +34,31 @@ export function mapPrismaConstraintTarget(
 
   const constraintName = target.toLowerCase();
 
-  if (
-    constraintName.includes("customers_active_establishment_cpf_cnpj_unique") ||
-    constraintName.includes("customers_establishment_cpf_cnpj_active_unique")
-  ) {
-    return "CUSTOMER_DOCUMENT";
-  }
+  const resource = CONSTRAINT_RESOURCE_BY_NAME[constraintName];
 
-  if (
-    constraintName.includes(
-      "customer_vehicles_active_establishment_plate_unique",
-    ) ||
-    constraintName.includes("customer_vehicles_establishment_plate_active_unique")
-  ) {
-    return "VEHICLE_PLATE";
-  }
-
-  if (
-    constraintName.includes("services_active_establishment_name_unique") ||
-    constraintName.includes("service_name")
-  ) {
-    return "SERVICE_NAME";
+  if (resource) {
+    return resource;
   }
 
   return "UNKNOWN";
+}
+
+const CONSTRAINT_RESOURCE_BY_NAME: Record<string, UniqueConstraintResource> = {
+  customers_active_establishment_cpf_cnpj_unique: "CUSTOMER_DOCUMENT",
+  customers_establishment_cpf_cnpj_active_unique: "CUSTOMER_DOCUMENT",
+  customer_vehicles_active_establishment_plate_unique: "VEHICLE_PLATE",
+  customer_vehicles_establishment_plate_active_unique: "VEHICLE_PLATE",
+  services_active_establishment_name_unique: "SERVICE_NAME",
+};
+
+function hasExactColumns(columns: string[], expected: string[]) {
+  if (columns.length !== expected.length) {
+    return false;
+  }
+
+  const columnSet = new Set(columns);
+
+  return expected.every((column) => columnSet.has(column));
 }
 
 export function rethrowPrismaRepositoryError(error: unknown): never {
