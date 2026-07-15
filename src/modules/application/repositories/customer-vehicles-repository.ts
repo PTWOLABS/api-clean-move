@@ -38,6 +38,10 @@ export abstract class CustomerVehiclesRepository {
     id: string,
     establishmentId: string,
   ): Promise<CustomerVehicle | null>;
+  abstract findByIdAndEstablishmentIdIncludingDeleted(
+    id: string,
+    establishmentId: string,
+  ): Promise<CustomerVehicle | null>;
   abstract findByIdAndCustomerIdAndEstablishmentId(
     id: string,
     customerId: string,

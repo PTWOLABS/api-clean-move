@@ -38,6 +38,7 @@ export function makeQuote(
       },
       services: [
         {
+          quoteServiceId: new UniqueEntityId(),
           serviceId: new UniqueEntityId(),
           serviceName: "Lavagem detalhada",
           category: makeServiceCategoryRef("Lavagem"),

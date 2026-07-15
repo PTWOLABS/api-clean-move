@@ -1,4 +1,5 @@
 import { UniqueEntityId } from "../../../../shared/entities/unique-entity-id";
+import { makeQuote } from "../../../../../tests/factories/quote-factory";
 import { makeServiceCategoryRef } from "../../../../../tests/helpers/service-category-ref";
 import { InvalidQuoteInputError } from "../errors/invalid-quote-input-error";
 import { QuoteApprovedEvent } from "../events/quote-approved-event";
@@ -87,6 +88,7 @@ describe("Quote", () => {
     expect(quote.customer?.name).toEqual("Robertinho Contador");
     expect(quote.vehicle?.model).toEqual("HR-V");
     expect(quote.services).toHaveLength(2);
+    expect(quote.services[0]?.quoteServiceId).toBeInstanceOf(UniqueEntityId);
     expect(quote.paymentOptions).toHaveLength(2);
     expect(quote.services[0]).toBeInstanceOf(QuotedServiceSnapshot);
     expect(quote.paymentOptions[0]).toBeInstanceOf(QuotePaymentOption);
@@ -187,6 +189,291 @@ describe("Quote", () => {
     expect(quote.services[1]?.priceInCents).toEqual(40000);
     expect(quote.services[1]?.isCourtesy).toBe(true);
     expect(quote.totalCourtesyValueInCents).toEqual(40000);
+  });
+
+  it("should preserve explicit quote service item ids", () => {
+    const firstQuoteServiceId = new UniqueEntityId("quote-service-1");
+    const secondQuoteServiceId = new UniqueEntityId("quote-service-2");
+
+    const quote = makeQuote({
+      services: [
+        {
+          quoteServiceId: firstQuoteServiceId,
+          serviceId: null,
+          serviceName: "Polimento",
+          priceInCents: 5000,
+          isCourtesy: false,
+        },
+        {
+          quoteServiceId: secondQuoteServiceId,
+          serviceId: null,
+          serviceName: "Higienizacao",
+          priceInCents: 10000,
+          isCourtesy: false,
+        },
+      ],
+    });
+
+    expect(quote.services[0]?.quoteServiceId).toEqual(firstQuoteServiceId);
+    expect(quote.services[1]?.quoteServiceId).toEqual(secondQuoteServiceId);
+    expect(quote.services[1]?.serviceId).toBeNull();
+  });
+
+  it("should reject duplicate quote service item ids", () => {
+    const quoteServiceId = new UniqueEntityId("quote-service-1");
+
+    expect(() =>
+      makeQuote({
+        services: [
+          {
+            quoteServiceId,
+            serviceId: null,
+            serviceName: "Polimento",
+            priceInCents: 5000,
+            isCourtesy: false,
+          },
+          {
+            quoteServiceId,
+            serviceId: null,
+            serviceName: "Higienizacao",
+            priceInCents: 10000,
+            isCourtesy: false,
+          },
+        ],
+      }),
+    ).toThrow(expect.objectContaining({ code: "INVALID_QUOTE_INPUT" }));
+  });
+
+  it("should associate and reassociate a service without changing its snapshot", () => {
+    const quoteServiceId = new UniqueEntityId("quote-service-1");
+    const catalogServiceId = new UniqueEntityId("catalog-service-1");
+    const catalogServiceId2 = new UniqueEntityId("catalog-service-2");
+    const quote = makeQuote({
+      services: [
+        {
+          quoteServiceId,
+          serviceId: null,
+          serviceName: "Polimento",
+          category: protectionCategory,
+          durationInMinutes: 45,
+          priceInCents: 5000,
+          isCourtesy: true,
+        },
+      ],
+    });
+
+    quote.associateService(quoteServiceId, catalogServiceId);
+    quote.associateService(quoteServiceId, catalogServiceId2);
+
+    expect(quote.services[0]?.quoteServiceId).toEqual(quoteServiceId);
+    expect(quote.services[0]?.serviceId).toEqual(catalogServiceId2);
+    expect(quote.services[0]?.serviceName).toBe("Polimento");
+    expect(quote.services[0]?.category).toEqual(protectionCategory);
+    expect(quote.services[0]?.durationInMinutes).toBe(45);
+    expect(quote.services[0]?.priceInCents).toBe(5000);
+    expect(quote.services[0]?.isCourtesy).toBe(true);
+  });
+
+  it("should rename a detached service without changing its other fields", () => {
+    const quoteServiceId = new UniqueEntityId("quote-service-1");
+    const quote = makeQuote({
+      services: [
+        {
+          quoteServiceId,
+          serviceId: null,
+          serviceName: "Polimento",
+          category: protectionCategory,
+          durationInMinutes: 45,
+          priceInCents: 5000,
+          isCourtesy: true,
+        },
+      ],
+    });
+
+    quote.renameDetachedService(quoteServiceId, "  Polimento tecnico  ");
+
+    expect(quote.services[0]?.quoteServiceId).toEqual(quoteServiceId);
+    expect(quote.services[0]?.serviceId).toBeNull();
+    expect(quote.services[0]?.serviceName).toBe("Polimento tecnico");
+    expect(quote.services[0]?.category).toEqual(protectionCategory);
+    expect(quote.services[0]?.durationInMinutes).toBe(45);
+    expect(quote.services[0]?.priceInCents).toBe(5000);
+    expect(quote.services[0]?.isCourtesy).toBe(true);
+  });
+
+  it("should reject detached service names longer than 72 characters", () => {
+    const quoteServiceId = new UniqueEntityId("quote-service-1");
+    const quote = makeQuote({
+      services: [
+        {
+          quoteServiceId,
+          serviceId: null,
+          serviceName: "Polimento",
+          priceInCents: 5000,
+          isCourtesy: false,
+        },
+      ],
+    });
+
+    expect(() =>
+      quote.renameDetachedService(quoteServiceId, "a".repeat(73)),
+    ).toThrow(InvalidQuoteInputError);
+    expect(quote.services[0]?.serviceName).toBe("Polimento");
+  });
+
+  it("should reject duplicate resolved catalog service ids", () => {
+    const firstQuoteServiceId = new UniqueEntityId("quote-service-1");
+    const secondQuoteServiceId = new UniqueEntityId("quote-service-2");
+    const catalogServiceId = new UniqueEntityId("catalog-service-1");
+    const quote = makeQuote({
+      services: [
+        {
+          quoteServiceId: firstQuoteServiceId,
+          serviceId: catalogServiceId,
+          serviceName: "Polimento",
+          priceInCents: 5000,
+          isCourtesy: false,
+        },
+        {
+          quoteServiceId: secondQuoteServiceId,
+          serviceId: null,
+          serviceName: "Higienizacao",
+          priceInCents: 10000,
+          isCourtesy: false,
+        },
+      ],
+    });
+
+    expect(() =>
+      quote.associateService(secondQuoteServiceId, catalogServiceId),
+    ).toThrow(
+      expect.objectContaining({ code: "QUOTE_DUPLICATE_SERVICE_RESOLUTION" }),
+    );
+    expect(quote.services[1]?.serviceId).toBeNull();
+  });
+
+  it("should reject duplicate detached service names after rename", () => {
+    const firstQuoteServiceId = new UniqueEntityId("quote-service-1");
+    const secondQuoteServiceId = new UniqueEntityId("quote-service-2");
+    const quote = makeQuote({
+      services: [
+        {
+          quoteServiceId: firstQuoteServiceId,
+          serviceId: null,
+          serviceName: "Polimento",
+          priceInCents: 5000,
+          isCourtesy: false,
+        },
+        {
+          quoteServiceId: secondQuoteServiceId,
+          serviceId: null,
+          serviceName: "Higienizacao",
+          priceInCents: 10000,
+          isCourtesy: false,
+        },
+      ],
+    });
+
+    expect(() =>
+      quote.renameDetachedService(secondQuoteServiceId, "  POLIMENTO  "),
+    ).toThrow(
+      expect.objectContaining({ code: "QUOTE_SERVICE_NAME_UNAVAILABLE" }),
+    );
+    expect(quote.services[1]?.serviceName).toBe("Higienizacao");
+  });
+
+  it("should reject detached rename for an associated service", () => {
+    const quoteServiceId = new UniqueEntityId("quote-service-1");
+    const quote = makeQuote({
+      services: [
+        {
+          quoteServiceId,
+          serviceId: new UniqueEntityId("catalog-service-1"),
+          serviceName: "Polimento",
+          priceInCents: 5000,
+          isCourtesy: false,
+        },
+      ],
+    });
+
+    expect(() =>
+      quote.renameDetachedService(quoteServiceId, "Novo nome"),
+    ).toThrow(InvalidQuoteInputError);
+    expect(quote.services[0]?.serviceName).toBe("Polimento");
+  });
+
+  it("should reject mutations for a missing quote service item id", () => {
+    const quote = makeQuote();
+
+    expect(() =>
+      quote.associateService(
+        new UniqueEntityId("missing-quote-service"),
+        new UniqueEntityId("catalog-service-1"),
+      ),
+    ).toThrow(
+      expect.objectContaining({ code: "QUOTE_SERVICE_ITEM_NOT_FOUND" }),
+    );
+  });
+
+  it("should resolve customer references without changing snapshots", () => {
+    const previousCustomerId = new UniqueEntityId("deleted-customer");
+    const previousVehicleId = new UniqueEntityId("deleted-vehicle");
+    const customerId = new UniqueEntityId("customer-1");
+    const vehicleId = new UniqueEntityId("vehicle-1");
+    const referenceDate = new Date("2026-05-23T10:00:00.000Z");
+    const quote = makeQuote({
+      customerId: previousCustomerId,
+      vehicleId: previousVehicleId,
+    });
+    const customerSnapshot = quote.customer;
+    const vehicleSnapshot = quote.vehicle;
+
+    quote.resolveCustomerReferences(customerId, vehicleId, referenceDate);
+
+    expect(quote.customerId).toEqual(customerId);
+    expect(quote.vehicleId).toEqual(vehicleId);
+    expect(quote.customer).toEqual(customerSnapshot);
+    expect(quote.vehicle).toEqual(vehicleSnapshot);
+    expect(quote.updatedAt).toEqual(referenceDate);
+  });
+
+  it("should reject every resource mutation after conversion", () => {
+    const quoteServiceId = new UniqueEntityId("quote-service-1");
+    const quote = makeQuote({
+      services: [
+        {
+          quoteServiceId,
+          serviceId: null,
+          serviceName: "Polimento",
+          priceInCents: 5000,
+          isCourtesy: false,
+        },
+      ],
+    });
+    quote.markAsConverted(
+      new UniqueEntityId("appointment-1"),
+      new Date("2026-05-23T10:00:00.000Z"),
+    );
+
+    const mutations = [
+      () =>
+        quote.associateService(
+          quoteServiceId,
+          new UniqueEntityId("catalog-service-1"),
+        ),
+      () => quote.renameDetachedService(quoteServiceId, "Novo nome"),
+      () =>
+        quote.resolveCustomerReferences(
+          new UniqueEntityId("customer-1"),
+          new UniqueEntityId("vehicle-1"),
+        ),
+    ];
+
+    for (const mutation of mutations) {
+      expect(mutation).toThrow(
+        expect.objectContaining({ code: "QUOTE_ALREADY_CONVERTED" }),
+      );
+    }
   });
 
   it("should not accept invalid courtesy flags", () => {
@@ -404,7 +691,7 @@ describe("Quote", () => {
       quote.approve({
         startsAt: new Date("2026-06-01T10:00:00.000Z"),
       }),
-    ).toThrowError(
+    ).toThrow(
       expect.objectContaining({
         code: "QUOTE_CANNOT_BE_APPROVED_FOR_PROSPECT",
       }),
@@ -422,7 +709,7 @@ describe("Quote", () => {
         startsAt: new Date("2026-06-01T12:00:00.000Z"),
         endsAt: new Date("2026-06-01T10:00:00.000Z"),
       }),
-    ).toThrowError(
+    ).toThrow(
       expect.objectContaining({ code: "QUOTE_INVALID_SCHEDULE_INTERVAL" }),
     );
   });
@@ -447,9 +734,7 @@ describe("Quote", () => {
 
     expect(() =>
       quote.markAsConverted(new UniqueEntityId("appointment-2")),
-    ).toThrowError(
-      expect.objectContaining({ code: "QUOTE_ALREADY_CONVERTED" }),
-    );
+    ).toThrow(expect.objectContaining({ code: "QUOTE_ALREADY_CONVERTED" }));
   });
 
   it("should link a prospect quote to a customer and vehicle once", () => {
@@ -463,8 +748,6 @@ describe("Quote", () => {
     expect(quote.vehicleId).toEqual(vehicleId);
     expect(() =>
       quote.linkCustomer(new UniqueEntityId("customer-2"), null),
-    ).toThrowError(
-      expect.objectContaining({ code: "QUOTE_ALREADY_HAS_CUSTOMER" }),
-    );
+    ).toThrow(expect.objectContaining({ code: "QUOTE_ALREADY_HAS_CUSTOMER" }));
   });
 });

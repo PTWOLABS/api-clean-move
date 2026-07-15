@@ -349,7 +349,7 @@ export class PrismaQuotesRepository implements QuotesRepository {
   }
 
   async save(quote: Quote): Promise<void> {
-    const data = PrismaQuoteMapper.toPrismaUpdate(quote);
+    const data = PrismaQuoteMapper.toPrismaResolutionUpdate(quote);
 
     try {
       await PrismaUnitOfWork.getClient(this.prisma).quote.update({

@@ -75,6 +75,30 @@ export class PrismaCustomerVehiclesRepository implements CustomerVehiclesReposit
     }
   }
 
+  async findByIdAndEstablishmentIdIncludingDeleted(
+    id: string,
+    establishmentId: string,
+  ): Promise<CustomerVehicle | null> {
+    try {
+      const vehicle = await PrismaUnitOfWork.getClient(
+        this.prisma,
+      ).customerVehicle.findFirst({
+        where: {
+          id,
+          establishmentId,
+        },
+      });
+
+      if (!vehicle) {
+        return null;
+      }
+
+      return PrismaCustomerVehicleMapper.toDomain(vehicle);
+    } catch (error) {
+      rethrowPrismaRepositoryError(error);
+    }
+  }
+
   async findByIdAndCustomerIdAndEstablishmentId(
     id: string,
     customerId: string,

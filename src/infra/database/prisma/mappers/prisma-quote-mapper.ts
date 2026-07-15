@@ -90,6 +90,7 @@ export function toQuoteServicesCreate(
   raw: Quote,
 ): Prisma.QuoteServiceUncheckedCreateWithoutQuoteInput[] {
   return raw.services.map((service, index) => ({
+    id: service.quoteServiceId.toString(),
     serviceId: service.serviceId?.toString() ?? null,
     serviceName: service.serviceName,
     serviceCategoryId: service.category?.id.toString() ?? null,
@@ -153,6 +154,7 @@ export class PrismaQuoteMapper {
           .slice()
           .sort((a, b) => a.position - b.position)
           .map((service) => ({
+            quoteServiceId: new UniqueEntityId(service.id),
             serviceId: service.serviceId
               ? new UniqueEntityId(service.serviceId)
               : null,
@@ -262,6 +264,25 @@ export class PrismaQuoteMapper {
         create: toPaymentOptionsCreate(raw),
       },
       ...(raw.updatedAt ? { updatedAt: raw.updatedAt } : {}),
+    };
+  }
+
+  static toPrismaResolutionUpdate(
+    raw: Quote,
+  ): Prisma.QuoteUncheckedUpdateInput {
+    return {
+      customerId: raw.customerId?.toString() ?? null,
+      vehicleId: raw.vehicleId?.toString() ?? null,
+      updatedAt: raw.updatedAt,
+      services: {
+        update: raw.services.map((service) => ({
+          where: { id: service.quoteServiceId.toString() },
+          data: {
+            serviceId: service.serviceId?.toString() ?? null,
+            serviceName: service.serviceName,
+          },
+        })),
+      },
     };
   }
 }

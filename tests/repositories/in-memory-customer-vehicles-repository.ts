@@ -44,6 +44,13 @@ export class InMemoryCustomerVehiclesRepository implements CustomerVehiclesRepos
     return vehicle;
   }
 
+  async findByIdAndEstablishmentIdIncludingDeleted(
+    id: string,
+    establishmentId: string,
+  ): Promise<CustomerVehicle | null> {
+    return this.findByIdAndEstablishmentId(id, establishmentId);
+  }
+
   async findByIdAndCustomerIdAndEstablishmentId(
     id: string,
     customerId: string,
