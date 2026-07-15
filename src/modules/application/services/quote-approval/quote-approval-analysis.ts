@@ -1,3 +1,5 @@
+import { ServicePriceSpecificationValue } from "../../../catalog/domain/value-objects/service-price-specification";
+
 export type CustomerMatchReason =
   | "CPF_CNPJ"
   | "PHONE"
@@ -39,5 +41,50 @@ export type QuoteVehicleAnalysis = {
     | "CREATE_FROM_SNAPSHOT"
     | "KEEP_SNAPSHOT_ONLY"
     | "EDIT_SNAPSHOT_PLATE"
+  >;
+};
+
+export type QuoteServiceDifference =
+  | "NAME"
+  | "CATEGORY"
+  | "DURATION"
+  | "PRICE_SPECIFICATION"
+  | "PRICE";
+
+export type QuoteServiceAnalysisItem = {
+  quoteServiceId: string;
+  status:
+    | "RESOLVED"
+    | "READY_TO_CREATE"
+    | "CANDIDATE_FOUND"
+    | "LINKED_SERVICE_INACTIVE"
+    | "LINKED_SERVICE_DELETED"
+    | "LINKED_SERVICE_MISSING";
+  requiresResolution: boolean;
+  serviceId: string | null;
+  candidateServiceId: string | null;
+  snapshot: {
+    name: string;
+    priceInCents: number;
+    durationInMinutes: number | null;
+    categoryId: string | null;
+    categoryName: string | null;
+    isCourtesy: boolean;
+  };
+  candidate: {
+    serviceId: string;
+    name: string;
+    isActive: boolean;
+    priceSpecification: ServicePriceSpecificationValue;
+    durationInMinutes: number | null;
+    categoryId: string | null;
+    categoryName: string | null;
+  } | null;
+  differences: QuoteServiceDifference[];
+  allowedActions: Array<
+    | "ASSOCIATE_EXISTING"
+    | "KEEP_INACTIVE_LINK"
+    | "RENAME_DETACHED"
+    | "RECREATE_FROM_SNAPSHOT"
   >;
 };
