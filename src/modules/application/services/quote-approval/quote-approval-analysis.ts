@@ -1,8 +1,4 @@
-export type CustomerMatchReason =
-  | "CPF_CNPJ"
-  | "PHONE"
-  | "EMAIL"
-  | "NAME";
+export type CustomerMatchReason = "CPF_CNPJ" | "PHONE" | "EMAIL" | "NAME";
 
 export type QuoteCustomerCandidate = {
   customerId: string;

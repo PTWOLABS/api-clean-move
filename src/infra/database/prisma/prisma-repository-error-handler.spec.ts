@@ -13,16 +13,18 @@ describe("Prisma repository error handler", () => {
     expect(mapPrismaConstraintTarget(["establishment_id", "plate"])).toBe(
       "VEHICLE_PLATE",
     );
-    expect(mapPrismaConstraintTarget(["establishment_id", "service_name"])).toBe(
-      "SERVICE_NAME",
-    );
+    expect(
+      mapPrismaConstraintTarget(["establishment_id", "service_name"]),
+    ).toBe("SERVICE_NAME");
     expect(mapPrismaConstraintTarget(undefined)).toBe("UNKNOWN");
     expect(mapPrismaConstraintTarget(["service_name"])).toBe("UNKNOWN");
   });
 
   it("should map known unique constraint names", () => {
     expect(
-      mapPrismaConstraintTarget("customers_active_establishment_cpf_cnpj_unique"),
+      mapPrismaConstraintTarget(
+        "customers_active_establishment_cpf_cnpj_unique",
+      ),
     ).toBe("CUSTOMER_DOCUMENT");
     expect(
       mapPrismaConstraintTarget(
