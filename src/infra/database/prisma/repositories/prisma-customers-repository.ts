@@ -2,6 +2,7 @@ import { Injectable } from "@nestjs/common";
 
 import {
   CustomerFilters,
+  CustomerMatchEvidence,
   CustomerOption,
   CustomerOptionsFilters,
   CustomersRepository,
@@ -128,6 +129,54 @@ export class PrismaCustomersRepository implements CustomersRepository {
     }
   }
 
+  async findManyActiveByEvidenceAndEstablishmentId(
+    evidence: CustomerMatchEvidence,
+    establishmentId: string,
+  ): Promise<Customer[]> {
+    const phone = normalizePhoneEvidence(evidence.phone);
+    const email = normalizeTextEvidence(evidence.email);
+    const fullName = normalizeTextEvidence(evidence.fullName);
+
+    const or: Prisma.CustomerWhereInput[] = [
+      ...(phone ? [{ phone }] : []),
+      ...(email
+        ? [{ email: { equals: email, mode: "insensitive" as const } }]
+        : []),
+      ...(fullName
+        ? [
+            {
+              fullName: {
+                equals: fullName,
+                mode: "insensitive" as const,
+              },
+            },
+          ]
+        : []),
+    ];
+
+    if (or.length === 0) {
+      return [];
+    }
+
+    try {
+      const customers = await PrismaUnitOfWork.getClient(
+        this.prisma,
+      ).customer.findMany({
+        where: {
+          deletedAt: null,
+          establishmentId,
+          OR: or,
+        },
+      });
+
+      return customers.map((customer) =>
+        PrismaCustomerMapper.toDomain(customer),
+      );
+    } catch (error) {
+      rethrowPrismaRepositoryError(error);
+    }
+  }
+
   async findManyByEstablishmentId(
     establishmentId: string,
     filters?: CustomerFilters,
@@ -236,4 +285,14 @@ export class PrismaCustomersRepository implements CustomersRepository {
       rethrowPrismaRepositoryError(error);
     }
   }
+}
+
+function normalizePhoneEvidence(value: string | undefined) {
+  const normalized = value?.replace(/\D/g, "");
+  return normalized || undefined;
+}
+
+function normalizeTextEvidence(value: string | undefined) {
+  const normalized = value?.trim();
+  return normalized || undefined;
 }

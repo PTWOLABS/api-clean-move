@@ -16,6 +16,12 @@ export type CustomerOptionsFilters = {
   limit?: number;
 };
 
+export type CustomerMatchEvidence = {
+  phone?: string;
+  email?: string;
+  fullName?: string;
+};
+
 export type PaginatedCustomers = {
   customers: Customer[];
   totalItems: number;
@@ -36,6 +42,10 @@ export abstract class CustomersRepository {
     cpfCnpj: string,
     establishmentId: string,
   ): Promise<Customer | null>;
+  abstract findManyActiveByEvidenceAndEstablishmentId(
+    evidence: CustomerMatchEvidence,
+    establishmentId: string,
+  ): Promise<Customer[]>;
   abstract findManyByEstablishmentId(
     establishmentId: string,
     filters?: CustomerFilters,

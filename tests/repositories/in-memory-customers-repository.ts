@@ -1,5 +1,6 @@
 import {
   CustomerFilters,
+  CustomerMatchEvidence,
   CustomerOptionsFilters,
   CustomersRepository,
   PaginatedCustomers,
@@ -66,6 +67,34 @@ export class InMemoryCustomersRepository implements CustomersRepository {
     if (!customer) return null;
 
     return customer;
+  }
+
+  async findManyActiveByEvidenceAndEstablishmentId(
+    evidence: CustomerMatchEvidence,
+    establishmentId: string,
+  ): Promise<Customer[]> {
+    const phone = normalizePhone(evidence.phone);
+    const email = normalizeText(evidence.email)?.toLowerCase();
+    const fullName = normalizeText(evidence.fullName)?.toLowerCase();
+
+    if (!phone && !email && !fullName) {
+      return [];
+    }
+
+    return this.items.filter((item) => {
+      if (
+        item.establishmentId.toString() !== establishmentId ||
+        item.isDeleted()
+      ) {
+        return false;
+      }
+
+      return (
+        Boolean(phone && item.phone?.toString() === phone) ||
+        Boolean(email && item.email?.toString().toLowerCase() === email) ||
+        Boolean(fullName && item.fullName.toLowerCase() === fullName)
+      );
+    });
   }
 
   async findManyByEstablishmentId(
@@ -163,4 +192,14 @@ function compareStrings(a: string, b: string) {
   }
 
   return 0;
+}
+
+function normalizePhone(value: string | undefined) {
+  const normalized = value?.replace(/\D/g, "");
+  return normalized || undefined;
+}
+
+function normalizeText(value: string | undefined) {
+  const normalized = value?.trim();
+  return normalized || undefined;
 }
