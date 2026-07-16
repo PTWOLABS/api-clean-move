@@ -106,3 +106,31 @@ export type AnalyzeQuoteApprovalInput = {
   establishmentId: string;
   prospectEmail?: string;
 };
+
+export type QuoteCustomerRegistrationInput = {
+  email?: string | null;
+  phone?: string | null;
+};
+
+export type QuoteCustomerResolution =
+  | { action: "LINK_EXISTING"; customerId: string }
+  | ({ action: "CREATE_NEW" } & QuoteCustomerRegistrationInput);
+
+export type QuoteVehicleResolution =
+  | { action: "LINK_EXISTING"; vehicleId: string }
+  | { action: "CREATE_FROM_SNAPSHOT" }
+  | { action: "KEEP_SNAPSHOT_ONLY" };
+
+export type QuoteServiceResolution =
+  | {
+      quoteServiceId: string;
+      action: "ASSOCIATE_EXISTING";
+      serviceId: string;
+    }
+  | { quoteServiceId: string; action: "KEEP_INACTIVE_LINK" }
+  | {
+      quoteServiceId: string;
+      action: "RENAME_DETACHED";
+      serviceName: string;
+    }
+  | { quoteServiceId: string; action: "RECREATE_FROM_SNAPSHOT" };
