@@ -49,7 +49,7 @@ export class QuoteCustomerMatcher {
 
     const normalizedPhone = normalizeQuoteApprovalPhone(quote.customer.phone);
     const normalizedEmail = normalizeQuoteApprovalEmail(
-      externalEvidence?.email,
+      externalEvidence?.email ?? quote.customer.email,
     );
     const normalizedName = normalizeQuoteApprovalText(quote.customer.name);
     const evidence = buildEvidence({

@@ -346,6 +346,7 @@ model Quote {
   establishmentBannerImageUrl    String?   @map("establishment_banner_image_url")
   customerName                   String    @map("customer_name")
   customerPhone                  String?   @map("customer_phone") @db.VarChar(11)
+  customerEmail                  String?   @map("customer_email")
   customerCpfCnpj                String?   @map("customer_cpf_cnpj") @db.VarChar(14)
   customerAddress                Json?     @map("customer_address")
   vehiclePlate                   String?   @map("vehicle_plate") @db.VarChar(12)

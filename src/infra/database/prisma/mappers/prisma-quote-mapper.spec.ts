@@ -20,6 +20,7 @@ describe("PrismaQuoteMapper", () => {
       establishmentBannerImageUrl: null,
       customerName: "Robertinho Contador",
       customerPhone: null,
+      customerEmail: "robertinho@example.com",
       customerCpfCnpj: null,
       customerAddress: null,
       vehiclePlate: "ABC1D23",
@@ -64,6 +65,7 @@ describe("PrismaQuoteMapper", () => {
 
     const quote = PrismaQuoteMapper.toDomain(rawQuote);
 
+    expect(quote.customer.email).toBe("robertinho@example.com");
     expect(quote.services[0]?.quoteServiceId.toString()).toBe(
       "quote-service-1",
     );

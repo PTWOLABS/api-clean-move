@@ -113,7 +113,10 @@ describe("Create quote", () => {
 
     const result = await sut.execute({
       actor: { userId: owner.id.toString(), role: "ESTABLISHMENT" },
-      customer: { name: "Robertinho Contador" },
+      customer: {
+        name: "Robertinho Contador",
+        email: "robertinho@example.com",
+      },
       vehicle: {
         brand: "Honda",
         model: "HR-V",
@@ -139,6 +142,7 @@ describe("Create quote", () => {
     expect(customersRepository.items).toHaveLength(0);
     expect(customerVehiclesRepository.items).toHaveLength(0);
     expect(result.value.quote.customer.name).toBe("Robertinho Contador");
+    expect(result.value.quote.customer.email).toBe("robertinho@example.com");
     expect(result.value.quote.vehicle?.model).toBe("HR-V");
   });
 
@@ -181,6 +185,7 @@ describe("Create quote", () => {
     expect(result.value.quote.customerId).toEqual(customer.id);
     expect(result.value.quote.vehicleId).toEqual(vehicle.id);
     expect(result.value.quote.customer.name).toBe(customer.fullName);
+    expect(result.value.quote.customer.email).toBe(customer.email?.toString());
     expect(result.value.quote.services[0]?.category).toBe(service.category);
     expect(result.value.quote.services[0]?.durationInMinutes).toBe(
       service.estimatedDuration?.upperBoundInMinutes,

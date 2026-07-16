@@ -138,6 +138,7 @@ export class PrismaQuoteMapper {
         customer: {
           name: raw.customerName,
           phone: raw.customerPhone,
+          email: raw.customerEmail,
           cpfCnpj: raw.customerCpfCnpj,
           address: toAddressSnapshot(raw.customerAddress),
         },
@@ -207,6 +208,7 @@ export class PrismaQuoteMapper {
       establishmentBannerImageUrl: establishment.bannerImageUrl,
       customerName: customer.name,
       customerPhone: customer.phone,
+      customerEmail: customer.email,
       customerCpfCnpj: customer.cpfCnpj,
       customerAddress: toPrismaAddress(customer.address),
       vehiclePlate: vehicle?.plate ?? null,
@@ -245,6 +247,7 @@ export class PrismaQuoteMapper {
       establishmentBannerImageUrl: establishment.bannerImageUrl,
       customerName: customer.name,
       customerPhone: customer.phone,
+      customerEmail: customer.email,
       customerCpfCnpj: customer.cpfCnpj,
       customerAddress: toPrismaAddress(customer.address),
       vehiclePlate: vehicle?.plate ?? null,

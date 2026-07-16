@@ -38,6 +38,7 @@ describe("List quotes", () => {
       customer: {
         name: "Robertinho Contador",
         phone: "11999999999",
+        email: null,
         cpfCnpj: null,
         address: null,
       },
