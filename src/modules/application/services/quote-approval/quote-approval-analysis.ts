@@ -1,10 +1,7 @@
+import { Quote } from "../../../quotes/domain/entities/quote";
 import { ServicePriceSpecificationValue } from "../../../catalog/domain/value-objects/service-price-specification";
 
-export type CustomerMatchReason =
-  | "CPF_CNPJ"
-  | "PHONE"
-  | "EMAIL"
-  | "NAME";
+export type CustomerMatchReason = "CPF_CNPJ" | "PHONE" | "EMAIL" | "NAME";
 
 export type QuoteCustomerCandidate = {
   customerId: string;
@@ -87,4 +84,25 @@ export type QuoteServiceAnalysisItem = {
     | "RENAME_DETACHED"
     | "RECREATE_FROM_SNAPSHOT"
   >;
+};
+
+export type QuoteAutomaticResolution = {
+  resource: "CUSTOMER";
+  action: "LINK_EXISTING";
+  resourceId: string;
+  matchedBy: "CPF_CNPJ";
+};
+
+export type QuoteApprovalAnalysis = {
+  status: "READY" | "REQUIRES_RESOLUTION";
+  automaticResolutions: QuoteAutomaticResolution[];
+  customer: QuoteCustomerAnalysis;
+  vehicle: QuoteVehicleAnalysis;
+  services: QuoteServiceAnalysisItem[];
+};
+
+export type AnalyzeQuoteApprovalInput = {
+  quote: Quote;
+  establishmentId: string;
+  prospectEmail?: string;
 };
