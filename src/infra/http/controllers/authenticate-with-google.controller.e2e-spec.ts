@@ -7,6 +7,7 @@ import { AppModule } from "../../app.module";
 import { Prisma } from "../../../generated/prisma/client";
 import { PrismaService } from "../../database/prisma/prisma.service";
 import { DEFAULT_SERVICE_CATEGORY_NAMES } from "../../../modules/catalog/domain/constants/default-service-categories";
+import { EmailSender } from "../../../modules/application/gateways/email-sender";
 import {
   OAuthIdTokenVerifier,
   OAuthUserClaims,
@@ -18,6 +19,7 @@ import {
   extractRefreshTokenValue,
   makeRefreshTokenCookieHeader,
 } from "../../../../tests/helpers/auth-session.e2e-helpers";
+import { CapturingEmailSender } from "../../../../tests/helpers/password-reset.e2e-helpers";
 
 const authenticateWithGoogleResponseSchema = z.object({
   accessToken: z.string().min(1),
@@ -107,9 +109,13 @@ describe("AuthenticateWithGoogleController (e2e)", () => {
   ]);
 
   beforeAll(async () => {
+    const capturingEmailSender = new CapturingEmailSender();
+
     const moduleRef = await Test.createTestingModule({
       imports: [AppModule],
     })
+      .overrideProvider(EmailSender)
+      .useValue(capturingEmailSender)
       .overrideProvider(OAuthIdTokenVerifier)
       .useValue(oauthIdTokenVerifierMock)
       .overrideProvider(GoogleIdTokenVerifier)
