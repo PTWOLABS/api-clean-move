@@ -2,7 +2,7 @@ import { UniqueEntityId } from "../../../../shared/entities/unique-entity-id";
 import { makeQuote } from "../../../../../tests/factories/quote-factory";
 import { makeServiceCategoryRef } from "../../../../../tests/helpers/service-category-ref";
 import { InvalidQuoteInputError } from "../errors/invalid-quote-input-error";
-import { QuoteConvertedEvent } from "../events/quote-converted-event";
+import { QuoteApprovedEvent } from "../events/quote-approved-event";
 
 const washCategory = makeServiceCategoryRef("Lavagem");
 const protectionCategory = makeServiceCategoryRef("Proteção");
@@ -656,7 +656,7 @@ describe("Quote", () => {
     ).toThrow(InvalidQuoteInputError);
   });
 
-  it("should mark a quote as converted once and emit a domain event", () => {
+  it("should mark a quote as converted once", () => {
     const quote = Quote.create(baseProps);
     const appointmentId = new UniqueEntityId("appointment-1");
     const convertedAt = new Date("2026-05-25T10:00:00.000Z");
@@ -668,12 +668,51 @@ describe("Quote", () => {
     expect(quote.updatedAt.getTime()).toBeGreaterThanOrEqual(
       convertedAt.getTime(),
     );
-    expect(quote.domainEvents).toHaveLength(1);
-    expect(quote.domainEvents[0]).toBeInstanceOf(QuoteConvertedEvent);
-    expect(quote.domainEvents[0]).toMatchObject({
-      appointmentId,
-      occurredAt: convertedAt,
+  });
+
+  it("should approve a customer quote and emit a domain event", () => {
+    const quote = Quote.create({
+      ...baseProps,
+      customerId: new UniqueEntityId("customer-1"),
     });
+    const startsAt = new Date("2026-06-01T10:00:00.000Z");
+    const endsAt = new Date("2026-06-01T12:00:00.000Z");
+
+    quote.approve({ startsAt, endsAt });
+
+    expect(quote.domainEvents).toHaveLength(1);
+    expect(quote.domainEvents[0]).toBeInstanceOf(QuoteApprovedEvent);
+    expect(quote.convertedAppointmentId).toBeNull();
+  });
+
+  it("should reject approval for prospect quotes", () => {
+    const quote = Quote.create(baseProps);
+
+    expect(() =>
+      quote.approve({
+        startsAt: new Date("2026-06-01T10:00:00.000Z"),
+      }),
+    ).toThrow(
+      expect.objectContaining({
+        code: "QUOTE_CANNOT_BE_APPROVED_FOR_PROSPECT",
+      }),
+    );
+  });
+
+  it("should reject approval with invalid scheduling range", () => {
+    const quote = Quote.create({
+      ...baseProps,
+      customerId: new UniqueEntityId("customer-1"),
+    });
+
+    expect(() =>
+      quote.approve({
+        startsAt: new Date("2026-06-01T12:00:00.000Z"),
+        endsAt: new Date("2026-06-01T10:00:00.000Z"),
+      }),
+    ).toThrow(
+      expect.objectContaining({ code: "QUOTE_INVALID_SCHEDULE_INTERVAL" }),
+    );
   });
 
   it("should not accept invalid conversion reference date", () => {
