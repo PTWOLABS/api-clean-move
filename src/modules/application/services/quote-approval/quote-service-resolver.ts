@@ -13,7 +13,7 @@ import {
   QuoteServiceResolution,
 } from "./quote-approval-analysis";
 import { QuoteInvalidResolutionActionError } from "./quote-approval-resolution-error";
-import { validateQuoteApprovalResolutions } from "./quote-approval-resolution-validation";
+import { validateQuoteServiceResolutions } from "./quote-approval-resolution-validation";
 
 type QuoteServiceResolverInput = {
   quote: Quote;
@@ -32,9 +32,7 @@ export class QuoteServiceResolver {
     analysis,
     resolutions,
   }: QuoteServiceResolverInput): Promise<void> {
-    validateQuoteApprovalResolutions(analysis, {
-      serviceResolutions: resolutions,
-    });
+    validateQuoteServiceResolutions(analysis, resolutions);
 
     const decisionsByItemId = new Map(
       resolutions.map((resolution) => [resolution.quoteServiceId, resolution]),

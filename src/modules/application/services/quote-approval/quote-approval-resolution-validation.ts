@@ -88,6 +88,13 @@ function validateServiceResolutions(
   analysis: QuoteApprovalAnalysis,
   resolutions: QuoteServiceResolution[],
 ) {
+  validateQuoteServiceResolutions(analysis, resolutions);
+}
+
+export function validateQuoteServiceResolutions(
+  analysis: QuoteApprovalAnalysis,
+  resolutions: QuoteServiceResolution[],
+) {
   const itemsById = new Map(
     analysis.services.map((service) => [service.quoteServiceId, service]),
   );

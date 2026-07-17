@@ -10,6 +10,12 @@ import { AuthenticateWithOAuthUseCase } from "../../modules/application/use-case
 import { AuthSessionService } from "../../modules/application/services/auth-session.service";
 import { AppointmentResourceStatusResolver } from "../../modules/application/services/appointment-resource-status-resolver";
 import { EstablishmentScopeService } from "../../modules/application/services/establishment-scope";
+import { QuoteApprovalAnalyzer } from "../../modules/application/services/quote-approval/quote-approval-analyzer";
+import { QuoteCustomerMatcher } from "../../modules/application/services/quote-approval/quote-customer-matcher";
+import { QuoteServiceMatcher } from "../../modules/application/services/quote-approval/quote-service-matcher";
+import { QuoteServiceResolver } from "../../modules/application/services/quote-approval/quote-service-resolver";
+import { QuoteToAppointmentConverter } from "../../modules/application/services/quote-approval/quote-to-appointment-converter";
+import { QuoteVehicleMatcher } from "../../modules/application/services/quote-approval/quote-vehicle-matcher";
 import { UserEstablishmentResolver } from "../../modules/application/services/user-establishment-resolver";
 import { LoginWithCredentialsUseCase } from "../../modules/application/use-cases/auth/login-with-credentials";
 import { RequestPasswordResetUseCase } from "../../modules/application/use-cases/auth/request-password-reset";
@@ -274,6 +280,12 @@ import { RegisterQuoteProspectAsCustomerController } from "./controllers/quote/r
     DeleteEmployeeUseCase,
     UploadDomainImageUseCase,
     AppointmentResourceStatusResolver,
+    QuoteApprovalAnalyzer,
+    QuoteCustomerMatcher,
+    QuoteVehicleMatcher,
+    QuoteServiceMatcher,
+    QuoteServiceResolver,
+    QuoteToAppointmentConverter,
     AuthSessionService,
     EstablishmentScopeService,
     UserEstablishmentResolver,

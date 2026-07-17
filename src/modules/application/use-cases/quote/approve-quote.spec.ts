@@ -2,11 +2,13 @@ import { vi } from "vitest";
 
 import { UniqueEntityId } from "../../../../shared/entities/unique-entity-id";
 import { ResourceNotFoundError } from "../../../../shared/errors/resource-not-found-error";
+import { Quote } from "../../../quotes/domain/entities/quote";
 import { InvalidQuoteInputError } from "../../../quotes/domain/errors/invalid-quote-input-error";
 import { makeCustomer } from "../../../../../tests/factories/customer-factory";
 import { makeCustomerVehicle } from "../../../../../tests/factories/customer-vehicle-factory";
 import { makeEstablishment } from "../../../../../tests/factories/establishment-factory";
 import { makeQuote } from "../../../../../tests/factories/quote-factory";
+import { makeService } from "../../../../../tests/factories/service-factory";
 import { InMemoryAppointmentsRepository } from "../../../../../tests/repositories/in-memory-appointments-repository";
 import { InMemoryCustomerVehiclesRepository } from "../../../../../tests/repositories/in-memory-customer-vehicles-repository";
 import { InMemoryCustomersRepository } from "../../../../../tests/repositories/in-memory-customers-repository";
@@ -15,8 +17,13 @@ import { InMemoryEstablishmentsRepository } from "../../../../../tests/repositor
 import { InMemoryQuotesRepository } from "../../../../../tests/repositories/in-memory-quotes-repository";
 import { InMemoryServicesRepository } from "../../../../../tests/repositories/in-memory-services-repository";
 import { InMemoryUnitOfWork } from "../../../../../tests/repositories/in-memory-unit-of-work";
-import { CreateAppointmentOnQuoteApproved } from "../../subscribers/create-appointment-on-quote-approved";
 import { EstablishmentScopeService } from "../../services/establishment-scope";
+import { QuoteApprovalAnalyzer } from "../../services/quote-approval/quote-approval-analyzer";
+import { QuoteCustomerMatcher } from "../../services/quote-approval/quote-customer-matcher";
+import { QuoteServiceMatcher } from "../../services/quote-approval/quote-service-matcher";
+import { QuoteServiceResolver } from "../../services/quote-approval/quote-service-resolver";
+import { QuoteToAppointmentConverter } from "../../services/quote-approval/quote-to-appointment-converter";
+import { QuoteVehicleMatcher } from "../../services/quote-approval/quote-vehicle-matcher";
 import { ApproveQuoteUseCase } from "./approve-quote";
 
 let quotesRepository: InMemoryQuotesRepository;
@@ -29,6 +36,21 @@ let servicesRepository: InMemoryServicesRepository;
 let establishmentScope: EstablishmentScopeService;
 let inMemoryUnitOfWork: InMemoryUnitOfWork;
 let sut: ApproveQuoteUseCase;
+
+async function createCatalogServicesFor(quote: Quote) {
+  for (const quoteService of quote.services) {
+    if (!quoteService.serviceId) continue;
+
+    await servicesRepository.create(
+      makeService(
+        {
+          establishmentId: quote.establishmentId,
+        },
+        quoteService.serviceId,
+      ),
+    );
+  }
+}
 
 describe("Approve quote", () => {
   beforeEach(() => {
@@ -49,19 +71,21 @@ describe("Approve quote", () => {
     );
     inMemoryUnitOfWork = new InMemoryUnitOfWork();
 
-    new CreateAppointmentOnQuoteApproved(
-      quotesRepository,
-      appointmentsRepository,
-      customersRepository,
-      customerVehiclesRepository,
-      servicesRepository,
-    );
-
     sut = new ApproveQuoteUseCase(
       quotesRepository,
-      appointmentsRepository,
       establishmentScope,
       inMemoryUnitOfWork,
+      new QuoteApprovalAnalyzer(
+        new QuoteCustomerMatcher(customersRepository),
+        new QuoteVehicleMatcher(customerVehiclesRepository),
+        new QuoteServiceMatcher(servicesRepository),
+      ),
+      new QuoteServiceResolver(servicesRepository),
+      new QuoteToAppointmentConverter(
+        appointmentsRepository,
+        customersRepository,
+        customerVehiclesRepository,
+      ),
     );
   });
 
@@ -83,6 +107,7 @@ describe("Approve quote", () => {
 
     await establishmentsRepository.create(establishment);
     await customersRepository.create(customer);
+    await createCatalogServicesFor(quote);
     await quotesRepository.create(quote);
 
     const result = await sut.execute({
@@ -122,6 +147,7 @@ describe("Approve quote", () => {
 
     await establishmentsRepository.create(establishment);
     await customersRepository.create(customer);
+    await createCatalogServicesFor(quote);
     await quotesRepository.create(quote);
 
     const result = await sut.execute({
@@ -170,6 +196,7 @@ describe("Approve quote", () => {
     await establishmentsRepository.create(establishment);
     await customersRepository.create(customer);
     await customerVehiclesRepository.create(vehicle);
+    await createCatalogServicesFor(quote);
     await quotesRepository.create(quote);
 
     const result = await sut.execute({
@@ -195,6 +222,7 @@ describe("Approve quote", () => {
     });
 
     await establishmentsRepository.create(establishment);
+    await createCatalogServicesFor(quote);
     await quotesRepository.create(quote);
 
     const result = await sut.execute({
@@ -223,6 +251,7 @@ describe("Approve quote", () => {
 
     await establishmentsRepository.create(establishment);
     await customersRepository.create(customer);
+    await createCatalogServicesFor(quote);
     await quotesRepository.create(quote);
 
     const result = await sut.execute({
@@ -251,6 +280,7 @@ describe("Approve quote", () => {
 
     await establishmentsRepository.create(establishment);
     await customersRepository.create(customer);
+    await createCatalogServicesFor(quote);
     await quotesRepository.create(quote);
 
     const result = await sut.execute({
@@ -278,6 +308,7 @@ describe("Approve quote", () => {
 
     await establishmentsRepository.create(establishment);
     await customersRepository.create(customer);
+    await createCatalogServicesFor(quote);
     await quotesRepository.create(quote);
 
     const result = await sut.execute({
@@ -311,6 +342,7 @@ describe("Approve quote", () => {
     await establishmentsRepository.create(establishment);
     await customersRepository.create(customer);
     await customerVehiclesRepository.create(vehicle);
+    await createCatalogServicesFor(quote);
     await quotesRepository.create(quote);
 
     const result = await sut.execute({
@@ -338,6 +370,7 @@ describe("Approve quote", () => {
 
     await establishmentsRepository.create(establishment);
     await customersRepository.create(customer);
+    await createCatalogServicesFor(quote);
     await quotesRepository.create(quote);
 
     const result = await sut.execute({
@@ -371,6 +404,7 @@ describe("Approve quote", () => {
     await establishmentsRepository.create(establishment);
     await customersRepository.create(customer);
     await customerVehiclesRepository.create(vehicle);
+    await createCatalogServicesFor(quote);
     await quotesRepository.create(quote);
 
     const result = await sut.execute({

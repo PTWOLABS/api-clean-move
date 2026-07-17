@@ -7,13 +7,20 @@ import { Either, left, right } from "../../../../shared/either";
 import { NotAllowedError } from "../../../../shared/errors/not-allowed-error";
 import { ResourceNotFoundError } from "../../../../shared/errors/resource-not-found-error";
 import { UnexpectedDomainError } from "../../../../shared/errors/unexpected-domain-error";
-import { AppointmentsRepository } from "../../repositories/appointments-repository";
 import { QuotesRepository } from "../../repositories/quotes-repository";
 import { UnitOfWork } from "../../repositories/unit-of-work";
 import {
   EstablishmentScopeActor,
   EstablishmentScopeService,
 } from "../../services/establishment-scope";
+import {
+  QuoteApprovalResolutionRequiredError,
+  QuoteInvalidResolutionActionError,
+} from "../../services/quote-approval/quote-approval-resolution-error";
+import { validateQuoteApprovalSchedule } from "../../services/quote-approval/quote-approval-schedule";
+import { QuoteApprovalAnalyzer } from "../../services/quote-approval/quote-approval-analyzer";
+import { QuoteServiceResolver } from "../../services/quote-approval/quote-service-resolver";
+import { QuoteToAppointmentConverter } from "../../services/quote-approval/quote-to-appointment-converter";
 
 type ApproveQuoteUseCaseRequest = {
   actor: EstablishmentScopeActor;
@@ -35,16 +42,21 @@ type ApproveQuoteUseCaseResponse = Either<
 
 type ApprovalDispatchResponse = Either<
   ResourceNotFoundError | InvalidQuoteInputError,
-  Record<string, never>
+  {
+    appointment: Appointment;
+    quote: Quote;
+  }
 >;
 
 @Injectable()
 export class ApproveQuoteUseCase {
   constructor(
     private quotesRepository: QuotesRepository,
-    private appointmentsRepository: AppointmentsRepository,
     private establishmentScope: EstablishmentScopeService,
     private unitOfWork: UnitOfWork,
+    private approvalAnalyzer: QuoteApprovalAnalyzer,
+    private serviceResolver: QuoteServiceResolver,
+    private converter: QuoteToAppointmentConverter,
   ) {}
 
   async execute(
@@ -67,37 +79,62 @@ export class ApproveQuoteUseCase {
             return left(new ResourceNotFoundError({ resource: "quote" }));
           }
 
-          quote.approve({
+          if (quote.convertedAppointmentId || quote.convertedAt) {
+            return left(
+              new InvalidQuoteInputError(
+                "Quote is already converted.",
+                "QUOTE_ALREADY_CONVERTED",
+              ),
+            );
+          }
+
+          validateQuoteApprovalSchedule(
+            request.startsAt,
+            request.endsAt ?? null,
+          );
+
+          const analysis = await this.approvalAnalyzer.analyze({
+            quote,
+            establishmentId,
+          });
+
+          await this.serviceResolver.resolve({
+            quote,
+            establishmentId: quote.establishmentId,
+            analysis,
+            resolutions: [],
+          });
+
+          await this.quotesRepository.save(quote);
+
+          const appointment = await this.converter.convert({
+            quote,
             startsAt: request.startsAt,
             endsAt: request.endsAt ?? null,
           });
 
-          return right({});
+          const converted = await this.quotesRepository.markAsConverted(
+            quote,
+            appointment.id,
+            new Date(),
+          );
+
+          if (!converted) {
+            throw new InvalidQuoteInputError(
+              "Quote is already converted.",
+              "QUOTE_ALREADY_CONVERTED",
+            );
+          }
+
+          return right({ appointment, quote });
         });
 
       if (approvalResult.isLeft()) return left(approvalResult.value);
+
+      return right(approvalResult.value);
     } catch (error) {
       return left(this.toApprovalError(error));
     }
-
-    const quote = await this.quotesRepository.findByIdAndEstablishmentId(
-      request.quoteId,
-      establishmentId,
-    );
-
-    if (!quote?.convertedAppointmentId) {
-      return left(new UnexpectedDomainError());
-    }
-
-    const appointment = await this.appointmentsRepository.findById(
-      quote.convertedAppointmentId.toString(),
-    );
-
-    if (!appointment) {
-      return left(new UnexpectedDomainError());
-    }
-
-    return right({ appointment, quote });
   }
 
   private toApprovalError(error: unknown) {
@@ -108,6 +145,13 @@ export class ApproveQuoteUseCase {
       error instanceof UnexpectedDomainError
     ) {
       return error;
+    }
+
+    if (
+      error instanceof QuoteApprovalResolutionRequiredError ||
+      error instanceof QuoteInvalidResolutionActionError
+    ) {
+      return new InvalidQuoteInputError(error.message, error.code);
     }
 
     return new UnexpectedDomainError();
