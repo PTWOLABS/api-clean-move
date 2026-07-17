@@ -26,6 +26,7 @@ export function makeQuote(
       customer: {
         name: "Robertinho Contador",
         phone: null,
+        email: null,
         cpfCnpj: null,
         address: null,
       },

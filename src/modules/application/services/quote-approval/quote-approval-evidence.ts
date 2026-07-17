@@ -57,3 +57,7 @@ export function normalizeQuoteApprovalText(value: string | null | undefined) {
   const normalized = value?.trim();
   return normalized || undefined;
 }
+
+export function normalizeQuoteApprovalNullableText(value: string | null) {
+  return value === null ? null : normalizeQuoteApprovalText(value);
+}

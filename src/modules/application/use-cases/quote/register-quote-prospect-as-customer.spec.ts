@@ -181,6 +181,7 @@ describe("Register quote prospect as customer", () => {
       customer: {
         name: "Robertinho Contador",
         phone: null,
+        email: null,
         cpfCnpj: "52998224725",
         address: null,
       },

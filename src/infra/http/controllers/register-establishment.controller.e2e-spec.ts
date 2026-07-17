@@ -4,6 +4,8 @@ import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import z from "zod";
 
+import { CapturingEmailSender } from "../../../../tests/helpers/password-reset.e2e-helpers";
+import { EmailSender } from "../../../modules/application/gateways/email-sender";
 import { DEFAULT_SERVICE_CATEGORY_NAMES } from "../../../modules/catalog/domain/constants/default-service-categories";
 import { PersistenceError } from "../../../shared/errors/persistence-error";
 import { AppModule } from "../../app.module";
@@ -149,9 +151,14 @@ describe("RegisterEstablishmentController (e2e)", () => {
   let prisma: PrismaService;
 
   beforeAll(async () => {
+    const capturingEmailSender = new CapturingEmailSender();
+
     const moduleRef = await Test.createTestingModule({
       imports: [AppModule],
-    }).compile();
+    })
+      .overrideProvider(EmailSender)
+      .useValue(capturingEmailSender)
+      .compile();
 
     app = moduleRef.createNestApplication();
     await app.init();

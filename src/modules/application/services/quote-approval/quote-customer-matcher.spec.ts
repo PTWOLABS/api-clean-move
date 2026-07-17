@@ -27,6 +27,7 @@ describe("Quote customer matcher", () => {
       customer: {
         name: "Other Name",
         phone: null,
+        email: null,
         cpfCnpj: "52998224725",
         address: null,
       },
@@ -58,6 +59,7 @@ describe("Quote customer matcher", () => {
       customer: {
         name: "Robertinho Contador",
         phone: "11987654321",
+        email: null,
         cpfCnpj: null,
         address: null,
       },
@@ -95,6 +97,7 @@ describe("Quote customer matcher", () => {
       customer: {
         name: "Robertinho Contador",
         phone: null,
+        email: null,
         cpfCnpj: null,
         address: null,
       },
@@ -110,6 +113,38 @@ describe("Quote customer matcher", () => {
     expect(nameOnlyMatch.status).toBe("CANDIDATES_FOUND");
     expect(nameOnlyMatch.candidates[0]?.advisoryOnly).toBe(true);
     expect(nameOnlyMatch.requiresResolution).toBe(false);
+  });
+
+  it("should use quote snapshot email as customer evidence", async () => {
+    const establishmentId = new UniqueEntityId("establishment-1");
+    const customer = makeCustomer({
+      establishmentId,
+      cpfCnpj: null,
+      email: new Email("snapshot@example.com"),
+    });
+    const quote = makeQuote({
+      establishmentId,
+      customer: {
+        name: "Cliente Snapshot",
+        phone: null,
+        email: "SNAPSHOT@example.com",
+        cpfCnpj: null,
+        address: null,
+      },
+    });
+
+    await customersRepository.create(customer);
+
+    const analysis = await sut.analyze({
+      quote,
+      establishmentId: establishmentId.toString(),
+    });
+
+    expect(analysis).toMatchObject({
+      status: "CANDIDATES_FOUND",
+      requiresResolution: true,
+    });
+    expect(analysis.candidates[0]?.matchedBy).toEqual(["EMAIL"]);
   });
 
   it("should report separate candidates when phone and email point to different customers", async () => {
@@ -131,6 +166,7 @@ describe("Quote customer matcher", () => {
       customer: {
         name: "Robertinho Contador",
         phone: "(11) 98765-4321",
+        email: null,
         cpfCnpj: null,
         address: null,
       },
@@ -213,6 +249,7 @@ describe("Quote customer matcher", () => {
       customer: {
         name: "Robertinho Contador",
         phone: null,
+        email: null,
         cpfCnpj: "52998224725",
         address: null,
       },

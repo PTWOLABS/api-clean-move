@@ -46,6 +46,7 @@ export type QuoteEstablishmentSnapshot = {
 export type QuoteCustomerSnapshot = {
   name: string;
   phone: string | null;
+  email: string | null;
   cpfCnpj: string | null;
   address: QuoteAddressSnapshot;
 };
@@ -494,6 +495,7 @@ export class Quote extends AggregateRoot<QuoteProps> {
         "customer.name is required.",
       ),
       phone: Quote.normalizeOptionalText(customer.phone),
+      email: Quote.normalizeOptionalText(customer.email),
       cpfCnpj: Quote.normalizeOptionalText(customer.cpfCnpj),
       address: Quote.normalizeAddress(customer.address),
     };

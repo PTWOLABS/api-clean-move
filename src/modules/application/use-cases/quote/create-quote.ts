@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 
 import { Address } from "../../../accounts/domain/value-objects/address";
+import { Email } from "../../../accounts/domain/value-objects/email";
 import { Phone } from "../../../accounts/domain/value-objects/phone";
 import { InactiveServiceError } from "../../../catalog/domain/errors/inactive-service-error";
 import {
@@ -40,6 +41,7 @@ import {
 type QuoteCustomerInput = {
   name: string;
   phone?: string | null;
+  email?: string | null;
   cpfCnpj?: string | null;
   address?: QuoteAddressSnapshot;
 };
@@ -202,6 +204,7 @@ export class CreateQuoteUseCase {
         customer: {
           name: customer.fullName,
           phone: customer.phone?.toString() ?? null,
+          email: customer.email?.toString() ?? null,
           cpfCnpj: customer.cpfCnpj?.toString() ?? null,
           address: toAddressSnapshot(customer.address),
         },
@@ -217,6 +220,9 @@ export class CreateQuoteUseCase {
     const phoneResult = normalizePhoneSnapshot(request.customer?.phone);
     if (phoneResult.isLeft()) return left(phoneResult.value);
 
+    const emailResult = normalizeEmailSnapshot(request.customer?.email);
+    if (emailResult.isLeft()) return left(emailResult.value);
+
     const documentResult = normalizeCustomerDocumentSnapshot(
       request.customer?.cpfCnpj,
     );
@@ -230,6 +236,7 @@ export class CreateQuoteUseCase {
       customer: {
         name,
         phone: phoneResult.value,
+        email: emailResult.value,
         cpfCnpj: documentResult.value,
         address: addressResult.value,
       },
@@ -499,6 +506,26 @@ function normalizePhoneSnapshot(
     return left(
       new InvalidQuoteInputError(
         error instanceof Error ? error.message : "Invalid customer.phone.",
+      ),
+    );
+  }
+}
+
+function normalizeEmailSnapshot(
+  value: string | null | undefined,
+): Either<InvalidQuoteInputError, string | null> {
+  const normalizedValue = normalizeOptionalText(value);
+
+  if (normalizedValue === null) {
+    return right(null);
+  }
+
+  try {
+    return right(new Email(normalizedValue).toString());
+  } catch (error) {
+    return left(
+      new InvalidQuoteInputError(
+        error instanceof Error ? error.message : "Invalid customer.email.",
       ),
     );
   }
