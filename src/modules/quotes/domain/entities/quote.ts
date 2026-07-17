@@ -2,7 +2,7 @@ import { AggregateRoot } from "../../../../shared/entities/aggregate-root";
 import { UniqueEntityId } from "../../../../shared/entities/unique-entity-id";
 import { Optional } from "../../../../shared/types/optional";
 import { InvalidQuoteInputError } from "../errors/invalid-quote-input-error";
-import { QuoteApprovedEvent } from "../events/quote-approved-event";
+import { QuoteConvertedEvent } from "../events/quote-converted-event";
 import {
   QuotePaymentOption,
   QuotePaymentOptionInput,
@@ -88,12 +88,6 @@ export type QuoteCreateProps = Optional<
   | "createdAt"
   | "updatedAt"
 >;
-
-export type QuoteApproveProps = {
-  startsAt: Date;
-  endsAt?: Date | null;
-  approvedAt?: Date;
-};
 
 export class Quote extends AggregateRoot<QuoteProps> {
   get establishmentId() {
@@ -210,48 +204,6 @@ export class Quote extends AggregateRoot<QuoteProps> {
     }, 0);
   }
 
-  approve({
-    startsAt,
-    endsAt = null,
-    approvedAt = new Date(),
-  }: QuoteApproveProps) {
-    this.assertValidDate(startsAt, "startsAt must be a valid date.");
-    this.assertNullableDate(endsAt, "endsAt must be a valid date.");
-    this.assertValidDate(approvedAt, "approvedAt must be a valid date.");
-
-    if (endsAt && endsAt.getTime() <= startsAt.getTime()) {
-      throw new InvalidQuoteInputError(
-        "endsAt must be greater than startsAt.",
-        "QUOTE_INVALID_SCHEDULE_INTERVAL",
-      );
-    }
-
-    if (this.props.convertedAppointmentId || this.props.convertedAt) {
-      throw new InvalidQuoteInputError(
-        "Quote is already converted.",
-        "QUOTE_ALREADY_CONVERTED",
-      );
-    }
-
-    if (!this.props.customerId) {
-      throw new InvalidQuoteInputError(
-        "Quote must be linked to a customer before conversion.",
-        "QUOTE_CANNOT_BE_APPROVED_FOR_PROSPECT",
-      );
-    }
-
-    this.addDomainEvent(
-      new QuoteApprovedEvent(
-        this,
-        {
-          startsAt,
-          endsAt,
-        },
-        approvedAt,
-      ),
-    );
-  }
-
   markAsConverted(
     appointmentId: UniqueEntityId,
     referenceDate: Date = new Date(),
@@ -268,6 +220,9 @@ export class Quote extends AggregateRoot<QuoteProps> {
     this.props.convertedAppointmentId = appointmentId;
     this.props.convertedAt = referenceDate;
     this.touch(referenceDate);
+    this.addDomainEvent(
+      new QuoteConvertedEvent(this, appointmentId, referenceDate),
+    );
   }
 
   associateService(
