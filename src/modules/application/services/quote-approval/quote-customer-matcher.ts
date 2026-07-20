@@ -18,9 +18,6 @@ import {
 type QuoteCustomerMatcherInput = {
   quote: Quote;
   establishmentId: string;
-  externalEvidence?: {
-    email?: string | null;
-  };
 };
 
 @Injectable()
@@ -30,7 +27,6 @@ export class QuoteCustomerMatcher {
   async analyze({
     quote,
     establishmentId,
-    externalEvidence,
   }: QuoteCustomerMatcherInput): Promise<QuoteCustomerAnalysis> {
     if (quote.customerId) {
       return this.analyzeLinkedCustomer(quote, establishmentId);
@@ -48,9 +44,7 @@ export class QuoteCustomerMatcher {
     }
 
     const normalizedPhone = normalizeQuoteApprovalPhone(quote.customer.phone);
-    const normalizedEmail = normalizeQuoteApprovalEmail(
-      externalEvidence?.email ?? quote.customer.email,
-    );
+    const normalizedEmail = normalizeQuoteApprovalEmail(quote.customer.email);
     const normalizedName = normalizeQuoteApprovalText(quote.customer.name);
     const evidence = buildEvidence({
       phone: normalizedPhone,

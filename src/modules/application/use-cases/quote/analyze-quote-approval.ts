@@ -18,7 +18,6 @@ export type AnalyzeQuoteApprovalUseCaseRequest = {
   quoteId: string;
   startsAt: Date;
   endsAt?: Date | null;
-  prospectEmail?: string;
 };
 
 type AnalyzeQuoteApprovalUseCaseResponse = Either<
@@ -74,9 +73,6 @@ export class AnalyzeQuoteApprovalUseCase {
     const analysis = await this.analyzer.analyze({
       quote,
       establishmentId,
-      ...(request.prospectEmail
-        ? { prospectEmail: request.prospectEmail }
-        : {}),
     });
 
     return right({ analysis });

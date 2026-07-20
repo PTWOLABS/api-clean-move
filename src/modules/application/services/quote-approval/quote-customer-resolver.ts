@@ -15,7 +15,7 @@ import {
   QuoteApprovalResolutionRequiredError,
   QuoteInvalidResolutionActionError,
 } from "./quote-approval-resolution-error";
-import { validateQuoteApprovalResolutions } from "./quote-approval-resolution-validation";
+import { validateQuoteCustomerAndVehicleResolutions } from "./quote-approval-resolution-validation";
 import {
   createCustomerFromQuoteSnapshot,
   createVehicleFromQuoteSnapshot,
@@ -46,10 +46,9 @@ export class QuoteCustomerResolver {
     customer: Customer;
     vehicle: CustomerVehicle | null;
   }> {
-    validateQuoteApprovalResolutions(analysis, {
+    validateQuoteCustomerAndVehicleResolutions(analysis, {
       ...(customerResolution ? { customerResolution } : {}),
       ...(vehicleResolution ? { vehicleResolution } : {}),
-      serviceResolutions: [],
     });
 
     const customer = await this.resolveCustomer({

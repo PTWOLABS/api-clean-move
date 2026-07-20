@@ -60,7 +60,6 @@ describe("Analyze quote approval", () => {
       quoteId: quote.id.toString(),
       startsAt: new Date("2026-07-20T13:00:00.000Z"),
       endsAt: new Date("2026-07-20T15:00:00.000Z"),
-      prospectEmail: "cliente@example.com",
     });
 
     expect(result.isRight()).toBe(true);
@@ -69,7 +68,6 @@ describe("Analyze quote approval", () => {
     expect(analyzer.analyze).toHaveBeenCalledWith({
       quote,
       establishmentId: establishment.id.toString(),
-      prospectEmail: "cliente@example.com",
     });
   });
 

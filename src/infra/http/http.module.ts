@@ -12,6 +12,7 @@ import { AppointmentResourceStatusResolver } from "../../modules/application/ser
 import { EstablishmentScopeService } from "../../modules/application/services/establishment-scope";
 import { QuoteApprovalAnalyzer } from "../../modules/application/services/quote-approval/quote-approval-analyzer";
 import { QuoteCustomerMatcher } from "../../modules/application/services/quote-approval/quote-customer-matcher";
+import { QuoteCustomerResolver } from "../../modules/application/services/quote-approval/quote-customer-resolver";
 import { QuoteServiceMatcher } from "../../modules/application/services/quote-approval/quote-service-matcher";
 import { QuoteServiceResolver } from "../../modules/application/services/quote-approval/quote-service-resolver";
 import { QuoteToAppointmentConverter } from "../../modules/application/services/quote-approval/quote-to-appointment-converter";
@@ -284,6 +285,7 @@ import { RegisterQuoteProspectAsCustomerController } from "./controllers/quote/r
     QuoteCustomerMatcher,
     QuoteVehicleMatcher,
     QuoteServiceMatcher,
+    QuoteCustomerResolver,
     QuoteServiceResolver,
     QuoteToAppointmentConverter,
     AuthSessionService,

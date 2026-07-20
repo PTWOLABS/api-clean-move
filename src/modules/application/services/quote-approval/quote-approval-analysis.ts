@@ -104,7 +104,6 @@ export type QuoteApprovalAnalysis = {
 export type AnalyzeQuoteApprovalInput = {
   quote: Quote;
   establishmentId: string;
-  prospectEmail?: string;
 };
 
 export type QuoteCustomerRegistrationInput = {

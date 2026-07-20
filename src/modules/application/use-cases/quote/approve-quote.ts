@@ -15,24 +15,40 @@ import {
 } from "../../services/establishment-scope";
 import {
   QuoteApprovalResolutionRequiredError,
+  QuoteApprovalConflictsChangedError,
   QuoteInvalidResolutionActionError,
 } from "../../services/quote-approval/quote-approval-resolution-error";
+import { validateQuoteApprovalResolutions } from "../../services/quote-approval/quote-approval-resolution-validation";
 import { validateQuoteApprovalSchedule } from "../../services/quote-approval/quote-approval-schedule";
 import { QuoteApprovalAnalyzer } from "../../services/quote-approval/quote-approval-analyzer";
+import { QuoteCustomerResolver } from "../../services/quote-approval/quote-customer-resolver";
 import { QuoteServiceResolver } from "../../services/quote-approval/quote-service-resolver";
 import { QuoteToAppointmentConverter } from "../../services/quote-approval/quote-to-appointment-converter";
+import {
+  QuoteApprovalAnalysis,
+  QuoteCustomerResolution,
+  QuoteServiceResolution,
+  QuoteVehicleResolution,
+} from "../../services/quote-approval/quote-approval-analysis";
+import { UniqueConstraintViolationError } from "../../../../shared/errors/unique-constraint-violation-error";
 
-type ApproveQuoteUseCaseRequest = {
+export type ApproveQuoteUseCaseRequest = {
   actor: EstablishmentScopeActor;
   quoteId: string;
   startsAt: Date;
   endsAt?: Date | null;
+  customerResolution?: QuoteCustomerResolution;
+  vehicleResolution?: QuoteVehicleResolution;
+  serviceResolutions?: QuoteServiceResolution[];
 };
 
 type ApproveQuoteUseCaseResponse = Either<
   | ResourceNotFoundError
   | NotAllowedError
   | InvalidQuoteInputError
+  | QuoteApprovalResolutionRequiredError
+  | QuoteApprovalConflictsChangedError
+  | QuoteInvalidResolutionActionError
   | UnexpectedDomainError,
   {
     appointment: Appointment;
@@ -55,6 +71,7 @@ export class ApproveQuoteUseCase {
     private establishmentScope: EstablishmentScopeService,
     private unitOfWork: UnitOfWork,
     private approvalAnalyzer: QuoteApprovalAnalyzer,
+    private customerResolver: QuoteCustomerResolver,
     private serviceResolver: QuoteServiceResolver,
     private converter: QuoteToAppointmentConverter,
   ) {}
@@ -98,11 +115,26 @@ export class ApproveQuoteUseCase {
             establishmentId,
           });
 
+          validateQuoteApprovalResolutions(analysis, request);
+          assertCurrentResolutionTargets(analysis, request);
+
+          await this.customerResolver.resolve({
+            quote,
+            establishmentId: quote.establishmentId,
+            analysis,
+            ...(request.customerResolution
+              ? { customerResolution: request.customerResolution }
+              : {}),
+            ...(request.vehicleResolution
+              ? { vehicleResolution: request.vehicleResolution }
+              : {}),
+          });
+
           await this.serviceResolver.resolve({
             quote,
             establishmentId: quote.establishmentId,
             analysis,
-            resolutions: [],
+            resolutions: request.serviceResolutions ?? [],
           });
 
           await this.quotesRepository.save(quote);
@@ -133,8 +165,38 @@ export class ApproveQuoteUseCase {
 
       return right(approvalResult.value);
     } catch (error) {
+      if (error instanceof UniqueConstraintViolationError) {
+        return left(
+          await this.toChangedConflictError({
+            quoteId: request.quoteId,
+            establishmentId,
+          }),
+        );
+      }
+
       return left(this.toApprovalError(error));
     }
+  }
+
+  private async toChangedConflictError(input: {
+    quoteId: string;
+    establishmentId: string;
+  }) {
+    const quote = await this.quotesRepository.findByIdAndEstablishmentId(
+      input.quoteId,
+      input.establishmentId,
+    );
+
+    if (!quote) {
+      return new UnexpectedDomainError();
+    }
+
+    const analysis = await this.approvalAnalyzer.analyze({
+      quote,
+      establishmentId: input.establishmentId,
+    });
+
+    return new QuoteApprovalConflictsChangedError(analysis);
   }
 
   private toApprovalError(error: unknown) {
@@ -142,18 +204,55 @@ export class ApproveQuoteUseCase {
       error instanceof ResourceNotFoundError ||
       error instanceof NotAllowedError ||
       error instanceof InvalidQuoteInputError ||
+      error instanceof QuoteApprovalResolutionRequiredError ||
+      error instanceof QuoteApprovalConflictsChangedError ||
+      error instanceof QuoteInvalidResolutionActionError ||
       error instanceof UnexpectedDomainError
     ) {
       return error;
     }
 
-    if (
-      error instanceof QuoteApprovalResolutionRequiredError ||
-      error instanceof QuoteInvalidResolutionActionError
-    ) {
-      return new InvalidQuoteInputError(error.message, error.code);
-    }
-
     return new UnexpectedDomainError();
+  }
+}
+
+function assertCurrentResolutionTargets(
+  analysis: QuoteApprovalAnalysis,
+  request: ApproveQuoteUseCaseRequest,
+): void {
+  const customerResolution = request.customerResolution;
+
+  if (
+    customerResolution?.action === "LINK_EXISTING" &&
+    analysis.customer.candidates.length > 0 &&
+    !analysis.customer.candidates.some(
+      (candidate) => candidate.customerId === customerResolution.customerId,
+    )
+  ) {
+    throw new QuoteApprovalConflictsChangedError(analysis);
+  }
+
+  if (
+    request.vehicleResolution?.action === "LINK_EXISTING" &&
+    analysis.vehicle.candidateVehicleId &&
+    analysis.vehicle.candidateVehicleId !== request.vehicleResolution.vehicleId
+  ) {
+    throw new QuoteApprovalConflictsChangedError(analysis);
+  }
+
+  const servicesById = new Map(
+    analysis.services.map((service) => [service.quoteServiceId, service]),
+  );
+
+  for (const resolution of request.serviceResolutions ?? []) {
+    const item = servicesById.get(resolution.quoteServiceId);
+
+    if (
+      resolution.action === "ASSOCIATE_EXISTING" &&
+      item?.candidateServiceId &&
+      item.candidateServiceId !== resolution.serviceId
+    ) {
+      throw new QuoteApprovalConflictsChangedError(analysis);
+    }
   }
 }

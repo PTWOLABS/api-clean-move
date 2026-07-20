@@ -59,7 +59,7 @@ describe("Quote customer matcher", () => {
       customer: {
         name: "Robertinho Contador",
         phone: "11987654321",
-        email: null,
+        email: "ROBERTINHO@example.com",
         cpfCnpj: null,
         address: null,
       },
@@ -70,7 +70,6 @@ describe("Quote customer matcher", () => {
     const phoneAndEmailMatch = await sut.analyze({
       quote,
       establishmentId: establishmentId.toString(),
-      externalEvidence: { email: "ROBERTINHO@example.com" },
     });
 
     expect(phoneAndEmailMatch).toMatchObject({
@@ -166,7 +165,7 @@ describe("Quote customer matcher", () => {
       customer: {
         name: "Robertinho Contador",
         phone: "(11) 98765-4321",
-        email: null,
+        email: "robertinho@example.com",
         cpfCnpj: null,
         address: null,
       },
@@ -178,7 +177,6 @@ describe("Quote customer matcher", () => {
     const analysis = await sut.analyze({
       quote,
       establishmentId: establishmentId.toString(),
-      externalEvidence: { email: "robertinho@example.com" },
     });
 
     expect(analysis).toMatchObject({

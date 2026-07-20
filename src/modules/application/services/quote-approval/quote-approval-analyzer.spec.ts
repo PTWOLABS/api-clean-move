@@ -36,7 +36,6 @@ describe("Quote approval analyzer", () => {
     const ready = await sut.analyze({
       quote,
       establishmentId: "establishment-1",
-      prospectEmail: "cliente@example.com",
     });
 
     expect(ready.status).toBe("READY");
@@ -51,7 +50,6 @@ describe("Quote approval analyzer", () => {
     expect(customerMatcher.analyze).toHaveBeenCalledWith({
       quote,
       establishmentId: "establishment-1",
-      externalEvidence: { email: "cliente@example.com" },
     });
     expect(vehicleMatcher.analyze).toHaveBeenCalledWith({
       quote,
