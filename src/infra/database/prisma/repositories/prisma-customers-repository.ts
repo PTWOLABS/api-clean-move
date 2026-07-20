@@ -3,8 +3,8 @@ import { Injectable } from "@nestjs/common";
 import {
   CustomerFilters,
   CustomerMatchEvidence,
-  CustomerOption,
   CustomerOptionsFilters,
+  CustomerOptionsResult,
   CustomersRepository,
   PaginatedCustomers,
 } from "../../../../modules/application/repositories/customers-repository";
@@ -256,40 +256,47 @@ export class PrismaCustomersRepository implements CustomersRepository {
   async findOptionsByEstablishmentId(
     establishmentId: string,
     filters?: CustomerOptionsFilters,
-  ): Promise<CustomerOption[]> {
-    const limit = filters?.limit ?? 20;
+  ): Promise<CustomerOptionsResult> {
+    const size = filters?.size ?? 20;
     const search = filters?.search?.trim();
 
-    try {
-      const customers = await PrismaUnitOfWork.getClient(
-        this.prisma,
-      ).customer.findMany({
-        select: {
-          id: true,
-          fullName: true,
-        },
-        where: {
-          establishmentId,
-          deletedAt: null,
-          ...(search
-            ? {
-                OR: [
-                  { fullName: { contains: search, mode: "insensitive" } },
-                  { nickname: { contains: search, mode: "insensitive" } },
-                ],
-              }
-            : {}),
-        },
-        orderBy: {
-          fullName: "asc",
-        },
-        take: limit,
-      });
+    const where: Prisma.CustomerWhereInput = {
+      establishmentId,
+      deletedAt: null,
+      ...(search
+        ? {
+            OR: [
+              { fullName: { contains: search, mode: "insensitive" } },
+              { nickname: { contains: search, mode: "insensitive" } },
+            ],
+          }
+        : {}),
+    };
 
-      return customers.map((customer) => ({
-        id: customer.id,
-        label: customer.fullName,
-      }));
+    try {
+      const client = PrismaUnitOfWork.getClient(this.prisma);
+      const [totalItems, customers] = await Promise.all([
+        client.customer.count({ where }),
+        client.customer.findMany({
+          select: {
+            id: true,
+            fullName: true,
+          },
+          where,
+          orderBy: {
+            fullName: "asc",
+          },
+          take: size,
+        }),
+      ]);
+
+      return {
+        customers: customers.map((customer) => ({
+          id: customer.id,
+          label: customer.fullName,
+        })),
+        totalItems,
+      };
     } catch (error) {
       rethrowPrismaRepositoryError(error);
     }

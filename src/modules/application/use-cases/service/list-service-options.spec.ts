@@ -82,7 +82,7 @@ describe("List service options", () => {
         role: "ESTABLISHMENT",
       },
       search: "lavagem",
-      limit: 2,
+      size: 2,
     });
 
     expect(result.isRight()).toBe(true);
@@ -111,6 +111,7 @@ describe("List service options", () => {
         },
       },
     ]);
+    expect(result.value.totalItems).toBe(2);
   });
 
   it("should include price specification details for non-fixed services", async () => {
@@ -153,6 +154,7 @@ describe("List service options", () => {
         },
       },
     ]);
+    expect(result.value.totalItems).toBe(1);
   });
 
   it("should allow employee scope", async () => {
@@ -192,6 +194,7 @@ describe("List service options", () => {
         },
       },
     ]);
+    expect(result.value.totalItems).toBe(1);
   });
 
   it("should reject a missing establishment", async () => {

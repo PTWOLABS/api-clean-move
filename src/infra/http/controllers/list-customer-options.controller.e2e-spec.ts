@@ -47,7 +47,7 @@ describe("ListCustomerOptionsController (e2e)", () => {
     await app.close();
   });
 
-  it("should list active customer options with search, limit, and minimal shape", async () => {
+  it("should list active customer options with search, size, and minimal shape", async () => {
     const firstOwner = await makeEstablishmentAuth({
       app,
       prisma,
@@ -102,7 +102,7 @@ describe("ListCustomerOptionsController (e2e)", () => {
     const response = await request(getHttpServer(app))
       .get("/customers/options")
       .set("Authorization", `Bearer ${firstOwner.accessToken}`)
-      .query({ search: "ana", limit: 2 });
+      .query({ search: "ana", size: 2 });
     const body = customerOptionsResponseSchema.parse(response.body);
 
     expect(response.status).toBe(200);
@@ -116,6 +116,7 @@ describe("ListCustomerOptionsController (e2e)", () => {
         label: "Beatriz Souza",
       },
     ]);
+    expect(body.totalItems).toBe(3);
     expect(body.customers.map((customer) => customer.id)).not.toContain(
       thirdCustomer.id.toString(),
     );
@@ -230,7 +231,7 @@ describe("ListCustomerOptionsController (e2e)", () => {
     const response = await request(getHttpServer(app))
       .get("/customers/options")
       .set("Authorization", `Bearer ${owner.accessToken}`)
-      .query({ limit: 0 });
+      .query({ size: 0 });
 
     expect(response.status).toBe(400);
   });

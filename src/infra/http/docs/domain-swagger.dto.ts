@@ -455,6 +455,9 @@ export class OptionItemDto {
 export class CustomerOptionsResponseDto {
   @ApiProperty({ type: OptionItemDto, isArray: true })
   customers!: OptionItemDto[];
+
+  @ApiProperty({ example: 42 })
+  totalItems!: number;
 }
 
 export class CreateCustomerVehicleBodyDto {
@@ -662,6 +665,9 @@ export class ListCustomerVehiclesResponseDto {
 export class CustomerVehicleOptionsResponseDto {
   @ApiProperty({ type: OptionItemDto, isArray: true })
   vehicles!: OptionItemDto[];
+
+  @ApiProperty({ example: 42 })
+  totalItems!: number;
 }
 
 export class AppointmentServiceInputDto {
@@ -1539,6 +1545,9 @@ export class ListServicesResponseDto {
 export class ServiceOptionsResponseDto {
   @ApiProperty({ type: ServiceOptionItemDto, isArray: true })
   services!: ServiceOptionItemDto[];
+
+  @ApiProperty({ example: 42 })
+  totalItems!: number;
 }
 
 export class DashboardMetricsOverviewPointDto {
@@ -1893,6 +1902,9 @@ export class ServiceCategoryOptionDto {
 export class ServiceCategoryOptionsResponseDto {
   @ApiProperty({ type: ServiceCategoryOptionDto, isArray: true })
   categories!: ServiceCategoryOptionDto[];
+
+  @ApiProperty({ example: 42 })
+  totalItems!: number;
 }
 
 export class QuoteAddressDto {

@@ -83,7 +83,7 @@ describe("List customer options", () => {
         role: "ESTABLISHMENT",
       },
       search: "ana",
-      limit: 2,
+      size: 2,
     });
 
     expect(result.isRight()).toBe(true);
@@ -102,6 +102,7 @@ describe("List customer options", () => {
         label: "Beatriz Souza",
       },
     ]);
+    expect(result.value.totalItems).toBe(3);
   });
 
   it("should allow employee scope", async () => {
@@ -136,6 +137,7 @@ describe("List customer options", () => {
         label: "Maria Silva",
       },
     ]);
+    expect(result.value.totalItems).toBe(1);
   });
 
   it("should reject a missing establishment", async () => {

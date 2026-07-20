@@ -1,8 +1,8 @@
 import {
   type PaginatedServices,
   type ServiceFilters,
-  type ServiceOption,
   type ServiceOptionsFilters,
+  type ServiceOptionsResult,
   ServicesRepository,
 } from "../../src/modules/application/repositories/services-repository";
 import { Service } from "../../src/modules/catalog/domain/entities/services";
@@ -115,11 +115,11 @@ export class InMemoryServicesRepository implements ServicesRepository {
   async findOptionsByEstablishmentId(
     establishmentId: string,
     filters?: ServiceOptionsFilters,
-  ): Promise<ServiceOption[]> {
-    const limit = filters?.limit ?? 20;
+  ): Promise<ServiceOptionsResult> {
+    const size = filters?.size ?? 20;
     const search = filters?.search?.trim().toLowerCase();
 
-    return this.items
+    const filtered = this.items
       .slice()
       .filter((item) => item.establishmentId.toString() === establishmentId)
       .filter((item) => !item.isDeleted())
@@ -131,14 +131,17 @@ export class InMemoryServicesRepository implements ServicesRepository {
 
         return item.serviceName.value.toLowerCase().includes(search);
       })
-      .sort((a, b) => compareStrings(a.serviceName.value, b.serviceName.value))
-      .slice(0, limit)
-      .map((service) => ({
+      .sort((a, b) => compareStrings(a.serviceName.value, b.serviceName.value));
+
+    return {
+      services: filtered.slice(0, size).map((service) => ({
         id: service.id.toString(),
         label: service.serviceName.value,
         priceInCents: service.priceSpecification.defaultChargePriceInCents,
         priceSpecification: service.priceSpecification.toValue(),
-      }));
+      })),
+      totalItems: filtered.length,
+    };
   }
 
   async findByServiceIdAndEstablishmentId(

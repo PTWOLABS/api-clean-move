@@ -23,7 +23,12 @@ export type ServiceOption = {
 
 export type ServiceOptionsFilters = {
   search?: string;
-  limit?: number;
+  size?: number;
+};
+
+export type ServiceOptionsResult = {
+  services: ServiceOption[];
+  totalItems: number;
 };
 
 export abstract class ServicesRepository {
@@ -35,7 +40,7 @@ export abstract class ServicesRepository {
   abstract findOptionsByEstablishmentId(
     establishmentId: string,
     filters?: ServiceOptionsFilters,
-  ): Promise<ServiceOption[]>;
+  ): Promise<ServiceOptionsResult>;
   abstract findById(id: string): Promise<Service | null>;
   abstract findByIdIncludingSoftDeleted(id: string): Promise<Service | null>;
   abstract findByServiceIdAndEstablishmentId(

@@ -21,7 +21,7 @@ import { ZodValidationPipe } from "../pipes/zod-validation.pipe";
 
 const listServiceCategoryOptionsQuerySchema = z.object({
   search: z.string().trim().optional(),
-  limit: z.coerce.number().int().positive().optional(),
+  size: z.coerce.number().int().positive().optional(),
 });
 
 type ListServiceCategoryOptionsQuerySchema = z.infer<
@@ -42,7 +42,7 @@ export class ListServiceCategoryOptionsController {
     summary: "List service category options for dropdowns.",
   })
   @ApiQuery({ name: "search", required: false, type: String })
-  @ApiQuery({ name: "limit", required: false, type: Number })
+  @ApiQuery({ name: "size", required: false, type: Number })
   @ApiOkResponse({
     description: "Service category options listed successfully.",
     type: ServiceCategoryOptionsResponseDto,
@@ -68,7 +68,7 @@ export class ListServiceCategoryOptionsController {
     const result = await this.listServiceCategoryOptions.execute({
       establishmentOwnerId: user.userId,
       ...(query.search !== undefined ? { search: query.search } : {}),
-      ...(query.limit !== undefined ? { limit: query.limit } : {}),
+      ...(query.size !== undefined ? { size: query.size } : {}),
     });
 
     if (result.isLeft()) {
@@ -77,6 +77,7 @@ export class ListServiceCategoryOptionsController {
 
     return {
       categories: result.value.categories,
+      totalItems: result.value.totalItems,
     };
   }
 }

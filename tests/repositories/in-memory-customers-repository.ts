@@ -150,10 +150,10 @@ export class InMemoryCustomersRepository implements CustomersRepository {
     establishmentId: string,
     filters?: CustomerOptionsFilters,
   ) {
-    const limit = filters?.limit ?? 20;
+    const size = filters?.size ?? 20;
     const search = filters?.search?.trim().toLowerCase();
 
-    return this.items
+    const filtered = this.items
       .slice()
       .filter((item) => item.establishmentId.toString() === establishmentId)
       .filter((item) => !item.isDeleted())
@@ -167,12 +167,15 @@ export class InMemoryCustomersRepository implements CustomersRepository {
           (item.nickname?.toLowerCase().includes(search) ?? false)
         );
       })
-      .sort((a, b) => compareStrings(a.fullName, b.fullName))
-      .slice(0, limit)
-      .map((customer) => ({
+      .sort((a, b) => compareStrings(a.fullName, b.fullName));
+
+    return {
+      customers: filtered.slice(0, size).map((customer) => ({
         id: customer.id.toString(),
         label: customer.fullName,
-      }));
+      })),
+      totalItems: filtered.length,
+    };
   }
 
   async save(customer: Customer): Promise<void> {

@@ -48,7 +48,7 @@ describe("ListCustomerVehicleOptionsController (e2e)", () => {
     await app.close();
   });
 
-  it("should list active vehicle options with search, customer filter, limit, and minimal shape", async () => {
+  it("should list active vehicle options with search, customer filter, size, and minimal shape", async () => {
     const firstOwner = await makeEstablishmentAuth({
       app,
       prisma,
@@ -128,7 +128,7 @@ describe("ListCustomerVehicleOptionsController (e2e)", () => {
       .query({
         search: "volks",
         customerId: firstCustomer.id.toString(),
-        limit: 1,
+        size: 1,
       });
     const plateResponse = await request(getHttpServer(app))
       .get("/vehicles/options")
@@ -144,6 +144,7 @@ describe("ListCustomerVehicleOptionsController (e2e)", () => {
         label: "Gol Trend",
       },
     ]);
+    expect(brandBody.totalItems).toBe(1);
     expect(brandBody.vehicles.map((vehicle) => vehicle.id)).not.toContain(
       deletedVehicle.id,
     );
@@ -154,6 +155,7 @@ describe("ListCustomerVehicleOptionsController (e2e)", () => {
         label: "Gol Trend",
       },
     ]);
+    expect(plateBody.totalItems).toBe(1);
   });
 
   it("should allow employee scope", async () => {
@@ -282,17 +284,17 @@ describe("ListCustomerVehicleOptionsController (e2e)", () => {
       .get("/vehicles/options")
       .set("Authorization", `Bearer ${firstOwner.accessToken}`)
       .query({ customerId: "not-a-uuid" });
-    const invalidLimitResponse = await request(getHttpServer(app))
+    const invalidSizeResponse = await request(getHttpServer(app))
       .get("/vehicles/options")
       .set("Authorization", `Bearer ${firstOwner.accessToken}`)
-      .query({ limit: 0 });
+      .query({ size: 0 });
     const outsideCustomerResponse = await request(getHttpServer(app))
       .get("/vehicles/options")
       .set("Authorization", `Bearer ${firstOwner.accessToken}`)
       .query({ customerId: outsideCustomer.id.toString() });
 
     expect(invalidCustomerIdResponse.status).toBe(400);
-    expect(invalidLimitResponse.status).toBe(400);
+    expect(invalidSizeResponse.status).toBe(400);
     expect(outsideCustomerResponse.status).toBe(404);
   });
 });
