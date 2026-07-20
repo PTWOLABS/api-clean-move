@@ -177,6 +177,44 @@ describe("Quote service resolver", () => {
     ).rejects.toBeInstanceOf(QuoteInvalidResolutionActionError);
   });
 
+  it("should reject recreating a detached service when an active candidate exists", async () => {
+    const establishmentId = new UniqueEntityId("establishment-1");
+    const quoteServiceId = new UniqueEntityId("quote-service-1");
+    const quote = makeQuote({
+      establishmentId,
+      services: [
+        {
+          quoteServiceId,
+          serviceId: null,
+          serviceName: "Nome existente",
+          priceInCents: 5000,
+          isCourtesy: false,
+        },
+      ],
+    });
+
+    await expect(
+      sut.resolve({
+        quote,
+        establishmentId,
+        analysis: analysis([
+          serviceAnalysis({
+            quoteServiceId: quoteServiceId.toString(),
+            status: "CANDIDATE_FOUND",
+            requiresResolution: true,
+            allowedActions: ["ASSOCIATE_EXISTING", "RENAME_DETACHED"],
+          }),
+        ]),
+        resolutions: [
+          {
+            quoteServiceId: quoteServiceId.toString(),
+            action: "RECREATE_FROM_SNAPSHOT",
+          },
+        ],
+      }),
+    ).rejects.toBeInstanceOf(QuoteInvalidResolutionActionError);
+  });
+
   it("should keep an inactive linked service", async () => {
     const establishmentId = new UniqueEntityId("establishment-1");
     const quoteServiceId = new UniqueEntityId("quote-service-1");
@@ -265,6 +303,56 @@ describe("Quote service resolver", () => {
     expect(quote.services[0]?.serviceId).toEqual(
       servicesRepository.items[0]?.id,
     );
+    expect(quote.services[0]?.serviceName).toBe("Servico snapshot");
+    expect(quote.services[0]?.priceInCents).toBe(5000);
+  });
+
+  it("should recreate a linked deleted service when the soft-deleted name matches the snapshot", async () => {
+    const establishmentId = new UniqueEntityId("establishment-1");
+    const quoteServiceId = new UniqueEntityId("quote-service-1");
+    const deletedService = makeService({
+      establishmentId,
+      serviceName: ServiceName.create("Servico snapshot"),
+    });
+    deletedService.softDelete(new Date("2026-07-13T10:00:00.000Z"));
+    const quote = makeQuote({
+      establishmentId,
+      services: [
+        {
+          quoteServiceId,
+          serviceId: deletedService.id,
+          serviceName: "Servico snapshot",
+          priceInCents: 5000,
+          isCourtesy: false,
+        },
+      ],
+    });
+
+    await servicesRepository.create(deletedService);
+
+    await sut.resolve({
+      quote,
+      establishmentId,
+      analysis: analysis([
+        serviceAnalysis({
+          quoteServiceId: quoteServiceId.toString(),
+          status: "LINKED_SERVICE_DELETED",
+          requiresResolution: true,
+          serviceId: deletedService.id.toString(),
+          candidateServiceId: deletedService.id.toString(),
+          allowedActions: ["ASSOCIATE_EXISTING", "RECREATE_FROM_SNAPSHOT"],
+        }),
+      ]),
+      resolutions: [
+        {
+          quoteServiceId: quoteServiceId.toString(),
+          action: "RECREATE_FROM_SNAPSHOT",
+        },
+      ],
+    });
+
+    expect(servicesRepository.items).toHaveLength(2);
+    expect(quote.services[0]?.serviceId).not.toEqual(deletedService.id);
     expect(quote.services[0]?.serviceName).toBe("Servico snapshot");
     expect(quote.services[0]?.priceInCents).toBe(5000);
   });

@@ -237,11 +237,7 @@ describe("Quote service matcher", () => {
       requiresResolution: true,
       serviceId: null,
       candidateServiceId: candidate.id.toString(),
-      allowedActions: [
-        "ASSOCIATE_EXISTING",
-        "RENAME_DETACHED",
-        "RECREATE_FROM_SNAPSHOT",
-      ],
+      allowedActions: ["ASSOCIATE_EXISTING", "RENAME_DETACHED"],
     });
     expect(analysis?.differences).toEqual(
       expect.arrayContaining(["PRICE_SPECIFICATION", "PRICE"]),

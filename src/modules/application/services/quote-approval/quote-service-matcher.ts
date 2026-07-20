@@ -125,11 +125,7 @@ export class QuoteServiceMatcher {
       ...baseAnalysis(quoteService, candidate),
       status: "CANDIDATE_FOUND",
       requiresResolution: true,
-      allowedActions: [
-        "ASSOCIATE_EXISTING",
-        "RENAME_DETACHED",
-        "RECREATE_FROM_SNAPSHOT",
-      ],
+      allowedActions: ["ASSOCIATE_EXISTING", "RENAME_DETACHED"],
     };
   }
 }
