@@ -1,7 +1,6 @@
 import { vi } from "vitest";
 
 import { UniqueEntityId } from "../../../../shared/entities/unique-entity-id";
-import { ResourceNotFoundError } from "../../../../shared/errors/resource-not-found-error";
 import { UniqueConstraintViolationError } from "../../../../shared/errors/unique-constraint-violation-error";
 import { Quote } from "../../../quotes/domain/entities/quote";
 import { InvalidQuoteInputError } from "../../../quotes/domain/errors/invalid-quote-input-error";
@@ -476,15 +475,12 @@ describe("Approve quote", () => {
 
     expect(result.isLeft()).toBe(true);
     expect(result.value).toBeInstanceOf(QuoteApprovalConflictsChangedError);
-    expect(result.value).toMatchObject({
-      analysis: expect.objectContaining({
-        services: [
-          expect.objectContaining({
-            candidateServiceId: currentCandidate.id.toString(),
-          }),
-        ],
-      }),
-    });
+    if (!(result.value instanceof QuoteApprovalConflictsChangedError)) {
+      throw new Error("Expected quote approval conflicts changed error.");
+    }
+    expect(result.value.analysis.services[0]?.candidateServiceId).toBe(
+      currentCandidate.id.toString(),
+    );
   });
 
   it("should translate unique customer races into refreshed conflict analysis", async () => {
@@ -529,13 +525,10 @@ describe("Approve quote", () => {
 
     expect(result.isLeft()).toBe(true);
     expect(result.value).toBeInstanceOf(QuoteApprovalConflictsChangedError);
-    expect(result.value).toMatchObject({
-      analysis: expect.objectContaining({
-        customer: expect.objectContaining({
-          status: "AUTO_LINK",
-        }),
-      }),
-    });
+    if (!(result.value instanceof QuoteApprovalConflictsChangedError)) {
+      throw new Error("Expected quote approval conflicts changed error.");
+    }
+    expect(result.value.analysis.customer.status).toBe("AUTO_LINK");
   });
 
   it("should translate unique vehicle races into refreshed conflict analysis", async () => {
@@ -585,13 +578,10 @@ describe("Approve quote", () => {
 
     expect(result.isLeft()).toBe(true);
     expect(result.value).toBeInstanceOf(QuoteApprovalConflictsChangedError);
-    expect(result.value).toMatchObject({
-      analysis: expect.objectContaining({
-        vehicle: expect.objectContaining({
-          status: "CANDIDATE_FOUND",
-        }),
-      }),
-    });
+    if (!(result.value instanceof QuoteApprovalConflictsChangedError)) {
+      throw new Error("Expected quote approval conflicts changed error.");
+    }
+    expect(result.value.analysis.vehicle.status).toBe("CANDIDATE_FOUND");
   });
 
   it("should translate unique service races into refreshed conflict analysis", async () => {
@@ -638,15 +628,10 @@ describe("Approve quote", () => {
 
     expect(result.isLeft()).toBe(true);
     expect(result.value).toBeInstanceOf(QuoteApprovalConflictsChangedError);
-    expect(result.value).toMatchObject({
-      analysis: expect.objectContaining({
-        services: [
-          expect.objectContaining({
-            status: "CANDIDATE_FOUND",
-          }),
-        ],
-      }),
-    });
+    if (!(result.value instanceof QuoteApprovalConflictsChangedError)) {
+      throw new Error("Expected quote approval conflicts changed error.");
+    }
+    expect(result.value.analysis.services[0]?.status).toBe("CANDIDATE_FOUND");
   });
 
   it("should preserve the quote vehicle snapshot when a linked vehicle changed", async () => {
@@ -714,13 +699,10 @@ describe("Approve quote", () => {
 
     expect(result.isLeft()).toBe(true);
     expect(result.value).toBeInstanceOf(QuoteApprovalResolutionRequiredError);
-    expect(result.value).toMatchObject({
-      analysis: expect.objectContaining({
-        customer: expect.objectContaining({
-          status: "CREATE_REQUIRED",
-        }),
-      }),
-    });
+    if (!(result.value instanceof QuoteApprovalResolutionRequiredError)) {
+      throw new Error("Expected quote approval resolution required error.");
+    }
+    expect(result.value.analysis.customer.status).toBe("CREATE_REQUIRED");
   });
 
   it("should reject already converted quotes", async () => {

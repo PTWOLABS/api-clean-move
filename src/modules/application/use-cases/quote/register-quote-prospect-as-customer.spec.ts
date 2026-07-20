@@ -210,18 +210,13 @@ describe("Register quote prospect as customer", () => {
 
     expect(result.isLeft()).toBe(true);
     expect(result.value).toBeInstanceOf(QuoteApprovalResolutionRequiredError);
-    expect(result.value).toMatchObject({
-      analysis: expect.objectContaining({
-        customer: expect.objectContaining({
-          status: "CANDIDATES_FOUND",
-          candidates: [
-            expect.objectContaining({
-              customerId: existingCustomer.id.toString(),
-              matchedBy: ["PHONE", "EMAIL"],
-            }),
-          ],
-        }),
-      }),
+    if (!(result.value instanceof QuoteApprovalResolutionRequiredError)) {
+      throw new Error("Expected quote approval resolution required error.");
+    }
+    expect(result.value.analysis.customer.status).toBe("CANDIDATES_FOUND");
+    expect(result.value.analysis.customer.candidates[0]).toMatchObject({
+      customerId: existingCustomer.id.toString(),
+      matchedBy: ["PHONE", "EMAIL"],
     });
     expect(quote.customerId).toBeNull();
   });
@@ -482,7 +477,9 @@ describe("Register quote prospect as customer", () => {
 
     expect(secondResult.isRight()).toBe(true);
     if (secondResult.isLeft()) throw secondResult.value;
-    expect(secondResult.value.customer.id).toEqual(firstResult.value.customer.id);
+    expect(secondResult.value.customer.id).toEqual(
+      firstResult.value.customer.id,
+    );
     expect(firstResult.value.quote.customerId).toEqual(
       firstResult.value.customer.id,
     );
