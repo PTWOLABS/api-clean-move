@@ -36,8 +36,6 @@ const quoteIdParamSchema = z.uuid();
 const registerQuoteProspectBodySchema = z.object({
   email: z.email().trim(),
   phone: z.string().trim().min(1).optional(),
-  birthDate: z.coerce.date().optional().nullable(),
-  nickname: z.string().trim().optional().nullable(),
   createVehicleFromQuote: z.boolean().optional(),
 });
 
@@ -99,8 +97,6 @@ export class RegisterQuoteProspectAsCustomerController {
       quoteId,
       email: body.email,
       ...(body.phone !== undefined ? { phone: body.phone } : {}),
-      ...(body.birthDate !== undefined ? { birthDate: body.birthDate } : {}),
-      ...(body.nickname !== undefined ? { nickname: body.nickname } : {}),
       createVehicleFromQuote: body.createVehicleFromQuote ?? false,
     });
 

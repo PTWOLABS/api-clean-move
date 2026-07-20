@@ -2244,17 +2244,6 @@ export class RegisterQuoteProspectBodyDto {
   phone?: string;
 
   @ApiPropertyOptional({
-    type: String,
-    nullable: true,
-    format: "date-time",
-    example: "1990-01-01T00:00:00.000Z",
-  })
-  birthDate?: string | null;
-
-  @ApiPropertyOptional({ type: String, nullable: true, example: "Robertinho" })
-  nickname?: string | null;
-
-  @ApiPropertyOptional({
     example: true,
     description:
       "When true, creates a customer vehicle from the quote vehicle snapshot.",
