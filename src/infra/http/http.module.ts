@@ -42,6 +42,7 @@ import { ListEmployeesUseCase } from "../../modules/application/use-cases/employ
 import { RegisterEmployeeUseCase } from "../../modules/application/use-cases/employee/register-employee";
 import { UpdateEmployeeUseCase } from "../../modules/application/use-cases/employee/update-employee";
 import { CompleteOnboardingUseCase } from "../../modules/application/use-cases/onboarding/complete-onboarding";
+import { AnalyzeQuoteApprovalUseCase } from "../../modules/application/use-cases/quote/analyze-quote-approval";
 import { ApproveQuoteUseCase } from "../../modules/application/use-cases/quote/approve-quote";
 import { CreateQuoteUseCase } from "../../modules/application/use-cases/quote/create-quote";
 import { GenerateQuotePdfUseCase } from "../../modules/application/use-cases/quote/generate-quote-pdf";
@@ -86,6 +87,7 @@ import { MailModule } from "../mail/mail.module";
 import { PdfModule } from "../pdf/pdf.module";
 import { StorageModule } from "../storage/storage.module";
 import { AuthenticateWithGoogleController } from "./controllers/authenticate-with-google.controller";
+import { AnalyzeQuoteApprovalController } from "./controllers/quote/analyze-quote-approval.controller";
 import { ApproveQuoteController } from "./controllers/quote/approve-quote.controller";
 import { CompleteOnboardingController } from "./controllers/complete-onboarding.controller";
 import { CreateAppointmentController } from "./controllers/create-appointment.controller";
@@ -208,6 +210,7 @@ import { RegisterQuoteProspectAsCustomerController } from "./controllers/quote/r
     GetQuoteController,
     GenerateQuotePdfController,
     RegisterQuoteProspectAsCustomerController,
+    AnalyzeQuoteApprovalController,
     ApproveQuoteController,
     CreateAppointmentController,
     DeleteAppointmentController,
@@ -260,6 +263,7 @@ import { RegisterQuoteProspectAsCustomerController } from "./controllers/quote/r
     ListQuotesUseCase,
     GetQuoteUseCase,
     GenerateQuotePdfUseCase,
+    AnalyzeQuoteApprovalUseCase,
     RegisterQuoteProspectAsCustomerUseCase,
     ApproveQuoteUseCase,
     CreateAppointmentUseCase,
