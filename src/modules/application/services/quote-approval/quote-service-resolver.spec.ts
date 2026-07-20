@@ -1,6 +1,6 @@
-import { EstimatedDuration } from "../../../catalog/domain/value-objects/estimated-duration";
 import { ServiceName } from "../../../catalog/domain/value-objects/service-name";
 import { ServicePriceSpecification } from "../../../catalog/domain/value-objects/service-price-specification";
+import { InvalidQuoteInputError } from "../../../quotes/domain/errors/invalid-quote-input-error";
 import { UniqueEntityId } from "../../../../shared/entities/unique-entity-id";
 import { makeQuote } from "../../../../../tests/factories/quote-factory";
 import { makeService } from "../../../../../tests/factories/service-factory";
@@ -154,27 +154,30 @@ describe("Quote service resolver", () => {
 
     await servicesRepository.create(existingService);
 
-    await expect(
-      sut.resolve({
-        quote,
-        establishmentId,
-        analysis: analysis([
-          serviceAnalysis({
-            quoteServiceId: quoteServiceId.toString(),
-            status: "CANDIDATE_FOUND",
-            requiresResolution: true,
-            allowedActions: ["RENAME_DETACHED"],
-          }),
-        ]),
-        resolutions: [
-          {
-            quoteServiceId: quoteServiceId.toString(),
-            action: "RENAME_DETACHED",
-            serviceName: "Nome existente",
-          },
-        ],
-      }),
-    ).rejects.toBeInstanceOf(QuoteInvalidResolutionActionError);
+    const result = sut.resolve({
+      quote,
+      establishmentId,
+      analysis: analysis([
+        serviceAnalysis({
+          quoteServiceId: quoteServiceId.toString(),
+          status: "CANDIDATE_FOUND",
+          requiresResolution: true,
+          allowedActions: ["RENAME_DETACHED"],
+        }),
+      ]),
+      resolutions: [
+        {
+          quoteServiceId: quoteServiceId.toString(),
+          action: "RENAME_DETACHED",
+          serviceName: "Nome existente",
+        },
+      ],
+    });
+
+    await expect(result).rejects.toBeInstanceOf(InvalidQuoteInputError);
+    await expect(result).rejects.toMatchObject({
+      code: "QUOTE_SERVICE_NAME_UNAVAILABLE",
+    });
   });
 
   it("should reject recreating a detached service when an active candidate exists", async () => {

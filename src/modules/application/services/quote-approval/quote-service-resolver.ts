@@ -5,6 +5,7 @@ import { EstimatedDuration } from "../../../catalog/domain/value-objects/estimat
 import { ServiceName } from "../../../catalog/domain/value-objects/service-name";
 import { ServicePriceSpecification } from "../../../catalog/domain/value-objects/service-price-specification";
 import { Quote } from "../../../quotes/domain/entities/quote";
+import { InvalidQuoteInputError } from "../../../quotes/domain/errors/invalid-quote-input-error";
 import { QuotedServiceSnapshot } from "../../../quotes/domain/value-objects/quoted-service-snapshot";
 import { UniqueEntityId } from "../../../../shared/entities/unique-entity-id";
 import { ServicesRepository } from "../../repositories/services-repository";
@@ -135,8 +136,9 @@ export class QuoteServiceResolver {
       );
 
     if (existingService) {
-      throw new QuoteInvalidResolutionActionError(
+      throw new InvalidQuoteInputError(
         "Service name is unavailable.",
+        "QUOTE_SERVICE_NAME_UNAVAILABLE",
       );
     }
   }

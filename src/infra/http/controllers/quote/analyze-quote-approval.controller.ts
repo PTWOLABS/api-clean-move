@@ -1,4 +1,4 @@
-import { Body, Controller, Param, Post } from "@nestjs/common";
+import { Body, Controller, HttpCode, Param, Post } from "@nestjs/common";
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
@@ -30,8 +30,11 @@ import {
   quoteIdParamSchema,
 } from "./quote-approval-resolution.schemas";
 import { QuoteZodValidationPipe } from "./quote-zod-validation.pipe";
+import z from "zod";
 
-type AnalyzeQuoteApprovalBodySchema = typeof quoteApprovalScheduleSchema._output;
+type AnalyzeQuoteApprovalBodySchema = z.output<
+  typeof quoteApprovalScheduleSchema
+>;
 
 @ApiTags("quotes")
 @ApiBearerAuth("access-token")
@@ -39,9 +42,12 @@ type AnalyzeQuoteApprovalBodySchema = typeof quoteApprovalScheduleSchema._output
 @Roles(["ESTABLISHMENT", "EMPLOYEE"])
 @EmployeeFeatures(["approve:quotes"])
 export class AnalyzeQuoteApprovalController {
-  constructor(private readonly analyzeQuoteApproval: AnalyzeQuoteApprovalUseCase) {}
+  constructor(
+    private readonly analyzeQuoteApproval: AnalyzeQuoteApprovalUseCase,
+  ) {}
 
   @Post()
+  @HttpCode(200)
   @ApiOperation({
     summary: "Analyze quote approval resource conflicts without writing data.",
   })
