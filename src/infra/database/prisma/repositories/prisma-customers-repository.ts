@@ -257,6 +257,7 @@ export class PrismaCustomersRepository implements CustomersRepository {
     establishmentId: string,
     filters?: CustomerOptionsFilters,
   ): Promise<CustomerOptionsResult> {
+    const page = filters?.page ?? 1;
     const size = filters?.size ?? 20;
     const search = filters?.search?.trim();
 
@@ -286,6 +287,7 @@ export class PrismaCustomersRepository implements CustomersRepository {
           orderBy: {
             fullName: "asc",
           },
+          skip: (page - 1) * size,
           take: size,
         }),
       ]);

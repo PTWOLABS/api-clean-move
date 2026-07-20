@@ -23,6 +23,7 @@ export type ServiceOption = {
 
 export type ServiceOptionsFilters = {
   search?: string;
+  page?: number;
   size?: number;
 };
 

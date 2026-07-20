@@ -11,6 +11,7 @@ import { EstablishmentsRepository } from "../../repositories/establishment-repos
 type ListServiceCategoryOptionsUseCaseRequest = {
   establishmentOwnerId: string;
   search?: string;
+  page?: number;
   size?: number;
 };
 
@@ -32,6 +33,7 @@ export class ListServiceCategoryOptionsUseCase {
   async execute({
     establishmentOwnerId,
     search,
+    page,
     size,
   }: ListServiceCategoryOptionsUseCaseRequest): Promise<ListServiceCategoryOptionsUseCaseResponse> {
     const establishment =
@@ -46,6 +48,7 @@ export class ListServiceCategoryOptionsUseCase {
         establishment.id.toString(),
         {
           ...(search !== undefined ? { search } : {}),
+          ...(page !== undefined ? { page } : {}),
           ...(size !== undefined ? { size } : {}),
         },
       );

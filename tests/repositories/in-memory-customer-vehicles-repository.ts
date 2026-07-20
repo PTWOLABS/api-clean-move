@@ -206,6 +206,7 @@ export class InMemoryCustomerVehiclesRepository implements CustomerVehiclesRepos
     establishmentId: string,
     filters?: CustomerVehicleOptionsFilters,
   ) {
+    const page = filters?.page ?? 1;
     const size = filters?.size ?? 20;
     const search = filters?.search?.trim().toLowerCase();
     const plateSearch = filters?.search
@@ -244,8 +245,10 @@ export class InMemoryCustomerVehiclesRepository implements CustomerVehiclesRepos
         return compareStrings(a.plate ?? "", b.plate ?? "");
       });
 
+    const start = (page - 1) * size;
+
     return {
-      vehicles: filtered.slice(0, size).map((vehicle) => ({
+      vehicles: filtered.slice(start, start + size).map((vehicle) => ({
         id: vehicle.id.toString(),
         label: vehicle.model ?? "",
       })),

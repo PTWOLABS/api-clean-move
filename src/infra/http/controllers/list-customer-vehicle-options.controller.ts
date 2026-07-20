@@ -33,6 +33,7 @@ import { ZodValidationPipe } from "../pipes/zod-validation.pipe";
 const listCustomerVehicleOptionsQuerySchema = z.object({
   search: z.string().trim().optional(),
   customerId: z.uuid().optional(),
+  page: z.coerce.number().int().positive().optional(),
   size: z.coerce.number().int().positive().optional(),
 });
 
@@ -70,6 +71,13 @@ export class ListCustomerVehicleOptionsController {
     format: "uuid",
     description:
       "Optional active customer identifier used to limit vehicle options.",
+  })
+  @ApiQuery({
+    name: "page",
+    required: false,
+    type: Number,
+    description: "Positive page number. Defaults to 1.",
+    example: 1,
   })
   @ApiQuery({
     name: "size",
@@ -113,6 +121,7 @@ export class ListCustomerVehicleOptionsController {
       ...(query.customerId !== undefined
         ? { customerId: query.customerId }
         : {}),
+      ...(query.page !== undefined ? { page: query.page } : {}),
       ...(query.size !== undefined ? { size: query.size } : {}),
     });
 

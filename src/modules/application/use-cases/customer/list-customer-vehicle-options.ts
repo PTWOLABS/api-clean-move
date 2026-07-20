@@ -17,6 +17,7 @@ type ListCustomerVehicleOptionsUseCaseRequest = {
   actor: EstablishmentScopeActor;
   search?: string;
   customerId?: string;
+  page?: number;
   size?: number;
 };
 
@@ -40,6 +41,7 @@ export class ListCustomerVehicleOptionsUseCase {
     actor,
     search,
     customerId,
+    page,
     size,
   }: ListCustomerVehicleOptionsUseCaseRequest): Promise<ListCustomerVehicleOptionsUseCaseResponse> {
     const scopeResult = await this.establishmentScope.resolve(actor);
@@ -69,6 +71,7 @@ export class ListCustomerVehicleOptionsUseCase {
         {
           ...(search !== undefined ? { search } : {}),
           ...(customerId !== undefined ? { customerId } : {}),
+          ...(page !== undefined ? { page } : {}),
           ...(size !== undefined ? { size } : {}),
         },
       );

@@ -15,6 +15,7 @@ import {
 type ListServiceOptionsUseCaseRequest = {
   actor: EstablishmentScopeActor;
   search?: string;
+  page?: number;
   size?: number;
 };
 
@@ -36,6 +37,7 @@ export class ListServiceOptionsUseCase {
   async execute({
     actor,
     search,
+    page,
     size,
   }: ListServiceOptionsUseCaseRequest): Promise<ListServiceOptionsUseCaseResponse> {
     const scopeResult = await this.establishmentScope.resolve(actor);
@@ -51,6 +53,7 @@ export class ListServiceOptionsUseCase {
         establishment.id.toString(),
         {
           ...(search !== undefined ? { search } : {}),
+          ...(page !== undefined ? { page } : {}),
           ...(size !== undefined ? { size } : {}),
         },
       );

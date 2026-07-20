@@ -7,6 +7,7 @@ export type ServiceCategoryOption = {
 
 export type ServiceCategoryOptionsFilters = {
   search?: string;
+  page?: number;
   size?: number;
 };
 

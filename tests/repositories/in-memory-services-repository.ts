@@ -116,6 +116,7 @@ export class InMemoryServicesRepository implements ServicesRepository {
     establishmentId: string,
     filters?: ServiceOptionsFilters,
   ): Promise<ServiceOptionsResult> {
+    const page = filters?.page ?? 1;
     const size = filters?.size ?? 20;
     const search = filters?.search?.trim().toLowerCase();
 
@@ -133,8 +134,10 @@ export class InMemoryServicesRepository implements ServicesRepository {
       })
       .sort((a, b) => compareStrings(a.serviceName.value, b.serviceName.value));
 
+    const start = (page - 1) * size;
+
     return {
-      services: filtered.slice(0, size).map((service) => ({
+      services: filtered.slice(start, start + size).map((service) => ({
         id: service.id.toString(),
         label: service.serviceName.value,
         priceInCents: service.priceSpecification.defaultChargePriceInCents,

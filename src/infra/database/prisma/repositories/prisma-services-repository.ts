@@ -100,6 +100,7 @@ export class PrismaServicesRepository implements ServicesRepository {
     establishmentId: string,
     filters?: ServiceOptionsFilters,
   ): Promise<ServiceOptionsResult> {
+    const page = filters?.page ?? 1;
     const size = filters?.size ?? 20;
     const search = filters?.search?.trim();
 
@@ -133,6 +134,7 @@ export class PrismaServicesRepository implements ServicesRepository {
           orderBy: {
             serviceName: "asc",
           },
+          skip: (page - 1) * size,
           take: size,
         }),
       ]);

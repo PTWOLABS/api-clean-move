@@ -323,6 +323,7 @@ export class PrismaCustomerVehiclesRepository implements CustomerVehiclesReposit
     establishmentId: string,
     filters?: CustomerVehicleOptionsFilters,
   ): Promise<CustomerVehicleOptionsResult> {
+    const page = filters?.page ?? 1;
     const size = filters?.size ?? 20;
     const search = filters?.search?.trim();
     const plateSearch = search?.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
@@ -353,6 +354,7 @@ export class PrismaCustomerVehiclesRepository implements CustomerVehiclesReposit
           },
           where,
           orderBy: [{ model: "asc" }, { plate: "asc" }],
+          skip: (page - 1) * size,
           take: size,
         }),
       ]);

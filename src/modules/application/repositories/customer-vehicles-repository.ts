@@ -23,6 +23,7 @@ export type CustomerVehicleOption = {
 export type CustomerVehicleOptionsFilters = {
   search?: string;
   customerId?: string;
+  page?: number;
   size?: number;
 };
 

@@ -150,6 +150,7 @@ export class InMemoryCustomersRepository implements CustomersRepository {
     establishmentId: string,
     filters?: CustomerOptionsFilters,
   ) {
+    const page = filters?.page ?? 1;
     const size = filters?.size ?? 20;
     const search = filters?.search?.trim().toLowerCase();
 
@@ -169,8 +170,10 @@ export class InMemoryCustomersRepository implements CustomersRepository {
       })
       .sort((a, b) => compareStrings(a.fullName, b.fullName));
 
+    const start = (page - 1) * size;
+
     return {
-      customers: filtered.slice(0, size).map((customer) => ({
+      customers: filtered.slice(start, start + size).map((customer) => ({
         id: customer.id.toString(),
         label: customer.fullName,
       })),

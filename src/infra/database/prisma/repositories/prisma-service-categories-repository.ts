@@ -139,6 +139,7 @@ export class PrismaServiceCategoriesRepository implements ServiceCategoriesRepos
     establishmentId: string,
     filters?: ServiceCategoryOptionsFilters,
   ): Promise<ServiceCategoryOptionsResult> {
+    const page = filters?.page ?? 1;
     const size = filters?.size ?? 20;
     const search = filters?.search?.trim();
 
@@ -162,6 +163,7 @@ export class PrismaServiceCategoriesRepository implements ServiceCategoriesRepos
         client.serviceCategory.findMany({
           where,
           orderBy: { name: "asc" },
+          skip: (page - 1) * size,
           take: size,
           select: {
             id: true,

@@ -148,6 +148,30 @@ describe("List customer vehicle options", () => {
       },
     ]);
     expect(modelResult.value.totalItems).toBe(1);
+
+    const pageResult = await sut.execute({
+      actor: {
+        userId: establishment.ownerId.toString(),
+        role: "ESTABLISHMENT",
+      },
+      search: "volks",
+      page: 2,
+      size: 1,
+    });
+
+    expect(pageResult.isRight()).toBe(true);
+
+    if (pageResult.isLeft()) {
+      throw pageResult.value;
+    }
+
+    expect(pageResult.value.vehicles).toEqual([
+      {
+        id: thirdVehicle.id.toString(),
+        label: "Polo",
+      },
+    ]);
+    expect(pageResult.value.totalItems).toBe(2);
   });
 
   it("should allow employee scope", async () => {

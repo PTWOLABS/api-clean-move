@@ -64,6 +64,7 @@ export class InMemoryServiceCategoriesRepository implements ServiceCategoriesRep
     establishmentId: string,
     filters?: ServiceCategoryOptionsFilters,
   ): Promise<ServiceCategoryOptionsResult> {
+    const page = filters?.page ?? 1;
     const size = filters?.size ?? 20;
     const search = filters?.search?.trim().toLowerCase();
 
@@ -78,8 +79,10 @@ export class InMemoryServiceCategoriesRepository implements ServiceCategoriesRep
       )
       .sort((a, b) => a.name.value.localeCompare(b.name.value));
 
+    const start = (page - 1) * size;
+
     return {
-      categories: filtered.slice(0, size).map((item) => ({
+      categories: filtered.slice(start, start + size).map((item) => ({
         id: item.id.toString(),
         label: item.name.value,
       })),

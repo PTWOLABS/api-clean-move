@@ -123,6 +123,23 @@ describe("ListCustomerOptionsController (e2e)", () => {
     expect(body.customers.map((customer) => customer.id)).not.toContain(
       deletedCustomer.id.toString(),
     );
+
+    const secondPageResponse = await request(getHttpServer(app))
+      .get("/customers/options")
+      .set("Authorization", `Bearer ${firstOwner.accessToken}`)
+      .query({ search: "ana", page: 2, size: 2 });
+    const secondPageBody = customerOptionsResponseSchema.parse(
+      secondPageResponse.body,
+    );
+
+    expect(secondPageResponse.status).toBe(200);
+    expect(secondPageBody.customers).toEqual([
+      {
+        id: thirdCustomer.id.toString(),
+        label: "Camila Rocha",
+      },
+    ]);
+    expect(secondPageBody.totalItems).toBe(3);
   });
 
   it("should allow employee scope", async () => {
@@ -228,11 +245,16 @@ describe("ListCustomerOptionsController (e2e)", () => {
       envService,
     });
 
-    const response = await request(getHttpServer(app))
+    const invalidSizeResponse = await request(getHttpServer(app))
       .get("/customers/options")
       .set("Authorization", `Bearer ${owner.accessToken}`)
       .query({ size: 0 });
+    const invalidPageResponse = await request(getHttpServer(app))
+      .get("/customers/options")
+      .set("Authorization", `Bearer ${owner.accessToken}`)
+      .query({ page: 0 });
 
-    expect(response.status).toBe(400);
+    expect(invalidSizeResponse.status).toBe(400);
+    expect(invalidPageResponse.status).toBe(400);
   });
 });

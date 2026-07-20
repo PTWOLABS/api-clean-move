@@ -103,6 +103,30 @@ describe("List customer options", () => {
       },
     ]);
     expect(result.value.totalItems).toBe(3);
+
+    const secondPage = await sut.execute({
+      actor: {
+        userId: establishment.ownerId.toString(),
+        role: "ESTABLISHMENT",
+      },
+      search: "ana",
+      page: 2,
+      size: 2,
+    });
+
+    expect(secondPage.isRight()).toBe(true);
+
+    if (secondPage.isLeft()) {
+      throw secondPage.value;
+    }
+
+    expect(secondPage.value.customers).toEqual([
+      {
+        id: thirdCustomer.id.toString(),
+        label: "Camila Rocha",
+      },
+    ]);
+    expect(secondPage.value.totalItems).toBe(3);
   });
 
   it("should allow employee scope", async () => {

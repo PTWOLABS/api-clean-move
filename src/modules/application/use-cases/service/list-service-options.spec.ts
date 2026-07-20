@@ -112,6 +112,35 @@ describe("List service options", () => {
       },
     ]);
     expect(result.value.totalItems).toBe(2);
+
+    const secondPage = await sut.execute({
+      actor: {
+        userId: establishment.ownerId.toString(),
+        role: "ESTABLISHMENT",
+      },
+      search: "lavagem",
+      page: 2,
+      size: 1,
+    });
+
+    expect(secondPage.isRight()).toBe(true);
+
+    if (secondPage.isLeft()) {
+      throw secondPage.value;
+    }
+
+    expect(secondPage.value.services).toEqual([
+      {
+        id: secondService.id.toString(),
+        label: "Lavagem Simples",
+        priceInCents: 30000,
+        priceSpecification: {
+          type: "FIXED",
+          fixedPriceInCents: 30000,
+        },
+      },
+    ]);
+    expect(secondPage.value.totalItems).toBe(2);
   });
 
   it("should include price specification details for non-fixed services", async () => {

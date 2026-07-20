@@ -13,6 +13,7 @@ export type CustomerOption = {
 
 export type CustomerOptionsFilters = {
   search?: string;
+  page?: number;
   size?: number;
 };
 

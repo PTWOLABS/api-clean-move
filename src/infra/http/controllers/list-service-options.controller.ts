@@ -32,6 +32,7 @@ import { ZodValidationPipe } from "../pipes/zod-validation.pipe";
 
 const listServiceOptionsQuerySchema = z.object({
   search: z.string().trim().optional(),
+  page: z.coerce.number().int().positive().optional(),
   size: z.coerce.number().int().positive().optional(),
 });
 
@@ -59,6 +60,13 @@ export class ListServiceOptionsController {
     type: String,
     description: "Search by service name.",
     example: "Lavagem",
+  })
+  @ApiQuery({
+    name: "page",
+    required: false,
+    type: Number,
+    description: "Positive page number. Defaults to 1.",
+    example: 1,
   })
   @ApiQuery({
     name: "size",
@@ -99,6 +107,7 @@ export class ListServiceOptionsController {
         role: user.role,
       },
       ...(query.search !== undefined ? { search: query.search } : {}),
+      ...(query.page !== undefined ? { page: query.page } : {}),
       ...(query.size !== undefined ? { size: query.size } : {}),
     });
 
