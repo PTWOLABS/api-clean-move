@@ -117,6 +117,13 @@ export const serviceOptionsResponseSchema = z
   })
   .strict();
 
+export const serviceCategoryOptionsResponseSchema = z
+  .object({
+    categories: z.array(optionItemSchema),
+    totalItems: z.number().int().nonnegative(),
+  })
+  .strict();
+
 export const appointmentStatusSchema = z.enum([
   "SCHEDULED",
   "DONE",

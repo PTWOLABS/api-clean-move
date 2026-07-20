@@ -89,6 +89,87 @@ describe("List service category options", () => {
     expect(secondPage.value.totalItems).toBe(3);
   });
 
+  it("should filter by name, exclude deleted, and isolate establishments", async () => {
+    const establishment = makeEstablishment();
+    const otherEstablishment = makeEstablishment();
+    const matchingCategory = ServiceCategory.create({
+      establishmentId: establishment.id,
+      name: CategoryName.create("Lavagem Premium"),
+    });
+    const otherNameCategory = ServiceCategory.create({
+      establishmentId: establishment.id,
+      name: CategoryName.create("Polimento"),
+    });
+    const deletedCategory = ServiceCategory.create({
+      establishmentId: establishment.id,
+      name: CategoryName.create("Lavagem Removida"),
+    });
+    const outsideCategory = ServiceCategory.create({
+      establishmentId: otherEstablishment.id,
+      name: CategoryName.create("Lavagem Externa"),
+    });
+
+    deletedCategory.softDelete(new Date("2026-05-26T10:00:00.000Z"));
+
+    await inMemoryEstablishmentsRepository.create(establishment);
+    await inMemoryEstablishmentsRepository.create(otherEstablishment);
+    await inMemoryServiceCategoriesRepository.create(matchingCategory);
+    await inMemoryServiceCategoriesRepository.create(otherNameCategory);
+    await inMemoryServiceCategoriesRepository.create(deletedCategory);
+    await inMemoryServiceCategoriesRepository.create(outsideCategory);
+
+    const result = await sut.execute({
+      establishmentOwnerId: establishment.ownerId.toString(),
+      search: "lavagem",
+    });
+
+    expect(result.isRight()).toBe(true);
+
+    if (result.isLeft()) {
+      throw result.value;
+    }
+
+    expect(result.value.categories).toEqual([
+      {
+        id: matchingCategory.id.toString(),
+        label: "Lavagem Premium",
+      },
+    ]);
+    expect(result.value.totalItems).toBe(1);
+  });
+
+  it("should use default page and size when omitted", async () => {
+    const establishment = makeEstablishment();
+
+    await inMemoryEstablishmentsRepository.create(establishment);
+
+    for (let index = 1; index <= 25; index += 1) {
+      await inMemoryServiceCategoriesRepository.create(
+        ServiceCategory.create({
+          establishmentId: establishment.id,
+          name: CategoryName.create(
+            `Categoria ${String(index).padStart(2, "0")}`,
+          ),
+        }),
+      );
+    }
+
+    const result = await sut.execute({
+      establishmentOwnerId: establishment.ownerId.toString(),
+    });
+
+    expect(result.isRight()).toBe(true);
+
+    if (result.isLeft()) {
+      throw result.value;
+    }
+
+    expect(result.value.categories).toHaveLength(20);
+    expect(result.value.totalItems).toBe(25);
+    expect(result.value.categories[0]?.label).toBe("Categoria 01");
+    expect(result.value.categories.at(-1)?.label).toBe("Categoria 20");
+  });
+
   it("should reject a missing establishment", async () => {
     const result = await sut.execute({
       establishmentOwnerId: "missing-owner",

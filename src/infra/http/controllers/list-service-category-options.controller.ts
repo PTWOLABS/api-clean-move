@@ -1,5 +1,12 @@
-import { Controller, Get, NotFoundException, Query } from "@nestjs/common";
 import {
+  Controller,
+  Get,
+  InternalServerErrorException,
+  NotFoundException,
+  Query,
+} from "@nestjs/common";
+import {
+  ApiBadRequestResponse,
   ApiBearerAuth,
   ApiForbiddenResponse,
   ApiInternalServerErrorResponse,
@@ -13,6 +20,7 @@ import {
 import z from "zod";
 
 import { ListServiceCategoryOptionsUseCase } from "../../../modules/application/use-cases/service-category/list-service-category-options";
+import { ResourceNotFoundError } from "../../../shared/errors/resource-not-found-error";
 import { AuthenticatedUser } from "../../auth/authenticated-user";
 import { CurrentUser } from "../../auth/current-user";
 import { Roles } from "../../auth/roles";
@@ -41,8 +49,16 @@ export class ListServiceCategoryOptionsController {
   @Get()
   @ApiOperation({
     summary: "List service category options for dropdowns.",
+    description:
+      "Returns active service category options with only id and label. The optional search term is applied to category name.",
   })
-  @ApiQuery({ name: "search", required: false, type: String })
+  @ApiQuery({
+    name: "search",
+    required: false,
+    type: String,
+    description: "Search by service category name.",
+    example: "Lavagem",
+  })
   @ApiQuery({
     name: "page",
     required: false,
@@ -60,6 +76,9 @@ export class ListServiceCategoryOptionsController {
   @ApiOkResponse({
     description: "Service category options listed successfully.",
     type: ServiceCategoryOptionsResponseDto,
+  })
+  @ApiBadRequestResponse({
+    description: "Invalid query parameters.",
   })
   @ApiUnauthorizedResponse({
     description: "Missing or invalid access token.",
@@ -87,7 +106,14 @@ export class ListServiceCategoryOptionsController {
     });
 
     if (result.isLeft()) {
-      throw new NotFoundException(result.value.message);
+      const error = result.value;
+
+      switch (error.constructor) {
+        case ResourceNotFoundError:
+          throw new NotFoundException(error.message);
+        default:
+          throw new InternalServerErrorException(error.message);
+      }
     }
 
     return {

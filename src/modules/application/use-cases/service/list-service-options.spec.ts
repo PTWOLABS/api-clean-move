@@ -44,9 +44,13 @@ describe("List service options", () => {
     });
     const secondService = makeService({
       establishmentId: establishment.id,
-      serviceName: ServiceName.create("Lavagem Simples"),
+      serviceName: ServiceName.create("Lavagem Express"),
     });
     const thirdService = makeService({
+      establishmentId: establishment.id,
+      serviceName: ServiceName.create("Lavagem Simples"),
+    });
+    const descriptionOnlyMatch = makeService({
       establishmentId: establishment.id,
       serviceName: ServiceName.create("Polimento Tecnico"),
       description: "Lavagem descrita apenas no texto.",
@@ -72,6 +76,7 @@ describe("List service options", () => {
     await inMemoryServicesRepository.create(firstService);
     await inMemoryServicesRepository.create(secondService);
     await inMemoryServicesRepository.create(thirdService);
+    await inMemoryServicesRepository.create(descriptionOnlyMatch);
     await inMemoryServicesRepository.create(inactiveService);
     await inMemoryServicesRepository.create(deletedService);
     await inMemoryServicesRepository.create(otherService);
@@ -103,7 +108,7 @@ describe("List service options", () => {
       },
       {
         id: secondService.id.toString(),
-        label: "Lavagem Simples",
+        label: "Lavagem Express",
         priceInCents: 30000,
         priceSpecification: {
           type: "FIXED",
@@ -111,7 +116,7 @@ describe("List service options", () => {
         },
       },
     ]);
-    expect(result.value.totalItems).toBe(2);
+    expect(result.value.totalItems).toBe(3);
 
     const secondPage = await sut.execute({
       actor: {
@@ -120,7 +125,7 @@ describe("List service options", () => {
       },
       search: "lavagem",
       page: 2,
-      size: 1,
+      size: 2,
     });
 
     expect(secondPage.isRight()).toBe(true);
@@ -131,7 +136,7 @@ describe("List service options", () => {
 
     expect(secondPage.value.services).toEqual([
       {
-        id: secondService.id.toString(),
+        id: thirdService.id.toString(),
         label: "Lavagem Simples",
         priceInCents: 30000,
         priceSpecification: {
@@ -140,7 +145,7 @@ describe("List service options", () => {
         },
       },
     ]);
-    expect(secondPage.value.totalItems).toBe(2);
+    expect(secondPage.value.totalItems).toBe(3);
   });
 
   it("should include price specification details for non-fixed services", async () => {
