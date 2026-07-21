@@ -21,6 +21,7 @@ import { ServiceName } from "../../../../modules/catalog/domain/value-objects/se
 import { ServicePriceSpecification } from "../../../../modules/catalog/domain/value-objects/service-price-specification";
 import { CustomerDocument } from "../../../../modules/customer/domain/value-objects/customer-document";
 import { UniqueEntityId } from "../../../../shared/entities/unique-entity-id";
+import { getSaoPauloDayBounds } from "../../../../shared/utils/get-sao-paulo-day-bounds";
 import { AppModule } from "../../../app.module";
 import { PrismaService } from "../../../database/prisma/prisma.service";
 import { EnvService } from "../../../env/env.service";
@@ -1791,16 +1792,13 @@ describe.sequential("Quote controllers (e2e)", () => {
       establishmentId: establishment.id,
       serviceName: ServiceName.create("Filtro Vitrificacao"),
     });
-    const todayStart = new Date();
-    todayStart.setUTCHours(0, 0, 0, 0);
-    const todayNoon = new Date(todayStart);
-    todayNoon.setUTCHours(12, 0, 0, 0);
-    const yesterdayNoon = new Date(todayNoon);
-    yesterdayNoon.setUTCDate(todayNoon.getUTCDate() - 1);
-    const tomorrowNoon = new Date(todayNoon);
-    tomorrowNoon.setUTCDate(todayNoon.getUTCDate() + 1);
-    const saoPauloTodayEnd = new Date(tomorrowNoon);
-    saoPauloTodayEnd.setUTCHours(2, 59, 59, 999);
+    const { todayStart, tomorrowStart } = getSaoPauloDayBounds(new Date());
+    const todayNoon = new Date(todayStart.getTime() + 12 * 60 * 60 * 1000);
+    const yesterdayNoon = new Date(todayStart.getTime() - 12 * 60 * 60 * 1000);
+    const tomorrowNoon = new Date(
+      tomorrowStart.getTime() + 12 * 60 * 60 * 1000,
+    );
+    const saoPauloTodayEnd = new Date(tomorrowStart.getTime() - 1);
 
     async function createQuote(input: {
       customerName?: string;
