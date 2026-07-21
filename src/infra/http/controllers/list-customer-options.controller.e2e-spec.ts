@@ -47,7 +47,7 @@ describe("ListCustomerOptionsController (e2e)", () => {
     await app.close();
   });
 
-  it("should list active customer options with search, limit, and minimal shape", async () => {
+  it("should list active customer options with search, size, and minimal shape", async () => {
     const firstOwner = await makeEstablishmentAuth({
       app,
       prisma,
@@ -102,7 +102,7 @@ describe("ListCustomerOptionsController (e2e)", () => {
     const response = await request(getHttpServer(app))
       .get("/customers/options")
       .set("Authorization", `Bearer ${firstOwner.accessToken}`)
-      .query({ search: "ana", limit: 2 });
+      .query({ search: "ana", size: 2 });
     const body = customerOptionsResponseSchema.parse(response.body);
 
     expect(response.status).toBe(200);
@@ -116,12 +116,30 @@ describe("ListCustomerOptionsController (e2e)", () => {
         label: "Beatriz Souza",
       },
     ]);
+    expect(body.totalItems).toBe(3);
     expect(body.customers.map((customer) => customer.id)).not.toContain(
       thirdCustomer.id.toString(),
     );
     expect(body.customers.map((customer) => customer.id)).not.toContain(
       deletedCustomer.id.toString(),
     );
+
+    const secondPageResponse = await request(getHttpServer(app))
+      .get("/customers/options")
+      .set("Authorization", `Bearer ${firstOwner.accessToken}`)
+      .query({ search: "ana", page: 2, size: 2 });
+    const secondPageBody = customerOptionsResponseSchema.parse(
+      secondPageResponse.body,
+    );
+
+    expect(secondPageResponse.status).toBe(200);
+    expect(secondPageBody.customers).toEqual([
+      {
+        id: thirdCustomer.id.toString(),
+        label: "Camila Rocha",
+      },
+    ]);
+    expect(secondPageBody.totalItems).toBe(3);
   });
 
   it("should allow employee scope", async () => {
@@ -227,11 +245,16 @@ describe("ListCustomerOptionsController (e2e)", () => {
       envService,
     });
 
-    const response = await request(getHttpServer(app))
+    const invalidSizeResponse = await request(getHttpServer(app))
       .get("/customers/options")
       .set("Authorization", `Bearer ${owner.accessToken}`)
-      .query({ limit: 0 });
+      .query({ size: 0 });
+    const invalidPageResponse = await request(getHttpServer(app))
+      .get("/customers/options")
+      .set("Authorization", `Bearer ${owner.accessToken}`)
+      .query({ page: 0 });
 
-    expect(response.status).toBe(400);
+    expect(invalidSizeResponse.status).toBe(400);
+    expect(invalidPageResponse.status).toBe(400);
   });
 });

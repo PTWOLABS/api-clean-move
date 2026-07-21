@@ -7,7 +7,13 @@ export type ServiceCategoryOption = {
 
 export type ServiceCategoryOptionsFilters = {
   search?: string;
-  limit?: number;
+  page?: number;
+  size?: number;
+};
+
+export type ServiceCategoryOptionsResult = {
+  categories: ServiceCategoryOption[];
+  totalItems: number;
 };
 
 export type ServiceCategoryFilters = {
@@ -33,6 +39,6 @@ export abstract class ServiceCategoriesRepository {
   abstract findOptionsByEstablishmentId(
     establishmentId: string,
     filters?: ServiceCategoryOptionsFilters,
-  ): Promise<ServiceCategoryOption[]>;
+  ): Promise<ServiceCategoryOptionsResult>;
   abstract save(category: ServiceCategory): Promise<void>;
 }

@@ -206,13 +206,14 @@ export class InMemoryCustomerVehiclesRepository implements CustomerVehiclesRepos
     establishmentId: string,
     filters?: CustomerVehicleOptionsFilters,
   ) {
-    const limit = filters?.limit ?? 20;
+    const page = filters?.page ?? 1;
+    const size = filters?.size ?? 20;
     const search = filters?.search?.trim().toLowerCase();
     const plateSearch = filters?.search
       ?.replace(/[^a-zA-Z0-9]/g, "")
       .toUpperCase();
 
-    return this.items
+    const filtered = this.items
       .slice()
       .filter((item) => item.establishmentId.toString() === establishmentId)
       .filter((item) => !item.isDeleted())
@@ -242,12 +243,17 @@ export class InMemoryCustomerVehiclesRepository implements CustomerVehiclesRepos
         }
 
         return compareStrings(a.plate ?? "", b.plate ?? "");
-      })
-      .slice(0, limit)
-      .map((vehicle) => ({
+      });
+
+    const start = (page - 1) * size;
+
+    return {
+      vehicles: filtered.slice(start, start + size).map((vehicle) => ({
         id: vehicle.id.toString(),
         label: vehicle.model ?? "",
-      }));
+      })),
+      totalItems: filtered.length,
+    };
   }
 
   async save(vehicle: CustomerVehicle): Promise<void> {

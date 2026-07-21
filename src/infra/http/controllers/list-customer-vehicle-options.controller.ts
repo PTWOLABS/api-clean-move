@@ -33,7 +33,8 @@ import { ZodValidationPipe } from "../pipes/zod-validation.pipe";
 const listCustomerVehicleOptionsQuerySchema = z.object({
   search: z.string().trim().optional(),
   customerId: z.uuid().optional(),
-  limit: z.coerce.number().int().positive().optional(),
+  page: z.coerce.number().int().positive().optional(),
+  size: z.coerce.number().int().positive().optional(),
 });
 
 type ListCustomerVehicleOptionsQuerySchema = z.infer<
@@ -72,7 +73,14 @@ export class ListCustomerVehicleOptionsController {
       "Optional active customer identifier used to limit vehicle options.",
   })
   @ApiQuery({
-    name: "limit",
+    name: "page",
+    required: false,
+    type: Number,
+    description: "Positive page number. Defaults to 1.",
+    example: 1,
+  })
+  @ApiQuery({
+    name: "size",
     required: false,
     type: Number,
     description: "Positive maximum number of options. Defaults to 20.",
@@ -113,7 +121,8 @@ export class ListCustomerVehicleOptionsController {
       ...(query.customerId !== undefined
         ? { customerId: query.customerId }
         : {}),
-      ...(query.limit !== undefined ? { limit: query.limit } : {}),
+      ...(query.page !== undefined ? { page: query.page } : {}),
+      ...(query.size !== undefined ? { size: query.size } : {}),
     });
 
     if (result.isLeft()) {
@@ -131,6 +140,7 @@ export class ListCustomerVehicleOptionsController {
 
     return {
       vehicles: result.value.vehicles,
+      totalItems: result.value.totalItems,
     };
   }
 }

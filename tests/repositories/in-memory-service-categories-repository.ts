@@ -1,8 +1,8 @@
 import {
   ServiceCategoriesRepository,
   ServiceCategoryFilters,
-  ServiceCategoryOption,
   ServiceCategoryOptionsFilters,
+  ServiceCategoryOptionsResult,
 } from "../../src/modules/application/repositories/service-categories-repository";
 import { ServiceCategory } from "../../src/modules/catalog/domain/entities/service-category";
 
@@ -63,11 +63,12 @@ export class InMemoryServiceCategoriesRepository implements ServiceCategoriesRep
   async findOptionsByEstablishmentId(
     establishmentId: string,
     filters?: ServiceCategoryOptionsFilters,
-  ): Promise<ServiceCategoryOption[]> {
-    const limit = filters?.limit ?? 20;
+  ): Promise<ServiceCategoryOptionsResult> {
+    const page = filters?.page ?? 1;
+    const size = filters?.size ?? 20;
     const search = filters?.search?.trim().toLowerCase();
 
-    return this.items
+    const filtered = this.items
       .filter(
         (item) =>
           item.establishmentId.toString() === establishmentId &&
@@ -76,12 +77,17 @@ export class InMemoryServiceCategoriesRepository implements ServiceCategoriesRep
       .filter((item) =>
         search ? item.name.value.toLowerCase().includes(search) : true,
       )
-      .sort((a, b) => a.name.value.localeCompare(b.name.value))
-      .slice(0, limit)
-      .map((item) => ({
+      .sort((a, b) => a.name.value.localeCompare(b.name.value));
+
+    const start = (page - 1) * size;
+
+    return {
+      categories: filtered.slice(start, start + size).map((item) => ({
         id: item.id.toString(),
         label: item.name.value,
-      }));
+      })),
+      totalItems: filtered.length,
+    };
   }
 
   async save(category: ServiceCategory): Promise<void> {

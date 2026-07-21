@@ -4,8 +4,8 @@ import { Prisma } from "../../../../generated/prisma/client";
 import {
   type PaginatedServices,
   type ServiceFilters,
-  type ServiceOption,
   type ServiceOptionsFilters,
+  type ServiceOptionsResult,
   ServicesRepository,
 } from "../../../../modules/application/repositories/services-repository";
 import { Service } from "../../../../modules/catalog/domain/entities/services";
@@ -99,41 +99,52 @@ export class PrismaServicesRepository implements ServicesRepository {
   async findOptionsByEstablishmentId(
     establishmentId: string,
     filters?: ServiceOptionsFilters,
-  ): Promise<ServiceOption[]> {
-    const limit = filters?.limit ?? 20;
+  ): Promise<ServiceOptionsResult> {
+    const page = filters?.page ?? 1;
+    const size = filters?.size ?? 20;
     const search = filters?.search?.trim();
 
-    try {
-      const services = await PrismaUnitOfWork.getClient(
-        this.prisma,
-      ).service.findMany({
-        select: {
-          id: true,
-          serviceName: true,
-          priceInCents: true,
-          priceSpecificationType: true,
-          priceRangeMaxInCents: true,
-        },
-        where: {
-          establishmentId,
-          deletedAt: null,
-          isActive: true,
-          ...(search
-            ? {
-                serviceName: {
-                  contains: search,
-                  mode: "insensitive",
-                },
-              }
-            : {}),
-        },
-        orderBy: {
-          serviceName: "asc",
-        },
-        take: limit,
-      });
+    const where: Prisma.ServiceWhereInput = {
+      establishmentId,
+      deletedAt: null,
+      isActive: true,
+      ...(search
+        ? {
+            serviceName: {
+              contains: search,
+              mode: "insensitive",
+            },
+          }
+        : {}),
+    };
 
-      return services.map((service) => PrismaServiceMapper.toOption(service));
+    try {
+      const client = PrismaUnitOfWork.getClient(this.prisma);
+      const [totalItems, services] = await Promise.all([
+        client.service.count({ where }),
+        client.service.findMany({
+          select: {
+            id: true,
+            serviceName: true,
+            priceInCents: true,
+            priceSpecificationType: true,
+            priceRangeMaxInCents: true,
+          },
+          where,
+          orderBy: {
+            serviceName: "asc",
+          },
+          skip: (page - 1) * size,
+          take: size,
+        }),
+      ]);
+
+      return {
+        services: services.map((service) =>
+          PrismaServiceMapper.toOption(service),
+        ),
+        totalItems,
+      };
     } catch (error) {
       rethrowPrismaRepositoryError(error);
     }
