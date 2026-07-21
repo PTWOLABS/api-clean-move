@@ -996,7 +996,7 @@ describe.sequential("Quote controllers (e2e)", () => {
   );
 
   it.sequential(
-    "should allow explicit new customer creation for advisory-only candidates",
+    "should require explicit customer resolution for advisory-only candidates",
     async () => {
       const { accessToken, establishment } = await makeEstablishmentAccessToken(
         {
@@ -1027,10 +1027,10 @@ describe.sequential("Quote controllers (e2e)", () => {
 
       const analysis = await analyzeQuote(accessToken, quoteId);
 
-      expect(analysis.status).toBe("READY");
+      expect(analysis.status).toBe("REQUIRES_RESOLUTION");
       expect(analysis.customer).toMatchObject({
         status: "CANDIDATES_FOUND",
-        requiresResolution: false,
+        requiresResolution: true,
       });
       expect(analysis.customer.candidates).toEqual([
         expect.objectContaining({
@@ -1039,6 +1039,18 @@ describe.sequential("Quote controllers (e2e)", () => {
           advisoryOnly: true,
         }),
       ]);
+
+      const unresolvedResponse = await approveQuote(accessToken, quoteId);
+      expect(unresolvedResponse.status).toBe(409);
+      expect(errorResponseSchema.parse(unresolvedResponse.body)).toMatchObject({
+        code: "QUOTE_APPROVAL_RESOLUTION_REQUIRED",
+        analysis: {
+          customer: {
+            status: "CANDIDATES_FOUND",
+            requiresResolution: true,
+          },
+        },
+      });
 
       const approveResponse = await approveQuote(accessToken, quoteId, {
         customerResolution: {

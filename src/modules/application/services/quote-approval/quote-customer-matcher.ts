@@ -82,9 +82,7 @@ export class QuoteCustomerMatcher {
 
     return {
       status: "CANDIDATES_FOUND",
-      requiresResolution: candidates.some(
-        (candidate) => !candidate.advisoryOnly,
-      ),
+      requiresResolution: true,
       automaticCustomerId: null,
       candidates,
     };

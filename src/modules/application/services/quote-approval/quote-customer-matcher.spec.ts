@@ -82,7 +82,7 @@ describe("Quote customer matcher", () => {
     ]);
   });
 
-  it("should keep name-only candidates advisory", async () => {
+  it("should require resolution for name-only candidates", async () => {
     const establishmentId = new UniqueEntityId("establishment-1");
     const customer = makeCustomer({
       establishmentId,
@@ -111,7 +111,7 @@ describe("Quote customer matcher", () => {
 
     expect(nameOnlyMatch.status).toBe("CANDIDATES_FOUND");
     expect(nameOnlyMatch.candidates[0]?.advisoryOnly).toBe(true);
-    expect(nameOnlyMatch.requiresResolution).toBe(false);
+    expect(nameOnlyMatch.requiresResolution).toBe(true);
   });
 
   it("should use quote snapshot email as customer evidence", async () => {

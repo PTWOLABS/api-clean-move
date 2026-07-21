@@ -148,13 +148,13 @@ describe("Quote approval analyzer", () => {
     },
   );
 
-  it("should not require resolution for advisory-only customer candidates", async () => {
+  it("should require resolution for advisory-only customer candidates", async () => {
     const sut = new QuoteApprovalAnalyzer(
       {
         analyze: vi.fn().mockResolvedValue(
           customerAnalysis({
             status: "CANDIDATES_FOUND",
-            requiresResolution: false,
+            requiresResolution: true,
             candidates: [
               {
                 customerId: "customer-1",
@@ -175,7 +175,7 @@ describe("Quote approval analyzer", () => {
       establishmentId: "establishment-1",
     });
 
-    expect(analysis.status).toBe("READY");
+    expect(analysis.status).toBe("REQUIRES_RESOLUTION");
   });
 });
 
