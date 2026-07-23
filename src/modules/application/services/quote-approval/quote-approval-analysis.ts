@@ -5,6 +5,10 @@ export type CustomerMatchReason = "CPF_CNPJ" | "PHONE" | "EMAIL" | "NAME";
 
 export type QuoteCustomerCandidate = {
   customerId: string;
+  name: string;
+  phone: string | null;
+  email: string | null;
+  cpfCnpj: string | null;
   matchedBy: CustomerMatchReason[];
   conflictingFields: Array<"NAME" | "PHONE" | "EMAIL">;
   advisoryOnly: boolean;

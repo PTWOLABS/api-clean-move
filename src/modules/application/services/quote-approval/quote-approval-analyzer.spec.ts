@@ -158,6 +158,10 @@ describe("Quote approval analyzer", () => {
             candidates: [
               {
                 customerId: "customer-1",
+                name: "Customer One",
+                phone: null,
+                email: null,
+                cpfCnpj: null,
                 matchedBy: ["NAME"],
                 conflictingFields: [],
                 advisoryOnly: true,

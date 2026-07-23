@@ -159,6 +159,10 @@ const quoteApprovalAnalysisSchema = z.object({
     candidates: z.array(
       z.object({
         customerId: z.uuid(),
+        name: z.string().min(1),
+        phone: z.string().nullable(),
+        email: z.string().nullable(),
+        cpfCnpj: z.string().nullable(),
         matchedBy: z.array(z.enum(["CPF_CNPJ", "PHONE", "EMAIL", "NAME"])),
         conflictingFields: z.array(z.enum(["NAME", "PHONE", "EMAIL"])),
         advisoryOnly: z.boolean(),
@@ -999,6 +1003,10 @@ describe.sequential("Quote controllers (e2e)", () => {
       expect(analysis.customer.candidates).toEqual([
         expect.objectContaining({
           customerId: customer.id.toString(),
+          name: "Evidence Customer",
+          phone: "11977776666",
+          email: "evidence@example.com",
+          cpfCnpj: null,
           matchedBy: ["PHONE", "EMAIL"],
           conflictingFields: ["NAME"],
           advisoryOnly: false,
@@ -1071,6 +1079,10 @@ describe.sequential("Quote controllers (e2e)", () => {
       expect(analysis.customer.candidates).toEqual([
         expect.objectContaining({
           customerId: advisoryCustomer.id.toString(),
+          name: sharedName,
+          phone: "11911112222",
+          email: "advisory-existing@example.com",
+          cpfCnpj: null,
           matchedBy: ["NAME"],
           advisoryOnly: true,
         }),

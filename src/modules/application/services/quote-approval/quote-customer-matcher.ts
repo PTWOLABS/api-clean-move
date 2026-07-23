@@ -180,6 +180,10 @@ function toCustomerCandidate(
 
   return {
     customerId: accumulator.customer.id.toString(),
+    name: accumulator.customer.fullName,
+    phone: accumulator.customer.phone?.toString() ?? null,
+    email: accumulator.customer.email?.toString() ?? null,
+    cpfCnpj: accumulator.customer.cpfCnpj?.toString() ?? null,
     matchedBy,
     conflictingFields: orderConflictingFields(
       Array.from(accumulator.conflictingFields),

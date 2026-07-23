@@ -2134,6 +2134,22 @@ export class QuoteCustomerCandidateDto {
   @ApiProperty({ example: "7bf3b88f-c1d1-4c2e-80ad-f9e3f3d5d40d" })
   customerId!: string;
 
+  @ApiProperty({ example: "Maria Silva" })
+  name!: string;
+
+  @ApiPropertyOptional({ type: String, nullable: true, example: "11999999999" })
+  phone!: string | null;
+
+  @ApiPropertyOptional({
+    type: String,
+    nullable: true,
+    example: "maria@example.com",
+  })
+  email!: string | null;
+
+  @ApiPropertyOptional({ type: String, nullable: true, example: "52998224725" })
+  cpfCnpj!: string | null;
+
   @ApiProperty({ enum: ["CPF_CNPJ", "PHONE", "EMAIL", "NAME"], isArray: true })
   matchedBy!: string[];
 
