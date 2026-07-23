@@ -5,6 +5,7 @@ import {
   CustomerMatchEvidence,
   CustomerOption,
   CustomerOptionsFilters,
+  CustomerApprovalCandidate,
   CustomersRepository,
   PaginatedCustomers,
 } from "../../../../modules/application/repositories/customers-repository";
@@ -157,26 +158,7 @@ export class PrismaCustomersRepository implements CustomersRepository {
     evidence: CustomerMatchEvidence,
     establishmentId: string,
   ): Promise<Customer[]> {
-    const phone = normalizePhoneEvidence(evidence.phone);
-    const email = normalizeTextEvidence(evidence.email);
-    const fullName = normalizeTextEvidence(evidence.fullName);
-
-    const or: Prisma.CustomerWhereInput[] = [
-      ...(phone ? [{ phone }] : []),
-      ...(email
-        ? [{ email: { equals: email, mode: "insensitive" as const } }]
-        : []),
-      ...(fullName
-        ? [
-            {
-              fullName: {
-                equals: fullName,
-                mode: "insensitive" as const,
-              },
-            },
-          ]
-        : []),
-    ];
+    const or = buildCustomerEvidenceWhere(evidence);
 
     if (or.length === 0) {
       return [];
@@ -196,6 +178,36 @@ export class PrismaCustomersRepository implements CustomersRepository {
       return customers.map((customer) =>
         PrismaCustomerMapper.toDomain(customer),
       );
+    } catch (error) {
+      rethrowPrismaRepositoryError(error);
+    }
+  }
+
+  async findManyApprovalCandidatesByEvidenceAndEstablishmentId(
+    evidence: CustomerMatchEvidence,
+    establishmentId: string,
+  ): Promise<CustomerApprovalCandidate[]> {
+    const or = buildCustomerEvidenceWhere(evidence);
+
+    if (or.length === 0) {
+      return [];
+    }
+
+    try {
+      return await PrismaUnitOfWork.getClient(this.prisma).customer.findMany({
+        select: {
+          id: true,
+          fullName: true,
+          phone: true,
+          email: true,
+          cpfCnpj: true,
+        },
+        where: {
+          deletedAt: null,
+          establishmentId,
+          OR: or,
+        },
+      });
     } catch (error) {
       rethrowPrismaRepositoryError(error);
     }
@@ -309,6 +321,29 @@ export class PrismaCustomersRepository implements CustomersRepository {
       rethrowPrismaRepositoryError(error);
     }
   }
+}
+
+function buildCustomerEvidenceWhere(evidence: CustomerMatchEvidence) {
+  const phone = normalizePhoneEvidence(evidence.phone);
+  const email = normalizeTextEvidence(evidence.email);
+  const fullName = normalizeTextEvidence(evidence.fullName);
+
+  return [
+    ...(phone ? [{ phone }] : []),
+    ...(email
+      ? [{ email: { equals: email, mode: "insensitive" as const } }]
+      : []),
+    ...(fullName
+      ? [
+          {
+            fullName: {
+              equals: fullName,
+              mode: "insensitive" as const,
+            },
+          },
+        ]
+      : []),
+  ];
 }
 
 function normalizePhoneEvidence(value: string | undefined) {

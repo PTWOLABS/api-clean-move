@@ -22,6 +22,14 @@ export type CustomerMatchEvidence = {
   fullName?: string;
 };
 
+export type CustomerApprovalCandidate = {
+  id: string;
+  fullName: string;
+  phone: string | null;
+  email: string | null;
+  cpfCnpj: string | null;
+};
+
 export type PaginatedCustomers = {
   customers: Customer[];
   totalItems: number;
@@ -50,6 +58,10 @@ export abstract class CustomersRepository {
     evidence: CustomerMatchEvidence,
     establishmentId: string,
   ): Promise<Customer[]>;
+  abstract findManyApprovalCandidatesByEvidenceAndEstablishmentId(
+    evidence: CustomerMatchEvidence,
+    establishmentId: string,
+  ): Promise<CustomerApprovalCandidate[]>;
   abstract findManyByEstablishmentId(
     establishmentId: string,
     filters?: CustomerFilters,
