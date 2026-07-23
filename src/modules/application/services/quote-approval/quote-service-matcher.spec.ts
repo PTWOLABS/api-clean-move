@@ -136,7 +136,7 @@ describe("Quote service matcher", () => {
     });
   });
 
-  it("should require recreation or association for linked deleted services", async () => {
+  it("should require recreation for linked deleted services", async () => {
     const establishmentId = new UniqueEntityId("establishment-1");
     const deletedService = makeService({ establishmentId });
     deletedService.softDelete(new Date("2026-07-13T10:00:00.000Z"));
@@ -164,8 +164,9 @@ describe("Quote service matcher", () => {
       status: "LINKED_SERVICE_DELETED",
       requiresResolution: true,
       serviceId: deletedService.id.toString(),
-      candidateServiceId: deletedService.id.toString(),
-      allowedActions: ["ASSOCIATE_EXISTING", "RECREATE_FROM_SNAPSHOT"],
+      candidateServiceId: null,
+      candidate: null,
+      allowedActions: ["RECREATE_FROM_SNAPSHOT"],
     });
   });
 

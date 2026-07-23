@@ -402,6 +402,7 @@ export class CreateQuoteUseCase {
       return left(
         new InvalidQuoteInputError(
           "A service with this name already exists. Select the existing service or use another name.",
+          "QUOTE_SERVICE_NAME_ALREADY_EXISTS",
         ),
       );
     }

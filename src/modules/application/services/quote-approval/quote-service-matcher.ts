@@ -78,10 +78,10 @@ export class QuoteServiceMatcher {
 
     if (service.isDeleted()) {
       return {
-        ...baseAnalysis(quoteService, service),
+        ...baseAnalysis(quoteService, null),
         status: "LINKED_SERVICE_DELETED",
         requiresResolution: true,
-        allowedActions: ["ASSOCIATE_EXISTING", "RECREATE_FROM_SNAPSHOT"],
+        allowedActions: ["RECREATE_FROM_SNAPSHOT"],
       };
     }
 

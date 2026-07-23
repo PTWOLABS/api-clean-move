@@ -342,8 +342,8 @@ describe("Quote service resolver", () => {
           status: "LINKED_SERVICE_DELETED",
           requiresResolution: true,
           serviceId: deletedService.id.toString(),
-          candidateServiceId: deletedService.id.toString(),
-          allowedActions: ["ASSOCIATE_EXISTING", "RECREATE_FROM_SNAPSHOT"],
+          candidateServiceId: null,
+          allowedActions: ["RECREATE_FROM_SNAPSHOT"],
         }),
       ]),
       resolutions: [

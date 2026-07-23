@@ -826,6 +826,41 @@ describe.sequential("Quote controllers (e2e)", () => {
   );
 
   it.sequential(
+    "should return a stable code when a detached quote service matches an existing catalog name",
+    async () => {
+      const { accessToken, establishment } = await makeEstablishmentAccessToken(
+        {
+          app,
+          prisma,
+          userFactory,
+          establishmentFactory,
+          envService,
+        },
+      );
+      const serviceName = uniqueName("Servico Catalogo Existente");
+
+      await serviceFactory.makePrismaService({
+        establishmentId: establishment.id,
+        serviceName: ServiceName.create(serviceName),
+      });
+
+      const response = await request(getHttpServer(app))
+        .post("/quotes")
+        .set("Authorization", `Bearer ${accessToken}`)
+        .send({
+          customer: { name: "Servico Avulso Duplicado" },
+          serviceItems: [{ serviceName, priceInCents: 45000 }],
+          paymentOptions: [{ method: "PIX", label: "Pix", installments: 1 }],
+        });
+
+      expect(response.status).toBe(400);
+      expect(errorResponseSchema.parse(response.body)).toMatchObject({
+        code: "QUOTE_SERVICE_NAME_ALREADY_EXISTS",
+      });
+    },
+  );
+
+  it.sequential(
     "should create a prospect quote with vehicle snapshot and detached service",
     async () => {
       const { accessToken } = await makeEstablishmentAccessToken({
@@ -1491,7 +1526,9 @@ describe.sequential("Quote controllers (e2e)", () => {
       expect(deletedAnalysis.services[0]).toMatchObject({
         status: "LINKED_SERVICE_DELETED",
         serviceId: deletedQuote.serviceId,
-        allowedActions: ["ASSOCIATE_EXISTING", "RECREATE_FROM_SNAPSHOT"],
+        candidateServiceId: null,
+        candidate: null,
+        allowedActions: ["RECREATE_FROM_SNAPSHOT"],
       });
 
       const keepDeletedResponse = await approveQuote(
