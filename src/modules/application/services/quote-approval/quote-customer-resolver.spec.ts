@@ -261,6 +261,47 @@ describe("Quote customer resolver", () => {
     expect(customersRepository.items).toHaveLength(1);
   });
 
+  it("should create a customer when the same document only belongs to a deleted customer", async () => {
+    const establishmentId = new UniqueEntityId("establishment-1");
+    const deletedCustomer = makeCustomer({
+      establishmentId,
+      cpfCnpj: CustomerDocument.create("52998224725"),
+    });
+    const quote = makeQuote({
+      establishmentId,
+      customerId: deletedCustomer.id,
+      customer: {
+        name: "Cliente Recriado",
+        phone: null,
+        email: null,
+        cpfCnpj: "52998224725",
+        address: null,
+      },
+    });
+
+    deletedCustomer.softDelete(new Date("2026-07-23T10:00:00.000Z"));
+    await customersRepository.create(deletedCustomer);
+
+    const result = await sut.resolve({
+      quote,
+      establishmentId,
+      analysis: analysis({
+        customer: customerAnalysis({
+          status: "LINKED_RESOURCE_DELETED",
+          requiresResolution: true,
+        }),
+      }),
+      customerResolution: { action: "CREATE_NEW" },
+      vehicleResolution: { action: "KEEP_SNAPSHOT_ONLY" },
+    });
+
+    expect(result.customer.id).not.toEqual(deletedCustomer.id);
+    expect(result.customer.cpfCnpj?.toString()).toBe("52998224725");
+    expect(result.customer.isDeleted()).toBe(false);
+    expect(customersRepository.items).toHaveLength(2);
+    expect(quote.customerId).toEqual(result.customer.id);
+  });
+
   it("should link an existing vehicle only when owned by the resolved customer", async () => {
     const establishmentId = new UniqueEntityId("establishment-1");
     const customer = makeCustomer({ establishmentId });
@@ -356,6 +397,50 @@ describe("Quote customer resolver", () => {
     expect(customerVehiclesRepository.items).toContain(result.vehicle);
     expect(result.vehicle?.customerId).toEqual(customer.id);
     expect(result.vehicle?.model).toBe("HR-V");
+    expect(quote.vehicleId).toEqual(result.vehicle?.id);
+  });
+
+  it("should edit the vehicle snapshot plate before creating a vehicle", async () => {
+    const establishmentId = new UniqueEntityId("establishment-1");
+    const customer = makeCustomer({ establishmentId });
+    const quote = makeQuote({
+      establishmentId,
+      customerId: customer.id,
+      vehicleId: null,
+      vehicle: {
+        plate: "ABC1D23",
+        brand: "Honda",
+        model: "HR-V",
+        color: "Branco",
+        year: 2025,
+      },
+    });
+
+    await customersRepository.create(customer);
+
+    const result = await sut.resolve({
+      quote,
+      establishmentId,
+      analysis: analysis({
+        customer: customerAnalysis({
+          status: "RESOLVED",
+          automaticCustomerId: customer.id.toString(),
+        }),
+        vehicle: vehicleAnalysis({
+          status: "OWNERSHIP_CONFLICT",
+          requiresResolution: true,
+          allowedActions: ["EDIT_SNAPSHOT_PLATE", "KEEP_SNAPSHOT_ONLY"],
+        }),
+      }),
+      vehicleResolution: {
+        action: "EDIT_SNAPSHOT_PLATE",
+        plate: "DEF-4G56",
+      },
+    });
+
+    expect(result.vehicle).not.toBeNull();
+    expect(result.vehicle?.plate).toBe("DEF4G56");
+    expect(quote.vehicle?.plate).toBe("DEF4G56");
     expect(quote.vehicleId).toEqual(result.vehicle?.id);
   });
 

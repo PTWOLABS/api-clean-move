@@ -1,4 +1,8 @@
-import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
+import {
+  ApiProperty,
+  ApiPropertyOptional,
+  getSchemaPath,
+} from "@nestjs/swagger";
 import {
   ALLOWED_EMPLOYEE_FEATURES,
   ALLOWED_EXTRA_EMPLOYEE_FEATURES,
@@ -2138,6 +2142,307 @@ export class QuoteResponseDto {
   quote!: QuoteDto;
 }
 
+export class QuoteCustomerCandidateDto {
+  @ApiProperty({ example: "7bf3b88f-c1d1-4c2e-80ad-f9e3f3d5d40d" })
+  customerId!: string;
+
+  @ApiProperty({ example: "Maria Silva" })
+  name!: string;
+
+  @ApiPropertyOptional({ type: String, nullable: true, example: "11999999999" })
+  phone!: string | null;
+
+  @ApiPropertyOptional({
+    type: String,
+    nullable: true,
+    example: "maria@example.com",
+  })
+  email!: string | null;
+
+  @ApiPropertyOptional({ type: String, nullable: true, example: "52998224725" })
+  cpfCnpj!: string | null;
+
+  @ApiProperty({ enum: ["CPF_CNPJ", "PHONE", "EMAIL", "NAME"], isArray: true })
+  matchedBy!: string[];
+
+  @ApiProperty({ enum: ["NAME", "PHONE", "EMAIL"], isArray: true })
+  conflictingFields!: string[];
+
+  @ApiProperty({ example: false })
+  advisoryOnly!: boolean;
+}
+
+export class QuoteCustomerAnalysisDto {
+  @ApiProperty({
+    enum: [
+      "RESOLVED",
+      "AUTO_LINK",
+      "CANDIDATES_FOUND",
+      "CREATE_REQUIRED",
+      "LINKED_RESOURCE_DELETED",
+    ],
+  })
+  status!: string;
+
+  @ApiProperty({ example: true })
+  requiresResolution!: boolean;
+
+  @ApiPropertyOptional({
+    type: String,
+    nullable: true,
+    example: "7bf3b88f-c1d1-4c2e-80ad-f9e3f3d5d40d",
+  })
+  automaticCustomerId!: string | null;
+
+  @ApiProperty({ type: QuoteCustomerCandidateDto, isArray: true })
+  candidates!: QuoteCustomerCandidateDto[];
+}
+
+export class QuoteVehicleAnalysisDto {
+  @ApiProperty({
+    enum: [
+      "NONE",
+      "RESOLVED",
+      "CANDIDATE_FOUND",
+      "SNAPSHOT_ONLY",
+      "OWNERSHIP_CONFLICT",
+      "LINKED_RESOURCE_DELETED",
+    ],
+  })
+  status!: string;
+
+  @ApiProperty({ example: true })
+  requiresResolution!: boolean;
+
+  @ApiPropertyOptional({ type: String, nullable: true })
+  candidateVehicleId!: string | null;
+
+  @ApiPropertyOptional({ type: String, nullable: true })
+  candidateCustomerId!: string | null;
+
+  @ApiProperty({
+    enum: [
+      "LINK_EXISTING",
+      "CREATE_FROM_SNAPSHOT",
+      "KEEP_SNAPSHOT_ONLY",
+      "EDIT_SNAPSHOT_PLATE",
+    ],
+    isArray: true,
+  })
+  allowedActions!: string[];
+}
+
+export class QuoteServiceSnapshotAnalysisDto {
+  @ApiProperty({ example: "Polimento tecnico" })
+  name!: string;
+
+  @ApiProperty({ example: 5000 })
+  priceInCents!: number;
+
+  @ApiPropertyOptional({ type: Number, nullable: true, example: 60 })
+  durationInMinutes!: number | null;
+
+  @ApiPropertyOptional({ type: String, nullable: true })
+  categoryId!: string | null;
+
+  @ApiPropertyOptional({ type: String, nullable: true })
+  categoryName!: string | null;
+
+  @ApiProperty({ example: false })
+  isCourtesy!: boolean;
+}
+
+export class QuoteServiceCandidateAnalysisDto {
+  @ApiProperty({ example: "7bf3b88f-c1d1-4c2e-80ad-f9e3f3d5d40d" })
+  serviceId!: string;
+
+  @ApiProperty({ example: "Polimento tecnico" })
+  name!: string;
+
+  @ApiProperty({ example: true })
+  isActive!: boolean;
+
+  @ApiProperty({
+    type: ServicePriceSpecificationDto,
+  })
+  priceSpecification!: ServicePriceSpecificationDto;
+
+  @ApiPropertyOptional({ type: Number, nullable: true, example: 60 })
+  durationInMinutes!: number | null;
+
+  @ApiPropertyOptional({ type: String, nullable: true })
+  categoryId!: string | null;
+
+  @ApiPropertyOptional({ type: String, nullable: true })
+  categoryName!: string | null;
+}
+
+export class QuoteServiceAnalysisDto {
+  @ApiProperty({ example: "7bf3b88f-c1d1-4c2e-80ad-f9e3f3d5d40d" })
+  quoteServiceId!: string;
+
+  @ApiProperty({
+    enum: [
+      "RESOLVED",
+      "READY_TO_CREATE",
+      "CANDIDATE_FOUND",
+      "LINKED_SERVICE_INACTIVE",
+      "LINKED_SERVICE_DELETED",
+      "LINKED_SERVICE_MISSING",
+    ],
+  })
+  status!: string;
+
+  @ApiProperty({ example: true })
+  requiresResolution!: boolean;
+
+  @ApiPropertyOptional({ type: String, nullable: true })
+  serviceId!: string | null;
+
+  @ApiPropertyOptional({ type: String, nullable: true })
+  candidateServiceId!: string | null;
+
+  @ApiProperty({ type: QuoteServiceSnapshotAnalysisDto })
+  snapshot!: QuoteServiceSnapshotAnalysisDto;
+
+  @ApiPropertyOptional({
+    type: QuoteServiceCandidateAnalysisDto,
+    nullable: true,
+  })
+  candidate!: QuoteServiceCandidateAnalysisDto | null;
+
+  @ApiProperty({
+    enum: ["NAME", "CATEGORY", "DURATION", "PRICE_SPECIFICATION", "PRICE"],
+    isArray: true,
+  })
+  differences!: string[];
+
+  @ApiProperty({
+    enum: [
+      "ASSOCIATE_EXISTING",
+      "KEEP_INACTIVE_LINK",
+      "RENAME_DETACHED",
+      "RECREATE_FROM_SNAPSHOT",
+    ],
+    isArray: true,
+  })
+  allowedActions!: string[];
+}
+
+export class QuoteAutomaticResolutionDto {
+  @ApiProperty({ enum: ["CUSTOMER"] })
+  resource!: string;
+
+  @ApiProperty({ enum: ["LINK_EXISTING"] })
+  action!: string;
+
+  @ApiProperty({ example: "7bf3b88f-c1d1-4c2e-80ad-f9e3f3d5d40d" })
+  resourceId!: string;
+
+  @ApiProperty({ enum: ["CPF_CNPJ"] })
+  matchedBy!: string;
+}
+
+export class QuoteApprovalAnalysisDto {
+  @ApiProperty({ enum: ["READY", "REQUIRES_RESOLUTION"] })
+  status!: string;
+
+  @ApiProperty({ type: QuoteAutomaticResolutionDto, isArray: true })
+  automaticResolutions!: QuoteAutomaticResolutionDto[];
+
+  @ApiProperty({ type: QuoteCustomerAnalysisDto })
+  customer!: QuoteCustomerAnalysisDto;
+
+  @ApiProperty({ type: QuoteVehicleAnalysisDto })
+  vehicle!: QuoteVehicleAnalysisDto;
+
+  @ApiProperty({ type: QuoteServiceAnalysisDto, isArray: true })
+  services!: QuoteServiceAnalysisDto[];
+}
+
+export class LinkExistingCustomerResolutionDto {
+  @ApiProperty({ enum: ["LINK_EXISTING"] })
+  action!: "LINK_EXISTING";
+
+  @ApiProperty({ example: "7bf3b88f-c1d1-4c2e-80ad-f9e3f3d5d40d" })
+  customerId!: string;
+}
+
+export class CreateNewCustomerResolutionDto {
+  @ApiProperty({ enum: ["CREATE_NEW"] })
+  action!: "CREATE_NEW";
+
+  @ApiPropertyOptional({ example: "cliente@example.com", format: "email" })
+  email?: string | null;
+
+  @ApiPropertyOptional({ example: "11999999999" })
+  phone?: string | null;
+}
+
+export class LinkExistingVehicleResolutionDto {
+  @ApiProperty({ enum: ["LINK_EXISTING"] })
+  action!: "LINK_EXISTING";
+
+  @ApiProperty({ example: "7bf3b88f-c1d1-4c2e-80ad-f9e3f3d5d40d" })
+  vehicleId!: string;
+}
+
+export class CreateVehicleFromSnapshotResolutionDto {
+  @ApiProperty({ enum: ["CREATE_FROM_SNAPSHOT"] })
+  action!: "CREATE_FROM_SNAPSHOT";
+}
+
+export class KeepVehicleSnapshotOnlyResolutionDto {
+  @ApiProperty({ enum: ["KEEP_SNAPSHOT_ONLY"] })
+  action!: "KEEP_SNAPSHOT_ONLY";
+}
+
+export class EditVehicleSnapshotPlateResolutionDto {
+  @ApiProperty({ enum: ["EDIT_SNAPSHOT_PLATE"] })
+  action!: "EDIT_SNAPSHOT_PLATE";
+
+  @ApiProperty({ example: "ABC-1D23" })
+  plate!: string;
+}
+
+export class AssociateExistingServiceResolutionDto {
+  @ApiProperty({ example: "7bf3b88f-c1d1-4c2e-80ad-f9e3f3d5d40d" })
+  quoteServiceId!: string;
+
+  @ApiProperty({ enum: ["ASSOCIATE_EXISTING"] })
+  action!: "ASSOCIATE_EXISTING";
+
+  @ApiProperty({ example: "7bf3b88f-c1d1-4c2e-80ad-f9e3f3d5d40d" })
+  serviceId!: string;
+}
+
+export class KeepInactiveServiceLinkResolutionDto {
+  @ApiProperty({ example: "7bf3b88f-c1d1-4c2e-80ad-f9e3f3d5d40d" })
+  quoteServiceId!: string;
+
+  @ApiProperty({ enum: ["KEEP_INACTIVE_LINK"] })
+  action!: "KEEP_INACTIVE_LINK";
+}
+
+export class RenameDetachedServiceResolutionDto {
+  @ApiProperty({ example: "7bf3b88f-c1d1-4c2e-80ad-f9e3f3d5d40d" })
+  quoteServiceId!: string;
+
+  @ApiProperty({ enum: ["RENAME_DETACHED"] })
+  action!: "RENAME_DETACHED";
+
+  @ApiProperty({ example: "Polimento tecnico premium" })
+  serviceName!: string;
+}
+
+export class RecreateServiceFromSnapshotResolutionDto {
+  @ApiProperty({ example: "7bf3b88f-c1d1-4c2e-80ad-f9e3f3d5d40d" })
+  quoteServiceId!: string;
+
+  @ApiProperty({ enum: ["RECREATE_FROM_SNAPSHOT"] })
+  action!: "RECREATE_FROM_SNAPSHOT";
+}
+
 export class QuoteErrorResponseDto {
   @ApiProperty({ example: 400 })
   statusCode!: number;
@@ -2147,6 +2452,9 @@ export class QuoteErrorResponseDto {
 
   @ApiProperty({ example: "Quote is already converted." })
   message!: string;
+
+  @ApiPropertyOptional({ type: () => QuoteApprovalAnalysisDto })
+  analysis?: QuoteApprovalAnalysisDto;
 }
 
 export class QuoteFieldErrorDto {
@@ -2256,22 +2564,35 @@ export class RegisterQuoteProspectBodyDto {
   phone?: string;
 
   @ApiPropertyOptional({
-    type: String,
-    nullable: true,
-    format: "date-time",
-    example: "1990-01-01T00:00:00.000Z",
-  })
-  birthDate?: string | null;
-
-  @ApiPropertyOptional({ type: String, nullable: true, example: "Robertinho" })
-  nickname?: string | null;
-
-  @ApiPropertyOptional({
     example: true,
     description:
       "When true, creates a customer vehicle from the quote vehicle snapshot.",
   })
   createVehicleFromQuote?: boolean;
+
+  @ApiPropertyOptional({
+    oneOf: [
+      { $ref: getSchemaPath(LinkExistingCustomerResolutionDto) },
+      { $ref: getSchemaPath(CreateNewCustomerResolutionDto) },
+    ],
+  })
+  customerResolution?:
+    | LinkExistingCustomerResolutionDto
+    | CreateNewCustomerResolutionDto;
+
+  @ApiPropertyOptional({
+    oneOf: [
+      { $ref: getSchemaPath(LinkExistingVehicleResolutionDto) },
+      { $ref: getSchemaPath(CreateVehicleFromSnapshotResolutionDto) },
+      { $ref: getSchemaPath(KeepVehicleSnapshotOnlyResolutionDto) },
+      { $ref: getSchemaPath(EditVehicleSnapshotPlateResolutionDto) },
+    ],
+  })
+  vehicleResolution?:
+    | LinkExistingVehicleResolutionDto
+    | CreateVehicleFromSnapshotResolutionDto
+    | KeepVehicleSnapshotOnlyResolutionDto
+    | EditVehicleSnapshotPlateResolutionDto;
 }
 
 export class RegisterQuoteProspectResponseDto {
@@ -2299,6 +2620,67 @@ export class ApproveQuoteBodyDto {
     format: "date-time",
   })
   endsAt?: string | null;
+
+  @ApiPropertyOptional({
+    oneOf: [
+      { $ref: getSchemaPath(LinkExistingCustomerResolutionDto) },
+      { $ref: getSchemaPath(CreateNewCustomerResolutionDto) },
+    ],
+  })
+  customerResolution?:
+    | LinkExistingCustomerResolutionDto
+    | CreateNewCustomerResolutionDto;
+
+  @ApiPropertyOptional({
+    oneOf: [
+      { $ref: getSchemaPath(LinkExistingVehicleResolutionDto) },
+      { $ref: getSchemaPath(CreateVehicleFromSnapshotResolutionDto) },
+      { $ref: getSchemaPath(KeepVehicleSnapshotOnlyResolutionDto) },
+      { $ref: getSchemaPath(EditVehicleSnapshotPlateResolutionDto) },
+    ],
+  })
+  vehicleResolution?:
+    | LinkExistingVehicleResolutionDto
+    | CreateVehicleFromSnapshotResolutionDto
+    | KeepVehicleSnapshotOnlyResolutionDto
+    | EditVehicleSnapshotPlateResolutionDto;
+
+  @ApiPropertyOptional({
+    isArray: true,
+    oneOf: [
+      { $ref: getSchemaPath(AssociateExistingServiceResolutionDto) },
+      { $ref: getSchemaPath(KeepInactiveServiceLinkResolutionDto) },
+      { $ref: getSchemaPath(RenameDetachedServiceResolutionDto) },
+      { $ref: getSchemaPath(RecreateServiceFromSnapshotResolutionDto) },
+    ],
+  })
+  serviceResolutions?: Array<
+    | AssociateExistingServiceResolutionDto
+    | KeepInactiveServiceLinkResolutionDto
+    | RenameDetachedServiceResolutionDto
+    | RecreateServiceFromSnapshotResolutionDto
+  >;
+}
+
+export class AnalyzeQuoteApprovalBodyDto {
+  @ApiProperty({
+    example: "2026-06-01T10:00:00.000Z",
+    format: "date-time",
+  })
+  startsAt!: string;
+
+  @ApiPropertyOptional({
+    type: String,
+    nullable: true,
+    example: "2026-06-01T12:00:00.000Z",
+    format: "date-time",
+  })
+  endsAt?: string | null;
+}
+
+export class AnalyzeQuoteApprovalResponseDto {
+  @ApiProperty({ type: () => QuoteApprovalAnalysisDto })
+  analysis!: QuoteApprovalAnalysisDto;
 }
 
 export class ApproveQuoteResponseDto {

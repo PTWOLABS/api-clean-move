@@ -12,5 +12,8 @@ export default defineConfig({
     clearMocks: true,
     restoreMocks: true,
     fileParallelism: false,
+    sequence: {
+      concurrent: false,
+    },
   },
 });

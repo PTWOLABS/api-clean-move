@@ -28,13 +28,20 @@ import {
 import { AppointmentPresenter } from "../../presenters/appointment-presenter";
 import { QuotePresenter } from "../../presenters/quote-presenter";
 import { throwQuoteHttpError } from "./quote-http-errors";
+import {
+  customerResolutionSchema,
+  quoteApprovalScheduleSchema,
+  quoteIdParamSchema,
+  serviceResolutionSchema,
+  toQuoteCustomerResolution,
+  vehicleResolutionSchema,
+} from "./quote-approval-resolution.schemas";
 import { QuoteZodValidationPipe } from "./quote-zod-validation.pipe";
 
-const quoteIdParamSchema = z.uuid();
-
-const approveQuoteBodySchema = z.object({
-  startsAt: z.coerce.date(),
-  endsAt: z.coerce.date().optional().nullable(),
+const approveQuoteBodySchema = quoteApprovalScheduleSchema.extend({
+  customerResolution: customerResolutionSchema.optional(),
+  vehicleResolution: vehicleResolutionSchema.optional(),
+  serviceResolutions: z.array(serviceResolutionSchema).optional(),
 });
 
 type ApproveQuoteBodySchema = z.infer<typeof approveQuoteBodySchema>;
@@ -87,6 +94,19 @@ export class ApproveQuoteController {
       quoteId,
       startsAt: body.startsAt,
       endsAt: body.endsAt ?? null,
+      ...(body.customerResolution
+        ? {
+            customerResolution: toQuoteCustomerResolution(
+              body.customerResolution,
+            ),
+          }
+        : {}),
+      ...(body.vehicleResolution
+        ? { vehicleResolution: body.vehicleResolution }
+        : {}),
+      ...(body.serviceResolutions
+        ? { serviceResolutions: body.serviceResolutions }
+        : {}),
     });
 
     if (result.isLeft()) {

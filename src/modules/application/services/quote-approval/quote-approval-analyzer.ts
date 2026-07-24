@@ -23,9 +23,6 @@ export class QuoteApprovalAnalyzer {
     const customer = await this.customerMatcher.analyze({
       quote: input.quote,
       establishmentId: input.establishmentId,
-      ...(input.prospectEmail
-        ? { externalEvidence: { email: input.prospectEmail } }
-        : {}),
     });
     const resolvedCustomerId =
       customer.automaticCustomerId ??

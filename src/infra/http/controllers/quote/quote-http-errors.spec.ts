@@ -9,6 +9,12 @@ import {
 
 import { InactiveServiceError } from "../../../../modules/catalog/domain/errors/inactive-service-error";
 import { InvalidQuoteInputError } from "../../../../modules/quotes/domain/errors/invalid-quote-input-error";
+import { QuoteApprovalAnalysis } from "../../../../modules/application/services/quote-approval/quote-approval-analysis";
+import {
+  QuoteApprovalConflictsChangedError,
+  QuoteApprovalResolutionRequiredError,
+  QuoteInvalidResolutionActionError,
+} from "../../../../modules/application/services/quote-approval/quote-approval-resolution-error";
 import { NotAllowedError } from "../../../../shared/errors/not-allowed-error";
 import { ResourceAlreadyExistsError } from "../../../../shared/errors/resource-already-exists-error";
 import { ResourceNotFoundError } from "../../../../shared/errors/resource-not-found-error";
@@ -86,4 +92,81 @@ describe("throwQuoteHttpError", () => {
       message: "An unexpected error occurred.",
     });
   });
+
+  it("should map quote approval resolution conflicts with analysis", () => {
+    const analysis = readyAnalysis();
+
+    const required = captureException(
+      new QuoteApprovalResolutionRequiredError(analysis),
+    );
+    const changed = captureException(
+      new QuoteApprovalConflictsChangedError(analysis),
+    );
+
+    expect(required).toBeInstanceOf(ConflictException);
+    expect(required.getResponse()).toEqual({
+      statusCode: 409,
+      code: "QUOTE_APPROVAL_RESOLUTION_REQUIRED",
+      message: "Quote approval requires resource resolution.",
+      analysis,
+    });
+    expect(changed).toBeInstanceOf(ConflictException);
+    expect(changed.getResponse()).toMatchObject({
+      statusCode: 409,
+      code: "QUOTE_APPROVAL_CONFLICTS_CHANGED",
+      analysis,
+    });
+  });
+
+  it("should map stable resolution error codes without message parsing", () => {
+    expect(
+      captureException(
+        new InvalidQuoteInputError(
+          "Service name is unavailable.",
+          "QUOTE_SERVICE_NAME_UNAVAILABLE",
+        ),
+      ).getResponse(),
+    ).toMatchObject({
+      statusCode: 400,
+      code: "QUOTE_SERVICE_NAME_UNAVAILABLE",
+    });
+    expect(
+      captureException(
+        new InvalidQuoteInputError(
+          "Duplicate quote service resolution.",
+          "QUOTE_DUPLICATE_SERVICE_RESOLUTION",
+        ),
+      ).getResponse(),
+    ).toMatchObject({
+      statusCode: 400,
+      code: "QUOTE_DUPLICATE_SERVICE_RESOLUTION",
+    });
+    expect(
+      captureException(new QuoteInvalidResolutionActionError()).getResponse(),
+    ).toMatchObject({
+      statusCode: 400,
+      code: "QUOTE_INVALID_RESOLUTION_ACTION",
+    });
+  });
 });
+
+function readyAnalysis(): QuoteApprovalAnalysis {
+  return {
+    status: "READY",
+    automaticResolutions: [],
+    customer: {
+      status: "RESOLVED",
+      requiresResolution: false,
+      automaticCustomerId: "customer-1",
+      candidates: [],
+    },
+    vehicle: {
+      status: "NONE",
+      requiresResolution: false,
+      candidateVehicleId: null,
+      candidateCustomerId: null,
+      allowedActions: [],
+    },
+    services: [],
+  };
+}

@@ -131,12 +131,13 @@ describe("Quote service matcher", () => {
       status: "LINKED_SERVICE_INACTIVE",
       requiresResolution: true,
       serviceId: inactiveService.id.toString(),
-      candidateServiceId: inactiveService.id.toString(),
-      allowedActions: ["KEEP_INACTIVE_LINK", "ASSOCIATE_EXISTING"],
+      candidateServiceId: null,
+      candidate: null,
+      allowedActions: ["KEEP_INACTIVE_LINK"],
     });
   });
 
-  it("should require recreation or association for linked deleted services", async () => {
+  it("should require recreation for linked deleted services", async () => {
     const establishmentId = new UniqueEntityId("establishment-1");
     const deletedService = makeService({ establishmentId });
     deletedService.softDelete(new Date("2026-07-13T10:00:00.000Z"));
@@ -164,8 +165,9 @@ describe("Quote service matcher", () => {
       status: "LINKED_SERVICE_DELETED",
       requiresResolution: true,
       serviceId: deletedService.id.toString(),
-      candidateServiceId: deletedService.id.toString(),
-      allowedActions: ["ASSOCIATE_EXISTING", "RECREATE_FROM_SNAPSHOT"],
+      candidateServiceId: null,
+      candidate: null,
+      allowedActions: ["RECREATE_FROM_SNAPSHOT"],
     });
   });
 
@@ -237,11 +239,7 @@ describe("Quote service matcher", () => {
       requiresResolution: true,
       serviceId: null,
       candidateServiceId: candidate.id.toString(),
-      allowedActions: [
-        "ASSOCIATE_EXISTING",
-        "RENAME_DETACHED",
-        "RECREATE_FROM_SNAPSHOT",
-      ],
+      allowedActions: ["ASSOCIATE_EXISTING", "RENAME_DETACHED"],
     });
     expect(analysis?.differences).toEqual(
       expect.arrayContaining(["PRICE_SPECIFICATION", "PRICE"]),

@@ -36,7 +36,6 @@ describe("Quote approval analyzer", () => {
     const ready = await sut.analyze({
       quote,
       establishmentId: "establishment-1",
-      prospectEmail: "cliente@example.com",
     });
 
     expect(ready.status).toBe("READY");
@@ -51,7 +50,6 @@ describe("Quote approval analyzer", () => {
     expect(customerMatcher.analyze).toHaveBeenCalledWith({
       quote,
       establishmentId: "establishment-1",
-      externalEvidence: { email: "cliente@example.com" },
     });
     expect(vehicleMatcher.analyze).toHaveBeenCalledWith({
       quote,
@@ -150,16 +148,20 @@ describe("Quote approval analyzer", () => {
     },
   );
 
-  it("should not require resolution for advisory-only customer candidates", async () => {
+  it("should require resolution for advisory-only customer candidates", async () => {
     const sut = new QuoteApprovalAnalyzer(
       {
         analyze: vi.fn().mockResolvedValue(
           customerAnalysis({
             status: "CANDIDATES_FOUND",
-            requiresResolution: false,
+            requiresResolution: true,
             candidates: [
               {
                 customerId: "customer-1",
+                name: "Customer One",
+                phone: null,
+                email: null,
+                cpfCnpj: null,
                 matchedBy: ["NAME"],
                 conflictingFields: [],
                 advisoryOnly: true,
@@ -177,7 +179,7 @@ describe("Quote approval analyzer", () => {
       establishmentId: "establishment-1",
     });
 
-    expect(analysis.status).toBe("READY");
+    expect(analysis.status).toBe("REQUIRES_RESOLUTION");
   });
 });
 

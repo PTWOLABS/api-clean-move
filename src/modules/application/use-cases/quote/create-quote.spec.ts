@@ -353,6 +353,9 @@ describe("Create quote", () => {
 
     expect(result.isLeft()).toBe(true);
     expect(result.value).toBeInstanceOf(InvalidQuoteInputError);
+    expect(result.value).toMatchObject({
+      code: "QUOTE_SERVICE_NAME_ALREADY_EXISTS",
+    });
   });
 
   it("should reject a quote service price outside the catalog policy", async () => {

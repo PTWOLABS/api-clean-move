@@ -30,15 +30,19 @@ import { CustomerPresenter } from "../../presenters/customer-presenter";
 import { CustomerVehiclePresenter } from "../../presenters/customer-vehicle-presenter";
 import { QuotePresenter } from "../../presenters/quote-presenter";
 import { QuoteZodValidationPipe } from "./quote-zod-validation.pipe";
-
-const quoteIdParamSchema = z.uuid();
+import {
+  customerResolutionSchema,
+  quoteIdParamSchema,
+  toQuoteCustomerResolution,
+  vehicleResolutionSchema,
+} from "./quote-approval-resolution.schemas";
 
 const registerQuoteProspectBodySchema = z.object({
   email: z.email().trim(),
   phone: z.string().trim().min(1).optional(),
-  birthDate: z.coerce.date().optional().nullable(),
-  nickname: z.string().trim().optional().nullable(),
   createVehicleFromQuote: z.boolean().optional(),
+  customerResolution: customerResolutionSchema.optional(),
+  vehicleResolution: vehicleResolutionSchema.optional(),
 });
 
 type RegisterQuoteProspectBodySchema = z.infer<
@@ -99,9 +103,17 @@ export class RegisterQuoteProspectAsCustomerController {
       quoteId,
       email: body.email,
       ...(body.phone !== undefined ? { phone: body.phone } : {}),
-      ...(body.birthDate !== undefined ? { birthDate: body.birthDate } : {}),
-      ...(body.nickname !== undefined ? { nickname: body.nickname } : {}),
       createVehicleFromQuote: body.createVehicleFromQuote ?? false,
+      ...(body.customerResolution
+        ? {
+            customerResolution: toQuoteCustomerResolution(
+              body.customerResolution,
+            ),
+          }
+        : {}),
+      ...(body.vehicleResolution
+        ? { vehicleResolution: body.vehicleResolution }
+        : {}),
     });
 
     if (result.isLeft()) {

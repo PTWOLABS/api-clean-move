@@ -78,19 +78,19 @@ export class QuoteServiceMatcher {
 
     if (service.isDeleted()) {
       return {
-        ...baseAnalysis(quoteService, service),
+        ...baseAnalysis(quoteService, null),
         status: "LINKED_SERVICE_DELETED",
         requiresResolution: true,
-        allowedActions: ["ASSOCIATE_EXISTING", "RECREATE_FROM_SNAPSHOT"],
+        allowedActions: ["RECREATE_FROM_SNAPSHOT"],
       };
     }
 
     if (!service.isActive) {
       return {
-        ...baseAnalysis(quoteService, service),
+        ...baseAnalysis(quoteService, null),
         status: "LINKED_SERVICE_INACTIVE",
         requiresResolution: true,
-        allowedActions: ["KEEP_INACTIVE_LINK", "ASSOCIATE_EXISTING"],
+        allowedActions: ["KEEP_INACTIVE_LINK"],
       };
     }
 
@@ -125,11 +125,7 @@ export class QuoteServiceMatcher {
       ...baseAnalysis(quoteService, candidate),
       status: "CANDIDATE_FOUND",
       requiresResolution: true,
-      allowedActions: [
-        "ASSOCIATE_EXISTING",
-        "RENAME_DETACHED",
-        "RECREATE_FROM_SNAPSHOT",
-      ],
+      allowedActions: ["ASSOCIATE_EXISTING", "RENAME_DETACHED"],
     };
   }
 }

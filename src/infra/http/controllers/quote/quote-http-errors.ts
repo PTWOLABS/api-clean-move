@@ -8,11 +8,19 @@ import {
 
 import { InactiveServiceError } from "../../../../modules/catalog/domain/errors/inactive-service-error";
 import { InvalidQuoteInputError } from "../../../../modules/quotes/domain/errors/invalid-quote-input-error";
+import {
+  QuoteApprovalConflictsChangedError,
+  QuoteApprovalResolutionRequiredError,
+  QuoteInvalidResolutionActionError,
+} from "../../../../modules/application/services/quote-approval/quote-approval-resolution-error";
 import { NotAllowedError } from "../../../../shared/errors/not-allowed-error";
 import { ResourceAlreadyExistsError } from "../../../../shared/errors/resource-already-exists-error";
 import { ResourceNotFoundError } from "../../../../shared/errors/resource-not-found-error";
 import { UnexpectedDomainError } from "../../../../shared/errors/unexpected-domain-error";
-import { createQuoteErrorResponse } from "./quote-error-response";
+import {
+  createQuoteConflictResponse,
+  createQuoteErrorResponse,
+} from "./quote-error-response";
 
 export function throwQuoteHttpError(error: Error): never {
   if (error instanceof NotAllowedError) {
@@ -38,6 +46,19 @@ export function throwQuoteHttpError(error: Error): never {
         resourceAlreadyExistsCode(error.resource),
         error.message,
       ),
+    );
+  }
+
+  if (
+    error instanceof QuoteApprovalResolutionRequiredError ||
+    error instanceof QuoteApprovalConflictsChangedError
+  ) {
+    throw new ConflictException(createQuoteConflictResponse(error));
+  }
+
+  if (error instanceof QuoteInvalidResolutionActionError) {
+    throw new BadRequestException(
+      createQuoteErrorResponse(400, error.code, error.message),
     );
   }
 

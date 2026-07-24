@@ -17,9 +17,19 @@ export function validateQuoteApprovalResolutions(
     serviceResolutions?: QuoteServiceResolution[];
   },
 ): void {
+  validateQuoteCustomerAndVehicleResolutions(analysis, input);
+  validateServiceResolutions(analysis, input.serviceResolutions ?? []);
+}
+
+export function validateQuoteCustomerAndVehicleResolutions(
+  analysis: QuoteApprovalAnalysis,
+  input: {
+    customerResolution?: QuoteCustomerResolution;
+    vehicleResolution?: QuoteVehicleResolution;
+  },
+): void {
   validateCustomerResolution(analysis, input.customerResolution);
   validateVehicleResolution(analysis, input.vehicleResolution);
-  validateServiceResolutions(analysis, input.serviceResolutions ?? []);
 }
 
 function validateCustomerResolution(
@@ -85,6 +95,13 @@ function validateVehicleResolution(
 }
 
 function validateServiceResolutions(
+  analysis: QuoteApprovalAnalysis,
+  resolutions: QuoteServiceResolution[],
+) {
+  validateQuoteServiceResolutions(analysis, resolutions);
+}
+
+export function validateQuoteServiceResolutions(
   analysis: QuoteApprovalAnalysis,
   resolutions: QuoteServiceResolution[],
 ) {

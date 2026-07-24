@@ -1,8 +1,10 @@
 import { Injectable } from "@nestjs/common";
 
-import { Customer } from "../../../customer/domain/entities/customer";
 import { Quote } from "../../../quotes/domain/entities/quote";
-import { CustomersRepository } from "../../repositories/customers-repository";
+import {
+  CustomerApprovalCandidate,
+  CustomersRepository,
+} from "../../repositories/customers-repository";
 import {
   CustomerMatchReason,
   QuoteCustomerAnalysis,
@@ -18,9 +20,6 @@ import {
 type QuoteCustomerMatcherInput = {
   quote: Quote;
   establishmentId: string;
-  externalEvidence?: {
-    email?: string | null;
-  };
 };
 
 @Injectable()
@@ -30,7 +29,6 @@ export class QuoteCustomerMatcher {
   async analyze({
     quote,
     establishmentId,
-    externalEvidence,
   }: QuoteCustomerMatcherInput): Promise<QuoteCustomerAnalysis> {
     if (quote.customerId) {
       return this.analyzeLinkedCustomer(quote, establishmentId);
@@ -48,9 +46,7 @@ export class QuoteCustomerMatcher {
     }
 
     const normalizedPhone = normalizeQuoteApprovalPhone(quote.customer.phone);
-    const normalizedEmail = normalizeQuoteApprovalEmail(
-      externalEvidence?.email ?? quote.customer.email,
-    );
+    const normalizedEmail = normalizeQuoteApprovalEmail(quote.customer.email);
     const normalizedName = normalizeQuoteApprovalText(quote.customer.name);
     const evidence = buildEvidence({
       phone: normalizedPhone,
@@ -60,7 +56,7 @@ export class QuoteCustomerMatcher {
     const candidatesById = new Map<string, CandidateAccumulator>();
 
     const evidenceMatches =
-      await this.customersRepository.findManyActiveByEvidenceAndEstablishmentId(
+      await this.customersRepository.findManyApprovalCandidatesByEvidenceAndEstablishmentId(
         evidence,
         establishmentId,
       );
@@ -88,9 +84,7 @@ export class QuoteCustomerMatcher {
 
     return {
       status: "CANDIDATES_FOUND",
-      requiresResolution: candidates.some(
-        (candidate) => !candidate.advisoryOnly,
-      ),
+      requiresResolution: true,
       automaticCustomerId: null,
       candidates,
     };
@@ -139,14 +133,14 @@ export class QuoteCustomerMatcher {
 }
 
 type CandidateAccumulator = {
-  customer: Customer;
+  customer: CustomerApprovalCandidate;
   matchedBy: Set<CustomerMatchReason>;
   conflictingFields: Set<"NAME" | "PHONE" | "EMAIL">;
 };
 
 function addCandidate(
   candidatesById: Map<string, CandidateAccumulator>,
-  customer: Customer,
+  customer: CustomerApprovalCandidate,
   input: {
     matchedBy: CustomerMatchReason[];
     quote: Quote;
@@ -157,7 +151,7 @@ function addCandidate(
     return;
   }
 
-  const customerId = customer.id.toString();
+  const customerId = customer.id;
   const current =
     candidatesById.get(customerId) ??
     ({
@@ -187,7 +181,11 @@ function toCustomerCandidate(
   const matchedBy = orderReasons(Array.from(accumulator.matchedBy));
 
   return {
-    customerId: accumulator.customer.id.toString(),
+    customerId: accumulator.customer.id,
+    name: accumulator.customer.fullName,
+    phone: accumulator.customer.phone,
+    email: accumulator.customer.email,
+    cpfCnpj: accumulator.customer.cpfCnpj,
     matchedBy,
     conflictingFields: orderConflictingFields(
       Array.from(accumulator.conflictingFields),
@@ -197,7 +195,7 @@ function toCustomerCandidate(
 }
 
 function getEvidenceReasons(
-  customer: Customer,
+  customer: CustomerApprovalCandidate,
   evidence: {
     phone?: string;
     email?: string;
@@ -206,13 +204,13 @@ function getEvidenceReasons(
 ): CustomerMatchReason[] {
   const reasons: CustomerMatchReason[] = [];
 
-  if (evidence.phone && customer.phone?.toString() === evidence.phone) {
+  if (evidence.phone && customer.phone === evidence.phone) {
     reasons.push("PHONE");
   }
 
   if (
     evidence.email &&
-    customer.email?.toString().toLowerCase() === evidence.email.toLowerCase()
+    customer.email?.toLowerCase() === evidence.email.toLowerCase()
   ) {
     reasons.push("EMAIL");
   }
@@ -254,7 +252,7 @@ function buildEvidence(input: {
 }
 
 function getConflictingFields(
-  customer: Customer,
+  customer: CustomerApprovalCandidate,
   quote: Quote,
   email?: string,
 ): Array<"NAME" | "PHONE" | "EMAIL"> {
@@ -270,14 +268,11 @@ function getConflictingFields(
 
   const quotePhone = normalizeQuoteApprovalPhone(quote.customer.phone);
 
-  if (quotePhone && customer.phone?.toString() !== quotePhone) {
+  if (quotePhone && customer.phone !== quotePhone) {
     conflicts.push("PHONE");
   }
 
-  if (
-    email &&
-    customer.email?.toString().toLowerCase() !== email.toLowerCase()
-  ) {
+  if (email && customer.email?.toLowerCase() !== email.toLowerCase()) {
     conflicts.push("EMAIL");
   }
 

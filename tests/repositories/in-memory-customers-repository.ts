@@ -1,4 +1,5 @@
 import {
+  CustomerApprovalCandidate,
   CustomerFilters,
   CustomerMatchEvidence,
   CustomerOptionsFilters,
@@ -102,6 +103,24 @@ export class InMemoryCustomersRepository implements CustomersRepository {
         Boolean(fullName && item.fullName.toLowerCase() === fullName)
       );
     });
+  }
+
+  async findManyApprovalCandidatesByEvidenceAndEstablishmentId(
+    evidence: CustomerMatchEvidence,
+    establishmentId: string,
+  ): Promise<CustomerApprovalCandidate[]> {
+    const customers = await this.findManyActiveByEvidenceAndEstablishmentId(
+      evidence,
+      establishmentId,
+    );
+
+    return customers.map((customer) => ({
+      id: customer.id.toString(),
+      fullName: customer.fullName,
+      phone: customer.phone?.toString() ?? null,
+      email: customer.email?.toString() ?? null,
+      cpfCnpj: customer.cpfCnpj?.toString() ?? null,
+    }));
   }
 
   async findManyByEstablishmentId(

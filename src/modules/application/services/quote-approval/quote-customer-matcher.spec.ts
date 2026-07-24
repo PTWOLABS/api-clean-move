@@ -49,7 +49,7 @@ describe("Quote customer matcher", () => {
     const establishmentId = new UniqueEntityId("establishment-1");
     const customer = makeCustomer({
       establishmentId,
-      cpfCnpj: null,
+      cpfCnpj: CustomerDocument.create("52998224725"),
       fullName: "Roberto Existing",
       phone: Phone.create("(11) 98765-4321"),
       email: new Email("robertinho@example.com"),
@@ -59,7 +59,7 @@ describe("Quote customer matcher", () => {
       customer: {
         name: "Robertinho Contador",
         phone: "11987654321",
-        email: null,
+        email: "ROBERTINHO@example.com",
         cpfCnpj: null,
         address: null,
       },
@@ -70,7 +70,6 @@ describe("Quote customer matcher", () => {
     const phoneAndEmailMatch = await sut.analyze({
       quote,
       establishmentId: establishmentId.toString(),
-      externalEvidence: { email: "ROBERTINHO@example.com" },
     });
 
     expect(phoneAndEmailMatch).toMatchObject({
@@ -81,9 +80,16 @@ describe("Quote customer matcher", () => {
       "PHONE",
       "EMAIL",
     ]);
+    expect(phoneAndEmailMatch.candidates[0]).toMatchObject({
+      customerId: customer.id.toString(),
+      name: "Roberto Existing",
+      phone: "11987654321",
+      email: "robertinho@example.com",
+      cpfCnpj: "52998224725",
+    });
   });
 
-  it("should keep name-only candidates advisory", async () => {
+  it("should require resolution for name-only candidates", async () => {
     const establishmentId = new UniqueEntityId("establishment-1");
     const customer = makeCustomer({
       establishmentId,
@@ -111,8 +117,15 @@ describe("Quote customer matcher", () => {
     });
 
     expect(nameOnlyMatch.status).toBe("CANDIDATES_FOUND");
-    expect(nameOnlyMatch.candidates[0]?.advisoryOnly).toBe(true);
-    expect(nameOnlyMatch.requiresResolution).toBe(false);
+    expect(nameOnlyMatch.candidates[0]).toMatchObject({
+      customerId: customer.id.toString(),
+      name: "Robertinho Contador",
+      phone: "11912345678",
+      email: "other@example.com",
+      cpfCnpj: null,
+      advisoryOnly: true,
+    });
+    expect(nameOnlyMatch.requiresResolution).toBe(true);
   });
 
   it("should use quote snapshot email as customer evidence", async () => {
@@ -166,7 +179,7 @@ describe("Quote customer matcher", () => {
       customer: {
         name: "Robertinho Contador",
         phone: "(11) 98765-4321",
-        email: null,
+        email: "robertinho@example.com",
         cpfCnpj: null,
         address: null,
       },
@@ -178,7 +191,6 @@ describe("Quote customer matcher", () => {
     const analysis = await sut.analyze({
       quote,
       establishmentId: establishmentId.toString(),
-      externalEvidence: { email: "robertinho@example.com" },
     });
 
     expect(analysis).toMatchObject({

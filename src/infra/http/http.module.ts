@@ -10,6 +10,13 @@ import { AuthenticateWithOAuthUseCase } from "../../modules/application/use-case
 import { AuthSessionService } from "../../modules/application/services/auth-session.service";
 import { AppointmentResourceStatusResolver } from "../../modules/application/services/appointment-resource-status-resolver";
 import { EstablishmentScopeService } from "../../modules/application/services/establishment-scope";
+import { QuoteApprovalAnalyzer } from "../../modules/application/services/quote-approval/quote-approval-analyzer";
+import { QuoteCustomerMatcher } from "../../modules/application/services/quote-approval/quote-customer-matcher";
+import { QuoteCustomerResolver } from "../../modules/application/services/quote-approval/quote-customer-resolver";
+import { QuoteServiceMatcher } from "../../modules/application/services/quote-approval/quote-service-matcher";
+import { QuoteServiceResolver } from "../../modules/application/services/quote-approval/quote-service-resolver";
+import { QuoteToAppointmentConverter } from "../../modules/application/services/quote-approval/quote-to-appointment-converter";
+import { QuoteVehicleMatcher } from "../../modules/application/services/quote-approval/quote-vehicle-matcher";
 import { UserEstablishmentResolver } from "../../modules/application/services/user-establishment-resolver";
 import { LoginWithCredentialsUseCase } from "../../modules/application/use-cases/auth/login-with-credentials";
 import { RequestPasswordResetUseCase } from "../../modules/application/use-cases/auth/request-password-reset";
@@ -35,6 +42,7 @@ import { ListEmployeesUseCase } from "../../modules/application/use-cases/employ
 import { RegisterEmployeeUseCase } from "../../modules/application/use-cases/employee/register-employee";
 import { UpdateEmployeeUseCase } from "../../modules/application/use-cases/employee/update-employee";
 import { CompleteOnboardingUseCase } from "../../modules/application/use-cases/onboarding/complete-onboarding";
+import { AnalyzeQuoteApprovalUseCase } from "../../modules/application/use-cases/quote/analyze-quote-approval";
 import { ApproveQuoteUseCase } from "../../modules/application/use-cases/quote/approve-quote";
 import { CreateQuoteUseCase } from "../../modules/application/use-cases/quote/create-quote";
 import { GenerateQuotePdfUseCase } from "../../modules/application/use-cases/quote/generate-quote-pdf";
@@ -79,6 +87,7 @@ import { MailModule } from "../mail/mail.module";
 import { PdfModule } from "../pdf/pdf.module";
 import { StorageModule } from "../storage/storage.module";
 import { AuthenticateWithGoogleController } from "./controllers/authenticate-with-google.controller";
+import { AnalyzeQuoteApprovalController } from "./controllers/quote/analyze-quote-approval.controller";
 import { ApproveQuoteController } from "./controllers/quote/approve-quote.controller";
 import { CompleteOnboardingController } from "./controllers/complete-onboarding.controller";
 import { CreateAppointmentController } from "./controllers/create-appointment.controller";
@@ -201,6 +210,7 @@ import { RegisterQuoteProspectAsCustomerController } from "./controllers/quote/r
     GetQuoteController,
     GenerateQuotePdfController,
     RegisterQuoteProspectAsCustomerController,
+    AnalyzeQuoteApprovalController,
     ApproveQuoteController,
     CreateAppointmentController,
     DeleteAppointmentController,
@@ -253,6 +263,7 @@ import { RegisterQuoteProspectAsCustomerController } from "./controllers/quote/r
     ListQuotesUseCase,
     GetQuoteUseCase,
     GenerateQuotePdfUseCase,
+    AnalyzeQuoteApprovalUseCase,
     RegisterQuoteProspectAsCustomerUseCase,
     ApproveQuoteUseCase,
     CreateAppointmentUseCase,
@@ -274,6 +285,13 @@ import { RegisterQuoteProspectAsCustomerController } from "./controllers/quote/r
     DeleteEmployeeUseCase,
     UploadDomainImageUseCase,
     AppointmentResourceStatusResolver,
+    QuoteApprovalAnalyzer,
+    QuoteCustomerMatcher,
+    QuoteVehicleMatcher,
+    QuoteServiceMatcher,
+    QuoteCustomerResolver,
+    QuoteServiceResolver,
+    QuoteToAppointmentConverter,
     AuthSessionService,
     EstablishmentScopeService,
     UserEstablishmentResolver,

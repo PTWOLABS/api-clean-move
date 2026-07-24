@@ -5,6 +5,10 @@ export type CustomerMatchReason = "CPF_CNPJ" | "PHONE" | "EMAIL" | "NAME";
 
 export type QuoteCustomerCandidate = {
   customerId: string;
+  name: string;
+  phone: string | null;
+  email: string | null;
+  cpfCnpj: string | null;
   matchedBy: CustomerMatchReason[];
   conflictingFields: Array<"NAME" | "PHONE" | "EMAIL">;
   advisoryOnly: boolean;
@@ -104,7 +108,6 @@ export type QuoteApprovalAnalysis = {
 export type AnalyzeQuoteApprovalInput = {
   quote: Quote;
   establishmentId: string;
-  prospectEmail?: string;
 };
 
 export type QuoteCustomerRegistrationInput = {
@@ -119,7 +122,8 @@ export type QuoteCustomerResolution =
 export type QuoteVehicleResolution =
   | { action: "LINK_EXISTING"; vehicleId: string }
   | { action: "CREATE_FROM_SNAPSHOT" }
-  | { action: "KEEP_SNAPSHOT_ONLY" };
+  | { action: "KEEP_SNAPSHOT_ONLY" }
+  | { action: "EDIT_SNAPSHOT_PLATE"; plate: string };
 
 export type QuoteServiceResolution =
   | {
