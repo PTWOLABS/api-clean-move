@@ -966,6 +966,76 @@ describe.sequential("Quote controllers (e2e)", () => {
   );
 
   it.sequential(
+    "should approve creating a new customer when the linked customer document only belongs to the deleted customer",
+    async () => {
+      const { accessToken, establishment } = await makeEstablishmentAccessToken(
+        {
+          app,
+          prisma,
+          userFactory,
+          establishmentFactory,
+          envService,
+        },
+      );
+      const deletedCustomer = await customerFactory.makePrismaCustomer({
+        establishmentId: establishment.id,
+        fullName: "Deleted Linked Customer",
+        cpfCnpj: CustomerDocument.create("11144477735"),
+      });
+      const service = await serviceFactory.makePrismaService({
+        establishmentId: establishment.id,
+        serviceName: ServiceName.create(uniqueName("Deleted Customer Service")),
+      });
+      const createResponse = await request(getHttpServer(app))
+        .post("/quotes")
+        .set("Authorization", `Bearer ${accessToken}`)
+        .send({
+          customerId: deletedCustomer.id.toString(),
+          serviceItems: [{ serviceId: service.id.toString() }],
+          paymentOptions: [{ method: "PIX", label: "Pix", installments: 1 }],
+        });
+      const quoteId = quoteResponseSchema.parse(createResponse.body).quote.id;
+
+      await prisma.customer.update({
+        where: { id: deletedCustomer.id.toString() },
+        data: { deletedAt: new Date("2026-07-23T10:00:00.000Z") },
+      });
+
+      const analysis = await analyzeQuote(accessToken, quoteId);
+
+      expect(createResponse.status).toBe(201);
+      expect(analysis.customer).toMatchObject({
+        status: "LINKED_RESOURCE_DELETED",
+        requiresResolution: true,
+      });
+
+      const approveResponse = await approveQuote(accessToken, quoteId, {
+        customerResolution: { action: "CREATE_NEW" },
+      });
+      const approveBody = approveQuoteResponseSchema.parse(
+        approveResponse.body,
+      );
+      const activeCustomersWithDocument = await prisma.customer.findMany({
+        where: {
+          establishmentId: establishment.id.toString(),
+          cpfCnpj: "11144477735",
+          deletedAt: null,
+        },
+      });
+
+      expect(approveResponse.status).toBe(201);
+      expect(approveBody.quote.customerId).not.toBe(
+        deletedCustomer.id.toString(),
+      );
+      expect(approveBody.quote.customer.cpfCnpj).toBe("11144477735");
+      expect(activeCustomersWithDocument).toHaveLength(1);
+      expect(activeCustomersWithDocument[0]?.id).toBe(
+        approveBody.quote.customerId,
+      );
+    },
+  );
+
+  it.sequential(
     "should require explicit customer resolution for phone and email evidence",
     async () => {
       const { accessToken, establishment } = await makeEstablishmentAccessToken(
