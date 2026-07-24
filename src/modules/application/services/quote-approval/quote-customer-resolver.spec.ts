@@ -359,6 +359,50 @@ describe("Quote customer resolver", () => {
     expect(quote.vehicleId).toEqual(result.vehicle?.id);
   });
 
+  it("should edit the vehicle snapshot plate before creating a vehicle", async () => {
+    const establishmentId = new UniqueEntityId("establishment-1");
+    const customer = makeCustomer({ establishmentId });
+    const quote = makeQuote({
+      establishmentId,
+      customerId: customer.id,
+      vehicleId: null,
+      vehicle: {
+        plate: "ABC1D23",
+        brand: "Honda",
+        model: "HR-V",
+        color: "Branco",
+        year: 2025,
+      },
+    });
+
+    await customersRepository.create(customer);
+
+    const result = await sut.resolve({
+      quote,
+      establishmentId,
+      analysis: analysis({
+        customer: customerAnalysis({
+          status: "RESOLVED",
+          automaticCustomerId: customer.id.toString(),
+        }),
+        vehicle: vehicleAnalysis({
+          status: "OWNERSHIP_CONFLICT",
+          requiresResolution: true,
+          allowedActions: ["EDIT_SNAPSHOT_PLATE", "KEEP_SNAPSHOT_ONLY"],
+        }),
+      }),
+      vehicleResolution: {
+        action: "EDIT_SNAPSHOT_PLATE",
+        plate: "DEF-4G56",
+      },
+    });
+
+    expect(result.vehicle).not.toBeNull();
+    expect(result.vehicle?.plate).toBe("DEF4G56");
+    expect(quote.vehicle?.plate).toBe("DEF4G56");
+    expect(quote.vehicleId).toEqual(result.vehicle?.id);
+  });
+
   it("should keep the vehicle snapshot only", async () => {
     const establishmentId = new UniqueEntityId("establishment-1");
     const customer = makeCustomer({ establishmentId });

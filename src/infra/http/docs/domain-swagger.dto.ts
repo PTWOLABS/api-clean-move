@@ -2385,6 +2385,14 @@ export class KeepVehicleSnapshotOnlyResolutionDto {
   action!: "KEEP_SNAPSHOT_ONLY";
 }
 
+export class EditVehicleSnapshotPlateResolutionDto {
+  @ApiProperty({ enum: ["EDIT_SNAPSHOT_PLATE"] })
+  action!: "EDIT_SNAPSHOT_PLATE";
+
+  @ApiProperty({ example: "ABC-1D23" })
+  plate!: string;
+}
+
 export class AssociateExistingServiceResolutionDto {
   @ApiProperty({ example: "7bf3b88f-c1d1-4c2e-80ad-f9e3f3d5d40d" })
   quoteServiceId!: string;
@@ -2565,12 +2573,14 @@ export class RegisterQuoteProspectBodyDto {
       { $ref: getSchemaPath(LinkExistingVehicleResolutionDto) },
       { $ref: getSchemaPath(CreateVehicleFromSnapshotResolutionDto) },
       { $ref: getSchemaPath(KeepVehicleSnapshotOnlyResolutionDto) },
+      { $ref: getSchemaPath(EditVehicleSnapshotPlateResolutionDto) },
     ],
   })
   vehicleResolution?:
     | LinkExistingVehicleResolutionDto
     | CreateVehicleFromSnapshotResolutionDto
-    | KeepVehicleSnapshotOnlyResolutionDto;
+    | KeepVehicleSnapshotOnlyResolutionDto
+    | EditVehicleSnapshotPlateResolutionDto;
 }
 
 export class RegisterQuoteProspectResponseDto {
@@ -2614,12 +2624,14 @@ export class ApproveQuoteBodyDto {
       { $ref: getSchemaPath(LinkExistingVehicleResolutionDto) },
       { $ref: getSchemaPath(CreateVehicleFromSnapshotResolutionDto) },
       { $ref: getSchemaPath(KeepVehicleSnapshotOnlyResolutionDto) },
+      { $ref: getSchemaPath(EditVehicleSnapshotPlateResolutionDto) },
     ],
   })
   vehicleResolution?:
     | LinkExistingVehicleResolutionDto
     | CreateVehicleFromSnapshotResolutionDto
-    | KeepVehicleSnapshotOnlyResolutionDto;
+    | KeepVehicleSnapshotOnlyResolutionDto
+    | EditVehicleSnapshotPlateResolutionDto;
 
   @ApiPropertyOptional({
     isArray: true,

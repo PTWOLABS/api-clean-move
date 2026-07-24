@@ -1205,6 +1205,89 @@ describe.sequential("Quote controllers (e2e)", () => {
   );
 
   it.sequential(
+    "should approve vehicle ownership conflicts by editing the snapshot plate",
+    async () => {
+      const { accessToken, establishment } = await makeEstablishmentAccessToken(
+        {
+          app,
+          prisma,
+          userFactory,
+          establishmentFactory,
+          envService,
+        },
+      );
+      const quoteCustomer = await customerFactory.makePrismaCustomer({
+        establishmentId: establishment.id,
+        fullName: "Vehicle Edit Customer",
+      });
+      const vehicleOwner = await customerFactory.makePrismaCustomer({
+        establishmentId: establishment.id,
+        fullName: "Vehicle Edit Owner",
+        cpfCnpj: null,
+      });
+      await prisma.customerVehicle.create({
+        data: {
+          establishmentId: establishment.id.toString(),
+          customerId: vehicleOwner.id.toString(),
+          plate: "EDT1R23",
+          brand: "Toyota",
+          model: "Corolla",
+        },
+      });
+      const service = await serviceFactory.makePrismaService({
+        establishmentId: establishment.id,
+        serviceName: ServiceName.create(
+          uniqueName("Vehicle Edit Conflict Service"),
+        ),
+      });
+      const createResponse = await request(getHttpServer(app))
+        .post("/quotes")
+        .set("Authorization", `Bearer ${accessToken}`)
+        .send({
+          customerId: quoteCustomer.id.toString(),
+          vehicle: {
+            plate: "EDT-1R23",
+            brand: "Honda",
+            model: "Civic",
+            color: "Prata",
+            year: 2024,
+          },
+          serviceItems: [{ serviceId: service.id.toString() }],
+          paymentOptions: [{ method: "PIX", label: "Pix", installments: 1 }],
+        });
+      const quoteId = quoteResponseSchema.parse(createResponse.body).quote.id;
+
+      const analysis = await analyzeQuote(accessToken, quoteId);
+
+      expect(createResponse.status).toBe(201);
+      expect(analysis.vehicle.allowedActions).toContain("EDIT_SNAPSHOT_PLATE");
+
+      const approveResponse = await approveQuote(accessToken, quoteId, {
+        vehicleResolution: {
+          action: "EDIT_SNAPSHOT_PLATE",
+          plate: "NEW-1A23",
+        },
+      });
+      const approveBody = approveQuoteResponseSchema.parse(
+        approveResponse.body,
+      );
+      const appointment = await prisma.appointment.findUniqueOrThrow({
+        where: { id: approveBody.appointment.id },
+      });
+
+      expect(approveResponse.status).toBe(201);
+      expect(approveBody.quote.vehicleId).not.toBeNull();
+      expect(approveBody.quote.vehicle).toMatchObject({
+        plate: "NEW1A23",
+        brand: "Honda",
+        model: "Civic",
+      });
+      expect(appointment.vehicleId).toBe(approveBody.quote.vehicleId);
+      expect(appointment.vehiclePlate).toBe("NEW1A23");
+    },
+  );
+
+  it.sequential(
     "should associate a detached service candidate and preserve the quote snapshot price",
     async () => {
       const { accessToken, establishment } = await makeEstablishmentAccessToken(

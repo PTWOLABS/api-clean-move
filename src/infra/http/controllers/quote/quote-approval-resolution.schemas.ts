@@ -37,6 +37,15 @@ export const vehicleResolutionSchema = z.discriminatedUnion("action", [
       action: z.literal("KEEP_SNAPSHOT_ONLY"),
     })
     .strict(),
+  z
+    .object({
+      action: z.literal("EDIT_SNAPSHOT_PLATE"),
+      plate: z
+        .string()
+        .trim()
+        .refine((plate) => normalizePlate(plate).length === 7),
+    })
+    .strict(),
 ]);
 
 export const serviceResolutionSchema = z.discriminatedUnion("action", [
@@ -85,4 +94,8 @@ export function toQuoteCustomerResolution(
     ...(input.email !== undefined ? { email: input.email } : {}),
     ...(input.phone !== undefined ? { phone: input.phone } : {}),
   };
+}
+
+function normalizePlate(plate: string) {
+  return plate.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
 }

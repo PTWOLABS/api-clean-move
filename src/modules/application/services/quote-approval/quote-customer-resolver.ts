@@ -207,6 +207,12 @@ export class QuoteCustomerResolver {
       });
     }
 
+    if (input.vehicleResolution.action === "EDIT_SNAPSHOT_PLATE") {
+      input.quote.updateVehicleSnapshotPlate(
+        CustomerVehicle.normalizePlate(input.vehicleResolution.plate),
+      );
+    }
+
     return this.createVehicleFromQuote(input);
   }
 

@@ -267,6 +267,27 @@ export class Quote extends AggregateRoot<QuoteProps> {
     this.touch(referenceDate);
   }
 
+  updateVehicleSnapshotPlate(
+    plate: string | null,
+    referenceDate: Date = new Date(),
+  ): void {
+    this.assertValidDate(referenceDate, "referenceDate must be a valid date.");
+    this.assertNotConverted();
+
+    if (!this.props.vehicle) {
+      throw new InvalidQuoteInputError(
+        "Quote has no vehicle snapshot.",
+        "QUOTE_VEHICLE_SNAPSHOT_MISSING",
+      );
+    }
+
+    this.props.vehicle = {
+      ...this.props.vehicle,
+      plate: Quote.normalizeOptionalText(plate),
+    };
+    this.touch(referenceDate);
+  }
+
   resolveCustomerReferences(
     customerId: UniqueEntityId,
     vehicleId: UniqueEntityId | null,
