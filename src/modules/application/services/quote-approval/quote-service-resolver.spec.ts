@@ -249,8 +249,8 @@ describe("Quote service resolver", () => {
           status: "LINKED_SERVICE_INACTIVE",
           requiresResolution: true,
           serviceId: inactiveService.id.toString(),
-          candidateServiceId: inactiveService.id.toString(),
-          allowedActions: ["KEEP_INACTIVE_LINK", "ASSOCIATE_EXISTING"],
+          candidateServiceId: null,
+          allowedActions: ["KEEP_INACTIVE_LINK"],
         }),
       ]),
       resolutions: [

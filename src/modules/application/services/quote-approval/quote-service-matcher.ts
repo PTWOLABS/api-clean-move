@@ -87,10 +87,10 @@ export class QuoteServiceMatcher {
 
     if (!service.isActive) {
       return {
-        ...baseAnalysis(quoteService, service),
+        ...baseAnalysis(quoteService, null),
         status: "LINKED_SERVICE_INACTIVE",
         requiresResolution: true,
-        allowedActions: ["KEEP_INACTIVE_LINK", "ASSOCIATE_EXISTING"],
+        allowedActions: ["KEEP_INACTIVE_LINK"],
       };
     }
 

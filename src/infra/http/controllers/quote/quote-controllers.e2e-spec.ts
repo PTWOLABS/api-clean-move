@@ -1487,7 +1487,9 @@ describe.sequential("Quote controllers (e2e)", () => {
       expect(inactiveAnalysis.services[0]).toMatchObject({
         status: "LINKED_SERVICE_INACTIVE",
         serviceId: inactiveQuote.serviceId,
-        allowedActions: ["KEEP_INACTIVE_LINK", "ASSOCIATE_EXISTING"],
+        candidateServiceId: null,
+        candidate: null,
+        allowedActions: ["KEEP_INACTIVE_LINK"],
       });
 
       const unresolvedInactiveResponse = await approveQuote(

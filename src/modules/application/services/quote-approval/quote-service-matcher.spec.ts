@@ -131,8 +131,9 @@ describe("Quote service matcher", () => {
       status: "LINKED_SERVICE_INACTIVE",
       requiresResolution: true,
       serviceId: inactiveService.id.toString(),
-      candidateServiceId: inactiveService.id.toString(),
-      allowedActions: ["KEEP_INACTIVE_LINK", "ASSOCIATE_EXISTING"],
+      candidateServiceId: null,
+      candidate: null,
+      allowedActions: ["KEEP_INACTIVE_LINK"],
     });
   });
 
