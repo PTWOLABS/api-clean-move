@@ -48,7 +48,7 @@ describe("ListCustomerVehicleOptionsController (e2e)", () => {
     await app.close();
   });
 
-  it("should list active vehicle options with search, customer filter, limit, and minimal shape", async () => {
+  it("should list active vehicle options with search, customer filter, size, and minimal shape", async () => {
     const firstOwner = await makeEstablishmentAuth({
       app,
       prisma,
@@ -128,7 +128,7 @@ describe("ListCustomerVehicleOptionsController (e2e)", () => {
       .query({
         search: "volks",
         customerId: firstCustomer.id.toString(),
-        limit: 1,
+        size: 1,
       });
     const plateResponse = await request(getHttpServer(app))
       .get("/vehicles/options")
@@ -144,6 +144,7 @@ describe("ListCustomerVehicleOptionsController (e2e)", () => {
         label: "Gol Trend",
       },
     ]);
+    expect(brandBody.totalItems).toBe(1);
     expect(brandBody.vehicles.map((vehicle) => vehicle.id)).not.toContain(
       deletedVehicle.id,
     );
@@ -154,6 +155,71 @@ describe("ListCustomerVehicleOptionsController (e2e)", () => {
         label: "Gol Trend",
       },
     ]);
+    expect(plateBody.totalItems).toBe(1);
+  });
+
+  it("should paginate vehicle options across pages", async () => {
+    const owner = await makeEstablishmentAuth({
+      app,
+      prisma,
+      userFactory,
+      establishmentFactory,
+      envService,
+    });
+    const customer = await customerFactory.makePrismaCustomer({
+      establishmentId: owner.establishment.id,
+      cpfCnpj: null,
+    });
+    const firstVehicle = await prisma.customerVehicle.create({
+      data: buildCustomerVehiclePrismaData({
+        establishmentId: owner.establishment.id.toString(),
+        customerId: customer.id.toString(),
+        plate: "AAA1A11",
+        brand: "Volkswagen",
+        model: "Gol",
+      }),
+    });
+    const secondVehicle = await prisma.customerVehicle.create({
+      data: buildCustomerVehiclePrismaData({
+        establishmentId: owner.establishment.id.toString(),
+        customerId: customer.id.toString(),
+        plate: "BBB2B22",
+        brand: "Volkswagen",
+        model: "Polo",
+      }),
+    });
+
+    const firstPageResponse = await request(getHttpServer(app))
+      .get("/vehicles/options")
+      .set("Authorization", `Bearer ${owner.accessToken}`)
+      .query({ search: "volks", page: 1, size: 1 });
+    const secondPageResponse = await request(getHttpServer(app))
+      .get("/vehicles/options")
+      .set("Authorization", `Bearer ${owner.accessToken}`)
+      .query({ search: "volks", page: 2, size: 1 });
+    const firstPageBody = vehicleOptionsResponseSchema.parse(
+      firstPageResponse.body,
+    );
+    const secondPageBody = vehicleOptionsResponseSchema.parse(
+      secondPageResponse.body,
+    );
+
+    expect(firstPageResponse.status).toBe(200);
+    expect(firstPageBody.vehicles).toEqual([
+      {
+        id: firstVehicle.id,
+        label: "Gol",
+      },
+    ]);
+    expect(firstPageBody.totalItems).toBe(2);
+    expect(secondPageResponse.status).toBe(200);
+    expect(secondPageBody.vehicles).toEqual([
+      {
+        id: secondVehicle.id,
+        label: "Polo",
+      },
+    ]);
+    expect(secondPageBody.totalItems).toBe(2);
   });
 
   it("should allow employee scope", async () => {
@@ -282,17 +348,22 @@ describe("ListCustomerVehicleOptionsController (e2e)", () => {
       .get("/vehicles/options")
       .set("Authorization", `Bearer ${firstOwner.accessToken}`)
       .query({ customerId: "not-a-uuid" });
-    const invalidLimitResponse = await request(getHttpServer(app))
+    const invalidSizeResponse = await request(getHttpServer(app))
       .get("/vehicles/options")
       .set("Authorization", `Bearer ${firstOwner.accessToken}`)
-      .query({ limit: 0 });
+      .query({ size: 0 });
+    const invalidPageResponse = await request(getHttpServer(app))
+      .get("/vehicles/options")
+      .set("Authorization", `Bearer ${firstOwner.accessToken}`)
+      .query({ page: 0 });
     const outsideCustomerResponse = await request(getHttpServer(app))
       .get("/vehicles/options")
       .set("Authorization", `Bearer ${firstOwner.accessToken}`)
       .query({ customerId: outsideCustomer.id.toString() });
 
     expect(invalidCustomerIdResponse.status).toBe(400);
-    expect(invalidLimitResponse.status).toBe(400);
+    expect(invalidSizeResponse.status).toBe(400);
+    expect(invalidPageResponse.status).toBe(400);
     expect(outsideCustomerResponse.status).toBe(404);
   });
 });

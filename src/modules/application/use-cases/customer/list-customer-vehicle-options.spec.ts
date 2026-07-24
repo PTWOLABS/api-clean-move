@@ -102,7 +102,7 @@ describe("List customer vehicle options", () => {
       },
       search: "volks",
       customerId: customer.id.toString(),
-      limit: 1,
+      size: 1,
     });
     const plateResult = await sut.execute({
       actor: {
@@ -133,18 +133,45 @@ describe("List customer vehicle options", () => {
         label: "Gol Trend",
       },
     ]);
+    expect(brandResult.value.totalItems).toBe(1);
     expect(plateResult.value.vehicles).toEqual([
       {
         id: firstVehicle.id.toString(),
         label: "Gol Trend",
       },
     ]);
+    expect(plateResult.value.totalItems).toBe(1);
     expect(modelResult.value.vehicles).toEqual([
       {
         id: secondVehicle.id.toString(),
         label: "Onix",
       },
     ]);
+    expect(modelResult.value.totalItems).toBe(1);
+
+    const pageResult = await sut.execute({
+      actor: {
+        userId: establishment.ownerId.toString(),
+        role: "ESTABLISHMENT",
+      },
+      search: "volks",
+      page: 2,
+      size: 1,
+    });
+
+    expect(pageResult.isRight()).toBe(true);
+
+    if (pageResult.isLeft()) {
+      throw pageResult.value;
+    }
+
+    expect(pageResult.value.vehicles).toEqual([
+      {
+        id: thirdVehicle.id.toString(),
+        label: "Polo",
+      },
+    ]);
+    expect(pageResult.value.totalItems).toBe(2);
   });
 
   it("should allow employee scope", async () => {
@@ -182,6 +209,7 @@ describe("List customer vehicle options", () => {
         label: "Corolla",
       },
     ]);
+    expect(result.value.totalItems).toBe(1);
   });
 
   it("should reject missing establishment and invalid customer scope", async () => {

@@ -11,13 +11,15 @@ import { EstablishmentsRepository } from "../../repositories/establishment-repos
 type ListServiceCategoryOptionsUseCaseRequest = {
   establishmentOwnerId: string;
   search?: string;
-  limit?: number;
+  page?: number;
+  size?: number;
 };
 
 type ListServiceCategoryOptionsUseCaseResponse = Either<
   ResourceNotFoundError,
   {
     categories: ServiceCategoryOption[];
+    totalItems: number;
   }
 >;
 
@@ -31,7 +33,8 @@ export class ListServiceCategoryOptionsUseCase {
   async execute({
     establishmentOwnerId,
     search,
-    limit,
+    page,
+    size,
   }: ListServiceCategoryOptionsUseCaseRequest): Promise<ListServiceCategoryOptionsUseCaseResponse> {
     const establishment =
       await this.establishmentsRepository.findByOwnerId(establishmentOwnerId);
@@ -40,15 +43,16 @@ export class ListServiceCategoryOptionsUseCase {
       return left(new ResourceNotFoundError({ resource: "establishment" }));
     }
 
-    const categories =
+    const { categories, totalItems } =
       await this.serviceCategoriesRepository.findOptionsByEstablishmentId(
         establishment.id.toString(),
         {
           ...(search !== undefined ? { search } : {}),
-          ...(limit !== undefined ? { limit } : {}),
+          ...(page !== undefined ? { page } : {}),
+          ...(size !== undefined ? { size } : {}),
         },
       );
 
-    return right({ categories });
+    return right({ categories, totalItems });
   }
 }

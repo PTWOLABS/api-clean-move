@@ -15,13 +15,15 @@ import {
 type ListServiceOptionsUseCaseRequest = {
   actor: EstablishmentScopeActor;
   search?: string;
-  limit?: number;
+  page?: number;
+  size?: number;
 };
 
 type ListServiceOptionsUseCaseResponse = Either<
   ResourceNotFoundError | NotAllowedError,
   {
     services: ServiceOption[];
+    totalItems: number;
   }
 >;
 
@@ -35,7 +37,8 @@ export class ListServiceOptionsUseCase {
   async execute({
     actor,
     search,
-    limit,
+    page,
+    size,
   }: ListServiceOptionsUseCaseRequest): Promise<ListServiceOptionsUseCaseResponse> {
     const scopeResult = await this.establishmentScope.resolve(actor);
 
@@ -45,16 +48,19 @@ export class ListServiceOptionsUseCase {
 
     const { establishment } = scopeResult.value;
 
-    const services = await this.servicesRepository.findOptionsByEstablishmentId(
-      establishment.id.toString(),
-      {
-        ...(search !== undefined ? { search } : {}),
-        ...(limit !== undefined ? { limit } : {}),
-      },
-    );
+    const { services, totalItems } =
+      await this.servicesRepository.findOptionsByEstablishmentId(
+        establishment.id.toString(),
+        {
+          ...(search !== undefined ? { search } : {}),
+          ...(page !== undefined ? { page } : {}),
+          ...(size !== undefined ? { size } : {}),
+        },
+      );
 
     return right({
       services,
+      totalItems,
     });
   }
 }

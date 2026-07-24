@@ -2,8 +2,8 @@ import { Injectable } from "@nestjs/common";
 
 import {
   CustomerVehicleFilters,
-  CustomerVehicleOption,
   CustomerVehicleOptionsFilters,
+  CustomerVehicleOptionsResult,
   CustomerVehiclesRepository,
   EstablishmentCustomerVehicleFilters,
   PaginatedCustomerVehicles,
@@ -322,43 +322,50 @@ export class PrismaCustomerVehiclesRepository implements CustomerVehiclesReposit
   async findOptionsByEstablishmentId(
     establishmentId: string,
     filters?: CustomerVehicleOptionsFilters,
-  ): Promise<CustomerVehicleOption[]> {
-    const limit = filters?.limit ?? 20;
+  ): Promise<CustomerVehicleOptionsResult> {
+    const page = filters?.page ?? 1;
+    const size = filters?.size ?? 20;
     const search = filters?.search?.trim();
     const plateSearch = search?.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
 
-    try {
-      const vehicles = await PrismaUnitOfWork.getClient(
-        this.prisma,
-      ).customerVehicle.findMany({
-        select: {
-          id: true,
-          model: true,
-        },
-        where: {
-          establishmentId,
-          deletedAt: null,
-          ...(filters?.customerId ? { customerId: filters.customerId } : {}),
-          ...(search
-            ? {
-                OR: [
-                  ...(plateSearch
-                    ? [{ plate: { contains: plateSearch } }]
-                    : []),
-                  { model: { contains: search, mode: "insensitive" } },
-                  { brand: { contains: search, mode: "insensitive" } },
-                ],
-              }
-            : {}),
-        },
-        orderBy: [{ model: "asc" }, { plate: "asc" }],
-        take: limit,
-      });
+    const where: Prisma.CustomerVehicleWhereInput = {
+      establishmentId,
+      deletedAt: null,
+      ...(filters?.customerId ? { customerId: filters.customerId } : {}),
+      ...(search
+        ? {
+            OR: [
+              ...(plateSearch ? [{ plate: { contains: plateSearch } }] : []),
+              { model: { contains: search, mode: "insensitive" } },
+              { brand: { contains: search, mode: "insensitive" } },
+            ],
+          }
+        : {}),
+    };
 
-      return vehicles.map((vehicle) => ({
-        id: vehicle.id,
-        label: vehicle.model ?? "",
-      }));
+    try {
+      const client = PrismaUnitOfWork.getClient(this.prisma);
+      const [totalItems, vehicles] = await Promise.all([
+        client.customerVehicle.count({ where }),
+        client.customerVehicle.findMany({
+          select: {
+            id: true,
+            model: true,
+          },
+          where,
+          orderBy: [{ model: "asc" }, { plate: "asc" }],
+          skip: (page - 1) * size,
+          take: size,
+        }),
+      ]);
+
+      return {
+        vehicles: vehicles.map((vehicle) => ({
+          id: vehicle.id,
+          label: vehicle.model ?? "",
+        })),
+        totalItems,
+      };
     } catch (error) {
       rethrowPrismaRepositoryError(error);
     }

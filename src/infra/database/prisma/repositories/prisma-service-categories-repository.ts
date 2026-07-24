@@ -4,8 +4,8 @@ import { Prisma } from "../../../../generated/prisma/client";
 import {
   ServiceCategoriesRepository,
   ServiceCategoryFilters,
-  ServiceCategoryOption,
   ServiceCategoryOptionsFilters,
+  ServiceCategoryOptionsResult,
 } from "../../../../modules/application/repositories/service-categories-repository";
 import { ServiceCategory } from "../../../../modules/catalog/domain/entities/service-category";
 import { PrismaServiceCategoryMapper } from "../mappers/prisma-service-category-mapper";
@@ -138,8 +138,9 @@ export class PrismaServiceCategoriesRepository implements ServiceCategoriesRepos
   async findOptionsByEstablishmentId(
     establishmentId: string,
     filters?: ServiceCategoryOptionsFilters,
-  ): Promise<ServiceCategoryOption[]> {
-    const limit = filters?.limit ?? 20;
+  ): Promise<ServiceCategoryOptionsResult> {
+    const page = filters?.page ?? 1;
+    const size = filters?.size ?? 20;
     const search = filters?.search?.trim();
 
     const where: Prisma.ServiceCategoryWhereInput = {
@@ -156,22 +157,28 @@ export class PrismaServiceCategoriesRepository implements ServiceCategoriesRepos
     };
 
     try {
-      const categories = await PrismaUnitOfWork.getClient(
-        this.prisma,
-      ).serviceCategory.findMany({
-        where,
-        orderBy: { name: "asc" },
-        take: limit,
-        select: {
-          id: true,
-          name: true,
-        },
-      });
+      const client = PrismaUnitOfWork.getClient(this.prisma);
+      const [totalItems, categories] = await Promise.all([
+        client.serviceCategory.count({ where }),
+        client.serviceCategory.findMany({
+          where,
+          orderBy: { name: "asc" },
+          skip: (page - 1) * size,
+          take: size,
+          select: {
+            id: true,
+            name: true,
+          },
+        }),
+      ]);
 
-      return categories.map((category) => ({
-        id: category.id,
-        label: category.name,
-      }));
+      return {
+        categories: categories.map((category) => ({
+          id: category.id,
+          label: category.name,
+        })),
+        totalItems,
+      };
     } catch (error) {
       rethrowPrismaRepositoryError(error);
     }

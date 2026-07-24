@@ -13,7 +13,8 @@ export type CustomerOption = {
 
 export type CustomerOptionsFilters = {
   search?: string;
-  limit?: number;
+  page?: number;
+  size?: number;
 };
 
 export type CustomerMatchEvidence = {
@@ -32,6 +33,11 @@ export type CustomerApprovalCandidate = {
 
 export type PaginatedCustomers = {
   customers: Customer[];
+  totalItems: number;
+};
+
+export type CustomerOptionsResult = {
+  customers: CustomerOption[];
   totalItems: number;
 };
 
@@ -69,6 +75,6 @@ export abstract class CustomersRepository {
   abstract findOptionsByEstablishmentId(
     establishmentId: string,
     filters?: CustomerOptionsFilters,
-  ): Promise<CustomerOption[]>;
+  ): Promise<CustomerOptionsResult>;
   abstract save(customer: Customer): Promise<void>;
 }

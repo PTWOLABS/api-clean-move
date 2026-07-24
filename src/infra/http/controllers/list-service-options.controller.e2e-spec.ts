@@ -49,7 +49,7 @@ describe("ListServiceOptionsController (e2e)", () => {
     await app.close();
   });
 
-  it("should list active service options with search, limit, and minimal shape", async () => {
+  it("should list active service options with search, size, and minimal shape", async () => {
     const firstOwner = await makeEstablishmentAuth({
       app,
       prisma,
@@ -107,7 +107,7 @@ describe("ListServiceOptionsController (e2e)", () => {
     const response = await request(getHttpServer(app))
       .get("/services/options")
       .set("Authorization", `Bearer ${firstOwner.accessToken}`)
-      .query({ search: "lavagem", limit: 2 });
+      .query({ search: "lavagem", size: 2 });
     const body = serviceOptionsResponseSchema.parse(response.body);
 
     expect(response.status).toBe(200);
@@ -131,6 +131,7 @@ describe("ListServiceOptionsController (e2e)", () => {
         },
       },
     ]);
+    expect(body.totalItems).toBe(3);
     expect(body.services.map((service) => service.id)).not.toContain(
       secondService.id.toString(),
     );
@@ -143,6 +144,28 @@ describe("ListServiceOptionsController (e2e)", () => {
     expect(body.services.map((service) => service.id)).not.toContain(
       deletedService.id.toString(),
     );
+
+    const secondPageResponse = await request(getHttpServer(app))
+      .get("/services/options")
+      .set("Authorization", `Bearer ${firstOwner.accessToken}`)
+      .query({ search: "lavagem", page: 2, size: 2 });
+    const secondPageBody = serviceOptionsResponseSchema.parse(
+      secondPageResponse.body,
+    );
+
+    expect(secondPageResponse.status).toBe(200);
+    expect(secondPageBody.services).toEqual([
+      {
+        id: secondService.id.toString(),
+        label: "Lavagem Simples",
+        priceInCents: 30000,
+        priceSpecification: {
+          type: "FIXED",
+          fixedPriceInCents: 30000,
+        },
+      },
+    ]);
+    expect(secondPageBody.totalItems).toBe(3);
   });
 
   it("should allow employee scope", async () => {
@@ -289,11 +312,16 @@ describe("ListServiceOptionsController (e2e)", () => {
       envService,
     });
 
-    const response = await request(getHttpServer(app))
+    const invalidSizeResponse = await request(getHttpServer(app))
       .get("/services/options")
       .set("Authorization", `Bearer ${owner.accessToken}`)
-      .query({ limit: 0 });
+      .query({ size: 0 });
+    const invalidPageResponse = await request(getHttpServer(app))
+      .get("/services/options")
+      .set("Authorization", `Bearer ${owner.accessToken}`)
+      .query({ page: 0 });
 
-    expect(response.status).toBe(400);
+    expect(invalidSizeResponse.status).toBe(400);
+    expect(invalidPageResponse.status).toBe(400);
   });
 });

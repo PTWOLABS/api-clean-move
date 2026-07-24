@@ -6,10 +6,10 @@ Add lightweight option endpoints for autocomplete/select inputs that need only a
 
 Endpoints:
 
-- `GET /customers/options?search=ana&limit=20`
-- `GET /vehicles/options?search=gol&customerId=...&limit=20`
+- `GET /customers/options?search=ana&page=1&size=20`
+- `GET /vehicles/options?search=gol&customerId=...&page=1&size=20`
 
-Both endpoints return only option items:
+Both endpoints return option items plus pagination metadata:
 
 ```ts
 type Option = {
@@ -44,7 +44,8 @@ Query:
 ```ts
 type CustomerOptionsQuery = {
   search?: string;
-  limit?: number;
+  page?: number;
+  size?: number;
 };
 ```
 
@@ -52,9 +53,12 @@ Rules:
 
 - `search` is optional, trimmed, and searches by `fullName` or `nickname`.
 - Search is case-insensitive.
-- `limit` is optional, defaults to `20`, and must be a positive integer.
+- `page` is optional, defaults to `1`, and must be a positive integer.
+- `size` is optional, defaults to `20`, and must be a positive integer.
+- Results use `skip: (page - 1) * size` and `take: size`.
 - Results are ordered by `fullName` ascending.
 - Deleted customers are excluded.
+- `totalItems` is the filtered total (not the page length).
 
 Response:
 
@@ -64,6 +68,7 @@ type CustomerOptionsResponse = {
     id: string;
     label: string; // customer fullName
   }>;
+  totalItems: number;
 };
 ```
 
@@ -77,7 +82,8 @@ Query:
 type VehicleOptionsQuery = {
   search?: string;
   customerId?: string;
-  limit?: number;
+  page?: number;
+  size?: number;
 };
 ```
 
@@ -87,9 +93,12 @@ Rules:
 - Search is case-insensitive for `model` and `brand`.
 - Plate search also supports user input with punctuation by normalizing the search term to alphanumeric uppercase before matching.
 - `customerId` is optional. When present, it must be a valid UUID for an active customer in the resolved establishment.
-- `limit` is optional, defaults to `20`, and must be a positive integer.
+- `page` is optional, defaults to `1`, and must be a positive integer.
+- `size` is optional, defaults to `20`, and must be a positive integer.
+- Results use `skip: (page - 1) * size` and `take: size`.
 - Results are ordered by `model` ascending, then `plate` ascending.
 - Deleted vehicles are excluded.
+- `totalItems` is the filtered total (not the page length).
 
 Response:
 
@@ -99,6 +108,7 @@ type VehicleOptionsResponse = {
     id: string;
     label: string; // vehicle model
   }>;
+  totalItems: number;
 };
 ```
 
@@ -123,16 +133,16 @@ Unit tests cover both use cases:
 - search fields;
 - optional `customerId` filtering for vehicles;
 - deleted record exclusion;
-- limit handling;
+- page and size handling with stable `totalItems`;
 - missing establishment and invalid customer scope.
 
 E2E tests cover both endpoints:
 
-- response shape includes only `id` and `label`;
+- response shape includes `id`, `label`, and `totalItems`;
 - owner and employee authentication work;
 - customer-role users are forbidden;
 - employee without `read:customers` is forbidden;
-- search and limit query params work;
+- search, page, and size query params work;
 - vehicle `customerId` filter works;
 - data from another establishment is not exposed.
 
